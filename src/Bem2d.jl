@@ -69,7 +69,7 @@ function discretizedline(xstart, ystart, xend, yend, nelements)
 end
 
 
-# def displacements_stresses_constant_linear(
+# def disp_stres_const(
 #     x,
 #     y,
 #     a,
@@ -210,26 +210,27 @@ end
 #     ) + y_component * ((1 - 2 * nu) * f[2, :] - y * f[3, :])
 #
 #     return displacement, stress
-#
-#
+# end
 
 # Generalization from Starfield and Crouch
-function f_slip_to_displacement_stress(xcomp, ycomp, f, y, mu, nu):
+export slip2dispstress
+function slip2dispstress(xcomp, ycomp, f, y, mu, nu):
     disp = zeros(length(y), 2)
     stress = zeros(length(y), 3)
-    xcomp *= -1.0 # For Okada consistency
-    ycomp *= -1.0 # For Okada consistency
+    _xcomp = -xcomp # For Okada consistency
+    _ycomp = -ycomp # For Okada consistency
     for i in 1:length(y)
-        disp[i, 0] = xcomp * (2.0 * (1.0 - nu) * f[i, 1] - y * f[i, 4]) + ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 2] - y * f[i, 3])
-        disp[i, 1] = xcomp * ((1.0 - 2.0 * nu) * f[i, 2] - y * f[i, 3]) + ycomp * (2.0 * (1 - nu) * f[i, 1] - y * -f[i, 4])
-        stress[i, 0] = 2.0 * xcomp * mu * (2.0 * f[i, 3] + y * f[i, 5]) + 2.0 * ycomp * mu * (-f[i, 4] + y * f[i, 6])
-        stress[i, 1] = 2.0 * xcomp * mu * (-y * f[i, 5]) + 2.0 * ycomp * mu * (-f[i, 4] - y * f[i, 6])
-        stress[i, 2] = 2.0 * xcomp * mu * (-f[i, 4] + y * f[i, 6]) + 2.0 * ycomp * mu * (-y * f[i, 5])
+        disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] - y * f[i, 4])
+        disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y * -f[i, 5])
+        stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y * f[i, 7])
+        stress[i, 2] = 2.0 * _xcomp * mu * (-y * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y * f[i, 7])
+        stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y * f[i, 7]) + 2.0 * _ycomp * mu * (-y * f[i, 6])
     end
     return disp, stress
 end
 
-function stresstotraction(stress, nvec)
+export stress2traction
+function stress2traction(stress, nvec)
     traction = [stress[1] stress[2] ; stress[2] stress[3]] * nvec
     return traction
 end
@@ -256,21 +257,20 @@ function standardize_elements!(elements)
     return nothing
 end
 
-# def rotate_displacement_stress(displacement, stress, inverse_rotation_matrix):
-#     """ Rotate displacements stresses from local to global reference frame """
-#     displacement = np.matmul(displacement.T, inverse_rotation_matrix).T
-#     for i in range(0, stress.shape[1]):
-#         stress_tensor = np.array(
-#             [[stress[0, i], stress[2, i]], [stress[2, i], stress[1, i]]]
-#         )
-#         stress_tensor_global = (
-#             inverse_rotation_matrix.T @ stress_tensor @ inverse_rotation_matrix
-#         )
-#         stress[0, i] = stress_tensor_global[0, 0]
-#         stress[1, i] = stress_tensor_global[1, 1]
-#         stress[2, i] = stress_tensor_global[0, 1]
-#     return displacement, stress
-
+export rotdispstress
+function rotdispstress(disp, stress, rotmatinv)
+    # If this is slow hand expand the matrix vector multiplies
+    # inplace for speed.  Some benchmarks suggest 50x speedup!
+    _disp = disp' * rotmatinv' # Whaaa? Move this into loop and get rid of first transpose
+    for i in 0:size(stress)[1]
+        stress_tensor = [stress[i, 1] stress[i, 3] ; stress[i, 3] stress[i, 2]]
+        stress_tensor_global = rotmatinv' * stress_tensor * rotmatinv
+        _stress[i, 1] = stressglobal[1, 1]
+        _stress[i, 2] = stressglobal[2, 2]
+        _stress[i, 3] = stressglobal[1, 2]
+    end
+    return _disp, _stress
+end
 
 
 end
