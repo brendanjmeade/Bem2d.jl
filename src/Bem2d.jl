@@ -214,7 +214,7 @@ end
 
 # Generalization from Starfield and Crouch
 export slip2dispstress
-function slip2dispstress(xcomp, ycomp, f, y, mu, nu):
+function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     disp = zeros(length(y), 2)
     stress = zeros(length(y), 3)
     _xcomp = -xcomp # For Okada consistency
@@ -258,13 +258,15 @@ function standardize_elements!(elements)
 end
 
 export rotdispstress
-function rotdispstress(disp, stress, rotmatinv)
+function rotdispstress(disp, stress, rotmat_inv)
     # If this is slow hand expand the matrix vector multiplies
     # inplace for speed.  Some benchmarks suggest 50x speedup!
-    _disp = disp' * rotmatinv' # Whaaa? Move this into loop and get rid of first transpose
     for i in 0:size(stress)[1]
+        dispglobal = rotmat_inv * [disp[i, 1] ; disp[i, 2]]
+        _disp[i, 1] = dispglobal[1]
+        _disp[i, 2] = dispglobal[2]
         stress_tensor = [stress[i, 1] stress[i, 3] ; stress[i, 3] stress[i, 2]]
-        stress_tensor_global = rotmatinv' * stress_tensor * rotmatinv
+        stressglobal = rotmat_inv' * stress_tensor * rotmat_inv
         _stress[i, 1] = stressglobal[1, 1]
         _stress[i, 2] = stressglobal[2, 2]
         _stress[i, 3] = stressglobal[1, 2]
