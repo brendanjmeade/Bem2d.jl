@@ -1,5 +1,9 @@
 module Bem2d
 
+maxidx = Int64(1e5)
+println()
+println("Bem2d.jl: Maximum number of elements: maxidx = ", maxidx)
+println()
 export Elements
 mutable struct Elements
     x1::Array{Float64, 1}
@@ -7,23 +11,49 @@ mutable struct Elements
     x2::Array{Float64, 1}
     y2::Array{Float64, 1}
     name::Array{String, 1}
-    uxglobal::Array{Float64, 1}
-    uyglobal::Array{Float64, 1}
+    uxconst::Array{Float64, 1}
+    uyconst::Array{Float64, 1}
+    uxquad::Array{Float64, 2}
+    uyquad::Array{Float64, 2}
     angle::Array{Float64, 1}
     length::Array{Float64, 1}
     halflength::Array{Float64, 1}
     xcenter::Array{Float64, 1}
     ycenter::Array{Float64, 1}
-    rotationmatrix::Array{Float64, 1}
-    rotationmatrixinverse::Array{Float64, 1}
+    rotmat::Array{Float64, 3}
+    rotmatinv::Array{Float64, 3}
     xnormal::Array{Float64, 1}
     ynormal::Array{Float64, 1}
-    xnodes::Array{Float64, 1}
-    ynodes::Array{Float64, 1}
-    Elements() = new([], [], [], [], [], [],
-                     [], [], [], [], [], [],
-                     [], [], [], [], [], [])
+    xnodes::Array{Float64, 2}
+    ynodes::Array{Float64, 2}
+    lastidx::Int64
+    Elements() = new(fill(NaN, maxidx), # x1
+                fill(NaN, maxidx), # y1
+                fill(NaN, maxidx), # x2
+                fill(NaN, maxidx), # y2
+                fill("", maxidx), # names
+                fill(NaN, maxidx), # uxglobal::Array{Float64, 1}
+                fill(NaN, maxidx), # uyglobal::Array{Float64, 1}
+                fill(NaN, maxidx, 3), # uxglobalquad::Array{Float64, 2}
+                fill(NaN, maxidx, 3), # uyglobalquad::Array{Float64, 2}
+                fill(NaN, maxidx), # angle::Array{Float64, 1}
+                fill(NaN, maxidx), # length::Array{Float64, 1}
+                fill(NaN, maxidx), # halflength::Array{Float64, 1}
+                fill(NaN, maxidx), # xcenter::Array{Float64, 1}
+                fill(NaN, maxidx), # ycenter::Array{Float64, 1}
+                fill(NaN, maxidx, 2, 2), # rotationmatrix::Array{Float64, 3}
+                fill(NaN, maxidx, 2, 2), # rotationmatrixinverse::Array{Float64, 3}
+                fill(NaN, maxidx), # xnormal::Array{Float64, 1}
+                fill(NaN, maxidx), # ynormal::Array{Float64, 1}
+                fill(NaN, maxidx, 3), # xnodes
+                fill(NaN, maxidx, 3), # ynodes
+                0) # lastidx
+end
 
+export updatelastidx!
+function updatelastidx!(elements)
+    elements.lastidx = findall(isnan, elements.x1)[1] - 1
+    return nothing
 end
 
 export discretizedline
@@ -182,95 +212,46 @@ end
 #     return displacement, stress
 #
 #
-# def f_slip_to_displacement_stress(x_component, y_component, f, y, mu, nu):
-#     """ This is the generalization from Starfield and Crouch """
-#     displacement = np.zeros((2, y.size))
-#     stress = np.zeros((3, y.size))
-#
-#     # The sign change here is to:
-#     # 1 - Ensure consistenty with Okada convention
-#     # 2 - For a horizontal/flat fault make the upper half move in the +x direction
-#     x_component = -1 * x_component
-#     y_component = -1 * y_component
-#
-#     displacement[0, :] = x_component * (
-#         2 * (1 - nu) * f[1, :] - y * f[4, :]
-#     ) + y_component * (-1 * (1 - 2 * nu) * f[2, :] - y * f[3, :])
-#
-#     displacement[1, :] = x_component * (
-#         (1 - 2 * nu) * f[2, :] - y * f[3, :]
-#     ) + y_component * (
-#         2 * (1 - nu) * f[1, :] - y * -f[4, :]
-#     )  # Note the negative sign in front f[4, :] because f[4, :] = f,xx = -f,yy
-#
-#     stress[0, :] = 2 * x_component * mu * (
-#         2 * f[3, :] + y * f[5, :]
-#     ) + 2 * y_component * mu * (-f[4, :] + y * f[6, :])
-#
-#     stress[1, :] = 2 * x_component * mu * (-y * f[5, :]) + 2 * y_component * mu * (
-#         -f[4, :] - y * f[6, :]
-#     )
-#
-#     stress[2, :] = 2 * x_component * mu * (
-#         -f[4, :] + y * f[6, :]
-#     ) + 2 * y_component * mu * (-y * f[5, :])
-#
-#     return displacement, stress
 
+# Generalization from Starfield and Crouch
+function f_slip_to_displacement_stress(xcomp, ycomp, f, y, mu, nu):
+    disp = zeros(length(y), 2)
+    stress = zeros(length(y), 3)
+    xcomp *= -1.0 # For Okada consistency
+    ycomp *= -1.0 # For Okada consistency
+    for i in 1:length(y)
+        disp[i, 0] = xcomp * (2.0 * (1.0 - nu) * f[i, 1] - y * f[i, 4]) + ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 2] - y * f[i, 3])
+        disp[i, 1] = xcomp * ((1.0 - 2.0 * nu) * f[i, 2] - y * f[i, 3]) + ycomp * (2.0 * (1 - nu) * f[i, 1] - y * -f[i, 4])
+        stress[i, 0] = 2.0 * xcomp * mu * (2.0 * f[i, 3] + y * f[i, 5]) + 2.0 * ycomp * mu * (-f[i, 4] + y * f[i, 6])
+        stress[i, 1] = 2.0 * xcomp * mu * (-y * f[i, 5]) + 2.0 * ycomp * mu * (-f[i, 4] - y * f[i, 6])
+        stress[i, 2] = 2.0 * xcomp * mu * (-f[i, 4] + y * f[i, 6]) + 2.0 * ycomp * mu * (-y * f[i, 5])
+    end
+    return disp, stress
+end
 
-# def stress_to_traction(stress, normal_vector):
-#     """ Compute tractions from stress tensor and normal vector """
-#     stress_tensor = np.zeros((2, 2))
-#     stress_tensor[0, 0] = stress[0]
-#     stress_tensor[0, 1] = stress[2]
-#     stress_tensor[1, 0] = stress[2]
-#     stress_tensor[1, 1] = stress[1]
-#     traction = stress_tensor @ normal_vector
-#     return traction
+function stresstotraction(stress, nvec)
+    traction = [stress[1] stress[2] ; stress[2] stress[3]] * nvec
+    return traction
+end
 
 export standardize_elements!
 function standardize_elements!(elements)
-    for i in 1:length(elements.x1)
+    updatelastidx!(elements)
+    for i in 1:elements.lastidx
         dx = elements.x2[i] - elements.x1[i]
         dy = elements.y2[i] - elements.y1[i]
-        mag = sqrt(dx^2 + dy^2)
-        push!(elements.angle, atan(elements.y2[i] - elements.y1[i], elements.x2[i] - elements.x1[i]))
-        push!(elements.length, sqrt((elements.x2[i] - elements.x1[i])^2 + (elements.y2[i] - elements.y1[i])^2))
-        push!(elements.halflength, 0.5 * elements.length[i])
-        push!(elements.xcenter, 0.5 * (elements.x2[i] + elements.x1[i]))
-        push!(elements.ycenter, 0.5 * (elements.y2[i] + elements.y1[i]))
-        # element["rotation_matrix"] = np.array(
-        #     [
-        #         [np.cos(element["angle"]), -np.sin(element["angle"])],
-        #         [np.sin(element["angle"]), np.cos(element["angle"])],
-        #     ]
-        # )
-        # element["inverse_rotation_matrix"] = np.array(
-        #     [
-        #         [np.cos(-element["angle"]), -np.sin(-element["angle"])],
-        #         [np.sin(-element["angle"]), np.cos(-element["angle"])],
-        #     ]
-        # )
-        push!(elements.xnormal, dy / mag)
-        push!(elements.ynormal, -dx / mag)
-        elements.xnodes = vcat(elements.xnodes, [elements.xcenter[i] - (2 / 3 * dx / 2), elements.xcenter[i], elements.xcenter[i] + (2 / 3 * dx / 2)])
-        # element["ynodes"] = np.array(
-        #     [
-        #         element["y_center"] - (2 / 3 * dy / 2),
-        #         element["y_center"],
-        #         element["y_center"] + (2 / 3 * dy / 2),
-        #     ]
-        # )
-        #
-        # # If a local boundary condition is giving convert to global
-        # # TODO: This is just for convenience there should be flags for real BCs
-        # if "ux_local" in element:
-        #     u_local = np.array([element["ux_local"], element["uy_local"]])
-        #     u_global = element["rotation_matrix"] @ u_local
-        #     element["ux_global_constant"] = u_global[0]
-        #     element["uy_global_constant"] = u_global[1]
-        #     element["ux_global_quadratic"] = np.repeat(u_global[0], 3)
-        #     element["uy_global_quadratic"] = np.repeat(u_global[1], 3)
+        magnitude = sqrt(dx^2 + dy^2)
+        elements.angle[i] = atan(dy, dx)
+        elements.length[i] = magnitude
+        elements.halflength[i] = 0.5 * elements.length[i]
+        elements.xcenter[i] = 0.5 * (elements.x2[i] + elements.x1[i])
+        elements.ycenter[i] = 0.5 * (elements.y2[i] + elements.y1[i])
+        elements.rotmat[i, :, :] = [cos(elements.angle[1]) -sin(elements.angle[1]) ; sin(elements.angle[1]) cos(elements.angle[1])]
+        elements.rotmatinv[i, :, :] = [cos(-elements.angle[1]) -sin(-elements.angle[1]) ; sin(-elements.angle[1]) cos(-elements.angle[1])]
+        elements.xnormal[i] = dy / magnitude
+        elements.ynormal[i] = -dx / magnitude
+        elements.xnodes[i, :] = [elements.xcenter[i] - (2 / 3 * dx / 2), elements.xcenter[i], elements.xcenter[i] + (2 / 3 * dx / 2)]
+        elements.ynodes[i, :] = [elements.ycenter[i] - (2 / 3 * dy / 2), elements.ycenter[i], elements.ycenter[i] + (2 / 3 * dy / 2)]
     end
     return nothing
 end
