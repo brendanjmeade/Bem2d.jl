@@ -272,5 +272,4 @@ function rotdispstress(disp, stress, rotmatinv)
     return _disp, _stress
 end
 
-
 end
