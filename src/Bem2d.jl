@@ -68,149 +68,61 @@ function discretizedline(xstart, ystart, xend, yend, nelements)
     return x1, y1, x2, y2
 end
 
+# Calculate displacements and stresses for constant slip elements
+export dispstress_const
+function dispstress_const(x, y, a, mu, nu, elementtype, xcomp, ycomp, xcenter, ycenter, rotmat, rotmat_inv)
+    # Rotate and translate into local coordinate system with *global* slip components
+    _x = x - x_center
+    _y = y - y_center
+    for i in 1:length(_x)
+        rotatedcoords = rotmat * [_x[i] _y[i]]
+        _x[i] = rotatedcoords[:, 1]
+        _y[i] = rotatedcoords[:, 2]
+    end
+    globalcomponents = inverse_rotmat_inv * [xcomp ycomp]
+    _xcomp = globalcomponents[1]
+    _ycomp = globalcomponents[2]
 
-# def disp_stres_const(
-#     x,
-#     y,
-#     a,
-#     mu,
-#     nu,
-#     shape_function,
-#     element_type,
-#     x_component,
-#     y_component,
-#     x_center,
-#     y_center,
-#     rotation_matrix,
-#     inverse_rotation_matrix,
-# ):
-#     """ Calculate displacements and stresses for constant and linear slip elements """
-#     # Rotate and translate into local coordinate system
-#     x = x - x_center
-#     y = y - y_center
-#     rotated_coords = np.matmul(np.vstack((x, y)).T, rotation_matrix)
-#     x = rotated_coords[:, 0]
-#     y = rotated_coords[:, 1]
-#
-#     # Convert to global coordinates here.  Should this be elsewhere?
-#     global_components = inverse_rotation_matrix @ np.array([x_component, y_component])
-#     x_component = global_components[0]
-#     y_component = global_components[1]
-#
-#     if shape_function == "constant":
-#         f = constant_kernel(x, y, a, nu)
-#     elif shape_function == "linear":
-#         f = linear_kernel(x, y, a, nu)
-#
-#     if element_type == "traction":
-#         displacement, stress = f_traction_to_displacement_stress(
-#             x_component, y_component, f, y, mu, nu
-#         )
-#     elif element_type == "slip":
-#         displacement, stress = f_slip_to_displacement_stress(
-#             x_component, y_component, f, y, mu, nu
-#         )
-#
-#     displacement, stress = rotate_displacement_stress(
-#         displacement, stress, inverse_rotation_matrix
-#     )
-#     return displacement, stress
-#
-#
-# def constant_kernel(x, y, a, nu):
-#     """ From Starfield and Crouch, pages 49 and 82 """
-#     f = np.zeros((7, x.size))
-#
-#     f[0, :] = (
-#         -1
-#         / (4 * np.pi * (1 - nu))
-#         * (
-#             y * (np.arctan2(y, (x - a)) - np.arctan2(y, (x + a)))
-#             - (x - a) * np.log(np.sqrt((x - a) ** 2 + y ** 2))
-#             + (x + a) * np.log(np.sqrt((x + a) ** 2 + y ** 2))
-#         )
-#     )
-#
-#     f[1, :] = (
-#         -1
-#         / (4 * np.pi * (1 - nu))
-#         * ((np.arctan2(y, (x - a)) - np.arctan2(y, (x + a))))
-#     )
-#
-#     f[2, :] = (
-#         1
-#         / (4 * np.pi * (1 - nu))
-#         * (
-#             np.log(np.sqrt((x - a) ** 2 + y ** 2))
-#             - np.log(np.sqrt((x + a) ** 2 + y ** 2))
-#         )
-#     )
-#
-#     f[3, :] = (
-#         1
-#         / (4 * np.pi * (1 - nu))
-#         * (y / ((x - a) ** 2 + y ** 2) - y / ((x + a) ** 2 + y ** 2))
-#     )
-#
-#     f[4, :] = (
-#         1
-#         / (4 * np.pi * (1 - nu))
-#         * ((x - a) / ((x - a) ** 2 + y ** 2) - (x + a) / ((x + a) ** 2 + y ** 2))
-#     )
-#
-#     f[5, :] = (
-#         1
-#         / (4 * np.pi * (1 - nu))
-#         * (
-#             ((x - a) ** 2 - y ** 2) / ((x - a) ** 2 + y ** 2) ** 2
-#             - ((x + a) ** 2 - y ** 2) / ((x + a) ** 2 + y ** 2) ** 2
-#         )
-#     )
-#
-#     f[6, :] = (
-#         2
-#         * y
-#         / (4 * np.pi * (1 - nu))
-#         * (
-#             (x - a) / ((x - a) ** 2 + y ** 2) ** 2
-#             - (x + a) / ((x + a) ** 2 + y ** 2) ** 2
-#         )
-#     )
-#     return f
+    f = constantkernel(_x, _y, a, nu)
+    if elementtype == "traction"
+        disp, stress = traction2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
+    else elementtype == "slip"
+        disp, stress = slip2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
+    end
 
-# def f_traction_to_displacement_stress(x_component, y_component, f, y, mu, nu):
-#     """ This is the generalization from Starfield and Crouch """
-#     displacement = np.zeros((2, y.size))
-#     stress = np.zeros((3, y.size))
-#
-#     # The sign change here is to:
-#     # 1 - Ensure consistenty with Okada convention
-#     # 2 - For a horizontal/flat fault make the upper half move in the +x direction
-#     x_component = -1 * x_component
-#     y_component = -1 * y_component
-#
-#     displacement[0, :] = x_component / (2 * mu) * (
-#         (3 - 4 * nu) * f[0, :] + y * f[1, :]
-#     ) + y_component / (2 * mu) * (-y * f[2, :])
-#
-#     displacement[1, :] = x_component / (2 * mu) * (-y * f[2, :]) + y_component / (
-#         2 * mu
-#     ) * ((3 - 4 * nu) * f[0, :] - y * f[1, :])
-#
-#     stress[0, :] = x_component * (
-#         (3 - 2 * nu) * f[2, :] + y * f[3, :]
-#     ) + y_component * (2 * nu * f[1, :] + y * f[4, :])
-#
-#     stress[1, :] = x_component * (
-#         -1 * (1 - 2 * nu) * f[2, :] + y * f[3, :]
-#     ) + y_component * (2 * (1 - nu) * f[1, :] - y * f[4, :])
-#
-#     stress[2, :] = x_component * (
-#         2 * (1 - nu) * f[1, :] + y * f[4, :]
-#     ) + y_component * ((1 - 2 * nu) * f[2, :] - y * f[3, :])
-#
-#     return displacement, stress
-# end
+    disp, stress = rotdispstress(disp, stress, rotmat_inv)
+    return disp, stress
+end
+
+# Constant slip kernels from Starfield and Crouch, pages 49 and 82
+function constantkernel(x, y, a, nu)
+    f = zeros(length(x), 7)
+    for i in 1:length(x[i])
+        f[i, 1] = -1 / (4 * pi * (1 - nu)) * (y[i] * (atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a)))- (x[i] - a) * log(sqrt((x[i] - a)^2 + y[i]^2)) + (x[i] + a) * log(sqrt((x[i] + a)^2 + y[i]^2)))
+        f[i, 2] = -1 / (4 * pi * (1 - nu)) * ((atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a))))
+        f[i, 3] = 1 / (4 * pi * (1 - nu)) * (log(sqrt((x[i] - a)^2 + y[i]^2)) - log(sqrt((x[i] + a)^2 + y[i]^2)))
+        f[i, 4] = 1 / (4 * pi * (1 - nu)) * (y[i] / ((x[i] - a)^2 + y[i]^2) - y[i] / ((x[i] + a)^2 + y[i]^2))
+        f[i, 5] = 1 / (4 * pi * (1 - nu)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2) - (x[i] + a) / ((x[i] + a)^2 + y[i]^2))
+        f[i, 6] = 1 / (4 * pi * (1 - nu)) * (((x[i] - a)^2 - y[i]^2) / ((x[i] - a)^2 + y[i]^2)^2 - ((x[i] + a)^2 - y[i]^2) / ((x[i] + a)^2 + y[i]^2)^2)
+        f[i, 7] = 2 * y[i] / (4 * pi * (1 - nu)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2)^2 - (x[i] + a) / ((x[i] + a)^2 + y[i]^2)^2)
+    end
+    return f
+end
+
+# Generalization from Starfield and Crouch
+export traction2dispstress
+function traction2dispstress(xcomp, ycomp, f, y, mu, nu)
+    disp = zeros(length(y), 2)
+    stress = zeros(length(y), 3)
+    _xcomp = -xcomp # For Okada consistency
+    _ycomp = -ycomp # For Okada consistency
+    disp[:, 1] = _xcomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[:, 1] + y * f[:, 2]) + _ycomp / (2.0 * mu) * (-y * f[:, 3])
+    disp[:, 2] = _xcomp / (2.0 * mu) * (-y * f[:, 3]) + _ycomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[:, 1] - y * f[:, 2])
+    stress[:, 1] = _xcomp * ((3.0 - 2.0 * nu) * f[:, 3] + y * f[:, 4]) + _ycomp * (2.0 * nu * f[:, 2] + y * f[:, 5])
+    stress[:, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * nu) * f[:, 3] + y * f[:, 4]) + _ycomp * (2.0 * (1.0 - nu) * f[:, 2] - y * f[:, 5])
+    stress[:, 3] = _xcomp * (2.0 * (1.0 - nu) * f[:, 2] + y * f[:, 5]) + _ycomp * ((1.0 - 2.0 * nu) * f[:, 3] - y * f[:, 4])
+    return disp, stress
+end
 
 # Generalization from Starfield and Crouch
 export slip2dispstress
@@ -259,7 +171,7 @@ end
 
 export rotdispstress
 function rotdispstress(disp, stress, rotmat_inv)
-    # If this is slow hand expand the matrix vector multiplies
+    # TODO: If this is slow hand expand the matrix vector multiplies
     # inplace for speed.  Some benchmarks suggest 50x speedup!
     for i in 0:size(stress)[1]
         dispglobal = rotmat_inv * [disp[i, 1] ; disp[i, 2]]
