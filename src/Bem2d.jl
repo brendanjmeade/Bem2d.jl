@@ -1,5 +1,11 @@
 module Bem2d
 
+# http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
+export meshgrid
+function meshgrid(xs, ys)
+    return [xs[i] for i in 1:length(xs), j in 1:length(ys)], [ys[j] for i in 1:length(xs), j in 1:length(ys)]
+end
+
 maxidx = Int64(1e5)
 println()
 println("Bem2d.jl: Maximum number of elements: maxidx = ", maxidx)
@@ -69,35 +75,25 @@ function discretizedline(xstart, ystart, xend, yend, nelements)
 end
 
 # Calculate displacements and stresses for constant slip elements
-export dispstress_const
-function dispstress_const(x, y, a, mu, nu, elementtype, xcomp, ycomp, xcenter, ycenter, rotmat, rotmat_inv)
+export dispstress_constslip
+function dispstress_constslip(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
     # Rotate and translate into local coordinate system with *global* slip components
-    _x = x - x_center
-    _y = y - y_center
-    for i in 1:length(_x)
-        rotatedcoords = rotmat * [_x[i] _y[i]]
-        _x[i] = rotatedcoords[:, 1]
-        _y[i] = rotatedcoords[:, 2]
+    _x = zeros(length(x))
+    _y = zeros(length(y))
+    for i in 1:length(x)
+        _x[i], _y[i] = rotmat * [x[i] - xcenter ; y[i] - ycenter]
     end
-    globalcomponents = inverse_rotmat_inv * [xcomp ycomp]
-    _xcomp = globalcomponents[1]
-    _ycomp = globalcomponents[2]
-
+    _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
     f = constantkernel(_x, _y, a, nu)
-    if elementtype == "traction"
-        disp, stress = traction2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
-    else elementtype == "slip"
-        disp, stress = slip2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
-    end
-
-    disp, stress = rotdispstress(disp, stress, rotmat_inv)
+    disp, stress = slip2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
+    disp, stress = rotdispstress(disp, stress, rotmatinv)
     return disp, stress
 end
 
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constantkernel(x, y, a, nu)
     f = zeros(length(x), 7)
-    for i in 1:length(x[i])
+    for i in 1:length(x)
         f[i, 1] = -1 / (4 * pi * (1 - nu)) * (y[i] * (atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a)))- (x[i] - a) * log(sqrt((x[i] - a)^2 + y[i]^2)) + (x[i] + a) * log(sqrt((x[i] + a)^2 + y[i]^2)))
         f[i, 2] = -1 / (4 * pi * (1 - nu)) * ((atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a))))
         f[i, 3] = 1 / (4 * pi * (1 - nu)) * (log(sqrt((x[i] - a)^2 + y[i]^2)) - log(sqrt((x[i] + a)^2 + y[i]^2)))
@@ -132,11 +128,11 @@ function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     _xcomp = -xcomp # For Okada consistency
     _ycomp = -ycomp # For Okada consistency
     for i in 1:length(y)
-        disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] - y * f[i, 4])
-        disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y * -f[i, 5])
-        stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y * f[i, 7])
-        stress[i, 2] = 2.0 * _xcomp * mu * (-y * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y * f[i, 7])
-        stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y * f[i, 7]) + 2.0 * _ycomp * mu * (-y * f[i, 6])
+        disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
+        disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
+        stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
+        stress[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
+        stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7]) + 2.0 * _ycomp * mu * (-y[i] * f[i, 6])
     end
     return disp, stress
 end
@@ -170,18 +166,15 @@ function standardize_elements!(elements)
 end
 
 export rotdispstress
-function rotdispstress(disp, stress, rotmat_inv)
+function rotdispstress(disp, stress, rotmatinv)
     # TODO: If this is slow hand expand the matrix vector multiplies
     # inplace for speed.  Some benchmarks suggest 50x speedup!
-    for i in 0:size(stress)[1]
-        dispglobal = rotmat_inv * [disp[i, 1] ; disp[i, 2]]
-        _disp[i, 1] = dispglobal[1]
-        _disp[i, 2] = dispglobal[2]
-        stress_tensor = [stress[i, 1] stress[i, 3] ; stress[i, 3] stress[i, 2]]
-        stressglobal = rotmat_inv' * stress_tensor * rotmat_inv
-        _stress[i, 1] = stressglobal[1, 1]
-        _stress[i, 2] = stressglobal[2, 2]
-        _stress[i, 3] = stressglobal[1, 2]
+    _disp = zeros(size(disp))
+    _stress = zeros(size(stress))
+    for i in 1:size(stress)[1]
+        _disp[i, 1], _disp[i, 2] = rotmatinv * [disp[i, 1] ; disp[i, 2]]
+        stresstensor = [stress[i, 1] stress[i, 3] ; stress[i, 3] stress[i, 2]]
+        _stress[i, 1], _stress[i, 3], _stress[i, 3] = rotmatinv' * stresstensor * rotmatinv
     end
     return _disp, _stress
 end
