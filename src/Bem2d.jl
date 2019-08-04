@@ -1,6 +1,8 @@
 module Bem2d
+using LaTeXStrings
+using Plots
 
-# http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
+# Based on: http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
 export meshgrid
 function meshgrid(xs, ys)
     return [xs[i] for i in 1:length(xs), j in 1:length(ys)], [ys[j] for i in 1:length(xs), j in 1:length(ys)]
@@ -120,7 +122,7 @@ function traction2dispstress(xcomp, ycomp, f, y, mu, nu)
     return disp, stress
 end
 
-# Generalization from Starfield and Crouch
+# Generalization of Starfield and Crouch
 export slip2dispstress
 function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     disp = zeros(length(y), 2)
@@ -177,6 +179,82 @@ function rotdispstress(disp, stress, rotmatinv)
         _stress[i, 1], _stress[i, 3], _stress[i, 3] = rotmatinv' * stresstensor * rotmatinv
     end
     return _disp, _stress
+end
+
+# export plotelements
+function plotelements(elements)
+    for i in 1:elements.lastidx
+        plot([elements.x1[i], elements.x2[i]], [elements.y1[i], elements.y2[i]],
+             linewidth=0.5, linecolor=:black)
+    end
+end
+
+
+export plotfields
+function plotfields(elements, xgrid, ygrid, disp, stress, sup_title)
+    figsize = (800, 600)
+    # Replace this first one with quiver
+    field = disp[:, 1]
+    p1 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
+                  aspect_ratio=:equal, title=L"u_x", xlabel=L"x \; \mathrm{(km)}",
+                  ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
+                  framestyle=:box, xtickfontsize=12, ytickfontsize=12)
+    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
+             linecolor=:gray)
+
+    field = disp[:, 1]
+    p2 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
+                  aspect_ratio=:equal, title=L"u_x", xlabel=L"x \; \mathrm{(km)}",
+                  ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
+                  framestyle=:box, xtickfontsize=12, ytickfontsize=12)
+    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
+              linecolor=:gray)
+
+    field = disp[:, 2]
+    p3 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
+                  aspect_ratio=:equal, title=L"u_y", xlabel=L"x \; \mathrm{(km)}",
+                  ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
+                  framestyle=:box, xtickfontsize=12, ytickfontsize=12)
+    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
+             linecolor=:gray)
+
+    field = stress[:, 1]
+    p4 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
+               aspect_ratio=:equal, title=L"\sigma_{xx}", xlabel=L"x \; \mathrm{(km)}",
+               ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
+               framestyle=:box, xtickfontsize=12, ytickfontsize=12)
+    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
+             linecolor=:gray)
+
+    field = stress[:, 2]
+    p5 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
+               aspect_ratio=:equal, title=L"\sigma_{yy}", xlabel=L"x \; \mathrm{(km)}",
+               ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
+               framestyle=:box, xtickfontsize=12, ytickfontsize=12)
+    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
+             linecolor=:gray)
+
+    field = stress[:, 3]
+    p6 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
+               aspect_ratio=:equal, title=L"\sigma_{xy}", xlabel=L"x \; \mathrm{(km)}",
+               ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
+               framestyle=:box, xtickfontsize=12, ytickfontsize=12)
+    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
+             linecolor=:gray)
+
+    plot(p1, p2, p3, p4, p5, p6, layout=(2, 3))
+    gui()
+
+#
+#     plt.quiver(x, y, displacement[0], displacement[1], units="width", color="b")
+#
+#     plt.title("vector displacement")
+#     plt.gca().set_aspect("equal")
+#     plt.xticks([x_lim[0], x_lim[1]])
+#     plt.yticks([y_lim[0], y_lim[1]])
+#     plt.suptitle(sup_title)
+#     plt.tight_layout()
+#     plt.show(block=False)
 end
 
 end
