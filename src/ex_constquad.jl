@@ -5,13 +5,13 @@ using Bem2d
 pyplot()
 
 function ex_constquad()
-    L = 5e3
+    L = 10e3
     mu = 3e10
     nu = 0.25
 
     # Create a flat fault
     elements = Elements()
-    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, 3)
+    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, 1)
     for i in 1:length(x1)
         elements.x1[i + elements.lastidx] = x1[i]
         elements.y1[i + elements.lastidx] = y1[i]
@@ -26,7 +26,7 @@ function ex_constquad()
     standardize_elements!(elements)
 
     # Observation coordinates for far-field calculation
-    npts = 100
+    npts = 50
     width = 20e3
     xobs = range(-width, stop=width, length=npts)
     yobs = range(-width, stop=width, length=npts)
