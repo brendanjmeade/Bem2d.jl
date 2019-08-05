@@ -190,13 +190,14 @@ function plotelements(elements)
 end
 
 export plotfields
-function plotfields(elements, xgrid, ygrid, disp, stress, sup_title)
+function plotfields(elements, xgrid, ygrid, disp, stress, title)
     figsize = (1000, 800)
     quiverscale = 20.0
     quiveridx = rand(1:length(xgrid[:]), 200)
     p1 = quiver(xgrid[quiveridx]/1e3, ygrid[quiveridx]/1e3,
                 quiver=(quiverscale .* disp[quiveridx, 1], quiverscale .* disp[quiveridx, 2]),
-                aspect_ratio=:equal, title=L"u", xlabel=L"x \; \mathrm{(km)}",
+                aspect_ratio=:equal, title=L"u" * " (" * title * ")",
+                xlabel=L"x \; \mathrm{(km)}",
                 ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:none,
                 framestyle=:box, xtickfontsize=12, ytickfontsize=12,
                 xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
@@ -205,7 +206,8 @@ function plotfields(elements, xgrid, ygrid, disp, stress, sup_title)
 
     field = disp[:, 1]
     p2 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"u_x", xlabel=L"x \; \mathrm{(km)}",
+                  aspect_ratio=:equal, title=L"u_x" * " (" * title * ")",
+                  xlabel=L"x \; \mathrm{(km)}",
                   ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:inside,
                   framestyle=:box, xtickfontsize=12, ytickfontsize=12,
                   xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
@@ -216,7 +218,8 @@ function plotfields(elements, xgrid, ygrid, disp, stress, sup_title)
 
     field = disp[:, 2]
     p3 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"u_y", xlabel=L"x \; \mathrm{(km)}",
+                  aspect_ratio=:equal, title=L"u_y" * " (" * title * ")",
+                  xlabel=L"x \; \mathrm{(km)}",
                   ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
                   framestyle=:box, xtickfontsize=12, ytickfontsize=12,
                   xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
@@ -227,7 +230,8 @@ function plotfields(elements, xgrid, ygrid, disp, stress, sup_title)
 
     field = stress[:, 1]
     p4 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"\sigma_{xx}", xlabel=L"x \; \mathrm{(km)}",
+                  aspect_ratio=:equal, title=L"\sigma_{xx}" * " (" * title * ")",
+                  xlabel=L"x \; \mathrm{(km)}",
                   ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
                   framestyle=:box, xtickfontsize=12, ytickfontsize=12,
                   xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
@@ -238,7 +242,8 @@ function plotfields(elements, xgrid, ygrid, disp, stress, sup_title)
 
     field = stress[:, 2]
     p5 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"\sigma_{yy}", xlabel=L"x \; \mathrm{(km)}",
+                  aspect_ratio=:equal, title=L"\sigma_{yy}" * " (" * title * ")",
+                  xlabel=L"x \; \mathrm{(km)}",
                   ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
                   framestyle=:box, xtickfontsize=12, ytickfontsize=12,
                   xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
@@ -249,7 +254,8 @@ function plotfields(elements, xgrid, ygrid, disp, stress, sup_title)
 
     field = stress[:, 3]
     p6 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"\sigma_{xy}", xlabel=L"x \; \mathrm{(km)}",
+                  aspect_ratio=:equal, title=L"\sigma_{xy}" * " (" * title * ")",
+                  xlabel=L"x \; \mathrm{(km)}",
                   ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
                   framestyle=:box, xtickfontsize=12, ytickfontsize=12,
                   xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
@@ -260,17 +266,6 @@ function plotfields(elements, xgrid, ygrid, disp, stress, sup_title)
 
     plot(p1, p2, p3, p4, p5, p6, layout=(2, 3))
     gui()
-
-#
-#     plt.quiver(x, y, displacement[0], displacement[1], units="width", color="b")
-#
-#     plt.title("vector displacement")
-#     plt.gca().set_aspect("equal")
-#     plt.xticks([x_lim[0], x_lim[1]])
-#     plt.yticks([y_lim[0], y_lim[1]])
-#     plt.suptitle(sup_title)
-#     plt.tight_layout()
-#     plt.show(block=False)
 end
 
 end

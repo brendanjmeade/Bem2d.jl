@@ -46,7 +46,7 @@ function ex_constquad()
     end
 
     plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-               dispconst, stressconst, "constant elements (slip)")
+               dispconst, stressconst, "const slip")
 
     return nothing
 end
