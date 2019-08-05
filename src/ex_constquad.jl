@@ -1,11 +1,10 @@
 using Plots
 using Revise
 using Bem2d
-
 pyplot()
 
 function ex_constquad()
-    L = 10e3
+    L = 5e3
     mu = 3e10
     nu = 0.25
 
@@ -34,7 +33,7 @@ function ex_constquad()
     xobs = xobs[:]
     yobs = yobs[:]
 
-    # A simple forward model for the volume
+    # Constant slip element
     dispconst = zeros(length(xobs), 2)
     stressconst = zeros(length(xobs), 3)
     for i in 1:elements.lastidx
@@ -44,11 +43,22 @@ function ex_constquad()
         dispconst += disp
         stressconst += stress
     end
-
     plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
                dispconst, stressconst, "const slip")
 
+    # Constant traction element
+    dispconst = zeros(length(xobs), 2)
+    stressconst = zeros(length(xobs), 3)
+    for i in 1:elements.lastidx
+       disp, stress = dispstress_consttrac(xobs, yobs, elements.halflength[i],
+                      mu, nu, 1.0, 0.0, elements.xcenter[i], elements.ycenter[i],
+                      elements.rotmat[i, :, :], elements.rotmatinv[i, :, :])
+       dispconst += disp
+       stressconst += stress
+    end
+    plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+               dispconst, stressconst, "const traction")
+
     return nothing
 end
-
 ex_constquad()

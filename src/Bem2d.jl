@@ -92,6 +92,22 @@ function dispstress_constslip(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, r
     return disp, stress
 end
 
+# Calculate displacements and stresses for constant traction elements
+export dispstress_consttrac
+function dispstress_consttrac(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
+    # Rotate and translate into local coordinate system with *global* slip components
+    _x = zeros(length(x))
+    _y = zeros(length(y))
+    for i in 1:length(x)
+        _x[i], _y[i] = rotmat * [x[i] - xcenter ; y[i] - ycenter]
+    end
+    _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
+    f = constantkernel(_x, _y, a, nu)
+    disp, stress = trac2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
+    disp, stress = rotdispstress(disp, stress, rotmatinv)
+    return disp, stress
+end
+
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constantkernel(x, y, a, nu)
     f = zeros(length(x), 7)
@@ -108,17 +124,19 @@ function constantkernel(x, y, a, nu)
 end
 
 # Generalization from Starfield and Crouch
-export traction2dispstress
-function traction2dispstress(xcomp, ycomp, f, y, mu, nu)
+export trac2dispstress
+function trac2dispstress(xcomp, ycomp, f, y, mu, nu)
     disp = zeros(length(y), 2)
     stress = zeros(length(y), 3)
     _xcomp = -xcomp # For Okada consistency
     _ycomp = -ycomp # For Okada consistency
-    disp[:, 1] = _xcomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[:, 1] + y * f[:, 2]) + _ycomp / (2.0 * mu) * (-y * f[:, 3])
-    disp[:, 2] = _xcomp / (2.0 * mu) * (-y * f[:, 3]) + _ycomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[:, 1] - y * f[:, 2])
-    stress[:, 1] = _xcomp * ((3.0 - 2.0 * nu) * f[:, 3] + y * f[:, 4]) + _ycomp * (2.0 * nu * f[:, 2] + y * f[:, 5])
-    stress[:, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * nu) * f[:, 3] + y * f[:, 4]) + _ycomp * (2.0 * (1.0 - nu) * f[:, 2] - y * f[:, 5])
-    stress[:, 3] = _xcomp * (2.0 * (1.0 - nu) * f[:, 2] + y * f[:, 5]) + _ycomp * ((1.0 - 2.0 * nu) * f[:, 3] - y * f[:, 4])
+    for i in 1:length(y)
+        disp[i, 1] = _xcomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * mu) * (-y[i] * f[i, 3])
+        disp[i, 2] = _xcomp / (2.0 * mu) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] - y[i] * f[i, 2])
+        stress[i, 1] = _xcomp * ((3.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * nu * f[i, 2] + y[i] * f[i, 5])
+        stress[i, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5])
+        stress[i, 3] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] + y[i] * f[i, 5]) + _ycomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
+    end
     return disp, stress
 end
 
@@ -139,10 +157,9 @@ function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     return disp, stress
 end
 
-export stress2traction
-function stress2traction(stress, nvec)
-    traction = [stress[1] stress[2] ; stress[2] stress[3]] * nvec
-    return traction
+export stress2trac
+function stress2trac(stress, nvec)
+    return [stress[1] stress[2] ; stress[2] stress[3]] * nvec
 end
 
 export standardize_elements!
