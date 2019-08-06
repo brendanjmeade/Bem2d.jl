@@ -33,6 +33,8 @@ function ex_constquad()
     xobs = xobs[:]
     yobs = yobs[:]
 
+    # TODO: Inclined fault
+    # TODO: Quadratic element comparision
     # Constant slip element
     dispconst = zeros(length(xobs), 2)
     stressconst = zeros(length(xobs), 3)
@@ -56,8 +58,8 @@ function ex_constquad()
        dispconst += disp
        stressconst += stress
     end
-    plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-               dispconst, stressconst, "const traction")
+    # plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+    #            dispconst, stressconst, "const traction")
 
     return nothing
 end
