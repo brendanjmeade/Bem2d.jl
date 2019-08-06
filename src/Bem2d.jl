@@ -34,7 +34,7 @@ mutable struct Elements
     ynormal::Array{Float64, 1}
     xnodes::Array{Float64, 2}
     ynodes::Array{Float64, 2}
-    lastidx::Int64
+    endidx::Int64
     Elements() = new(fill(NaN, maxidx), # x1
                 fill(NaN, maxidx), # y1
                 fill(NaN, maxidx), # x2
@@ -55,12 +55,12 @@ mutable struct Elements
                 fill(NaN, maxidx), # ynormal::Array{Float64, 1}
                 fill(NaN, maxidx, 3), # xnodes
                 fill(NaN, maxidx, 3), # ynodes
-                0) # lastidx
+                0) # endidx
 end
 
-export updatelastidx!
-function updatelastidx!(elements)
-    elements.lastidx = findall(isnan, elements.x1)[1] - 1
+export updateendidx!
+function updateendidx!(elements)
+    elements.endidx = findall(isnan, elements.x1)[1] - 1
     return nothing
 end
 
@@ -164,8 +164,8 @@ end
 
 export standardize_elements!
 function standardize_elements!(elements)
-    updatelastidx!(elements)
-    for i in 1:elements.lastidx
+    updateendidx!(elements)
+    for i in 1:elements.endidx
         dx = elements.x2[i] - elements.x1[i]
         dy = elements.y2[i] - elements.y1[i]
         magnitude = sqrt(dx^2 + dy^2)
@@ -199,7 +199,7 @@ function rotdispstress(disp, stress, rotmatinv)
 end
 
 function plotelements(elements)
-    for i in 1:elements.lastidx
+    for i in 1:elements.endidx
         plot!([elements.x1[i]/1e3, elements.x2[i]/1e3],
               [elements.y1[i]/1e3, elements.y2[i]/1e3],
               linewidth=0.5, linecolor=:black, legend=:none)
@@ -372,36 +372,25 @@ end
 #     return displacement_partials, traction_partials
 
 # Calcuate partial derivatives
-export partials_const
-function partials_const(elements, srcidx, xobs, yobs, normalvector, mu, nu):
+export partials_constslip
+function partials_constslip(elements, srcidx, xobs, yobs, normalvector, mu, nu)
     partials_disp = zeros(2, 2)
-    partials_stress = np.zeros(3, 2)
+    partials_stress = zeros(3, 2)
     partials_trac = zeros(2, 2)
 
-    disp_strikeslip, stress_strikeslip = dispstresses_constslip(
-                                         elements.xcenter[srcidx], elements.y_center[srcidx],
-                                         elements.half_length[srcidx], mu, nu, 1, 0,
-                                         elements.xcenter[srcidx], elements.ycenter[srcidx],
-                                         elements.rotmat[srcidx], elements.rotmat_inv[srcidx])
-#     disp_tensileslip, stress_tensileslip = dispstresses_const(
-#         xobs,
-#         yobs,
-#         element.half_length,
-#         mu,
-#         nu,
-#         "slip",
-#         0,
-#         1,
-#         element_src["x_center"],
-#         element_src["y_center"],
-#         element_src["rotation_matrix"],
-#         element_src["inverse_rotation_matrix"])
-    partials_disp[:, 1] = disp_strikeslip
-    partials_disp[:, 2] = disp_tensileslip
-    partials_stress[:, 1] = stress_strikeslip
-    partials_stress[:, 2] = stress_tensileslip
-    partials_trac[:, 1] = stress2trac(stress_strikeslip, normalvector)
-    partials_trac[:, 2] = stress2trac(stress_tensileslip, normalvector)
+    partials_disp[:, 1], partials_stress[:, 1] = dispstress_constslip(
+        elements.xcenter[srcidx], elements.ycenter[srcidx],
+        elements.halflength[srcidx], mu, nu, 1, 0,
+        elements.xcenter[srcidx], elements.ycenter[srcidx],
+        elements.rotmat[srcidx], elements.rotmatinv[srcidx])
+    partials_disp[:, 2], partials_stress[:, 2] = dispstress_constslip(
+        elements.xcenter[srcidx], elements.ycenter[srcidx],
+        elements.halflength[srcidx], mu, nu, 0, 1,
+        elements.xcenter[srcidx], elements.ycenter[srcidx],
+        elements.rotmat[srcidx], elements.rotmatinv[srcidx])
+
+    partials_trac[:, 1] = stress2trac(partials_stress[:, 1], normalvector)
+    partials_trac[:, 2] = stress2trac(partials_stress[:, 2], normalvector)
     return partials_disp, partials_stress, partials_trac
 end
 
