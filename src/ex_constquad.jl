@@ -73,13 +73,13 @@ function ex_constquad()
     for isrc in srcstart:srcend
         for iobs in obsstart:obsend
             pd, ps, pt = partials_constslip(elements, isrc, iobs, mu, nu)
-            # println(srcstart - isrc + 1)
-            # println(srcstart - isrc + 1)
-            println(pd)
-            partials_disp[isrc - srcstart + 1:isrc - srcstart + 2, iobs - obsstart + 1:iobs - obsstart + 2] = pd
+            display(pd)
+            partials_disp[2 * (isrc - srcstart) + 1:2 * (isrc - srcstart) + 2,
+                          2 * (iobs - obsstart) + 1:2 * (iobs - obsstart) + 2] = pd
+            display(partials_disp)
         end
     end
-    println(partials_disp)
+    display(partials_disp * [1 ; 0 ; 1 ; 0])
 
     return nothing
 end
