@@ -10,7 +10,7 @@ function ex_constquad()
 
     # Create a flat fault
     elements = Elements()
-    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, 1)
+    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, 2)
     for i in 1:length(x1)
         elements.x1[i + elements.endidx] = x1[i]
         elements.y1[i + elements.endidx] = y1[i]
@@ -24,7 +24,6 @@ function ex_constquad()
     end
     standardize_elements!(elements)
     println(elements.endidx)
-    println(fieldnames(Elements))
 
     # Observation coordinates for far-field calculation
     npts = 50
@@ -63,13 +62,24 @@ function ex_constquad()
     # plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
     #            dispconst, stressconst, "const traction")
 
-    xobs = elements.xcenter
-    yobs = elements.ycenter
-    normalvector = [elements.xnormal[1] ; elements.ynormal[1]]
-    pd, ps, pt = partials_constslip(elements, 1, xobs, yobs, normalvector, mu, nu)
-    println(pd)
-    println(ps)
-    println(pt)
+    # Calculate all element to element partials
+    srcstart = 1
+    srcend = elements.endidx
+    obsstart = 1
+    obsend = elements.endidx
+    partials_disp = zeros(2 * (srcend - srcstart + 1), 2 * (obsend - obsstart + 1))
+    partials_stress = zeros(3 * (srcend - srcstart + 1), 2 * (obsend - obsstart + 1))
+    partials_trac = zeros(2 * (srcend - srcstart + 1), 2 * (obsend - obsstart + 1))
+    for isrc in srcstart:srcend
+        for iobs in obsstart:obsend
+            pd, ps, pt = partials_constslip(elements, isrc, iobs, mu, nu)
+            # println(srcstart - isrc + 1)
+            # println(srcstart - isrc + 1)
+            println(pd)
+            partials_disp[isrc - srcstart + 1:isrc - srcstart + 2, iobs - obsstart + 1:iobs - obsstart + 2] = pd
+        end
+    end
+    println(partials_disp)
 
     return nothing
 end
