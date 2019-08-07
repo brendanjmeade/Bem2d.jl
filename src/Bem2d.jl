@@ -88,7 +88,9 @@ function dispstress_constslip(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, r
     _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
     f = constantkernel(_x, _y, a, nu)
     disp, stress = slip2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
+    display(disp)
     disp, stress = rotdispstress(disp, stress, rotmatinv)
+    display(disp)
     return disp, stress
 end
 
@@ -148,12 +150,45 @@ function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     _xcomp = -xcomp # For Okada consistency
     _ycomp = -ycomp # For Okada consistency
     for i in 1:length(y)
-        disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
-        disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
-        stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
-        stress[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
-        stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7]) + 2.0 * _ycomp * mu * (-y[i] * f[i, 6])
+        disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5])
+            + _ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
+        disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
+            + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
+        stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6])
+            + 2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
+        stress[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6])
+            + 2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
+        stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7])
+            + 2.0 * _ycomp * mu * (-y[i] * f[i, 6])
     end
+
+    # x_component = -1 * x_component
+    # y_component = -1 * y_component
+    #
+    # displacement[0, :] = x_component * (
+    #     2 * (1 - nu) * f[1, :] - y * f[4, :]
+    # ) + y_component * (-1 * (1 - 2 * nu) * f[2, :] - y * f[3, :])
+    #
+    # displacement[1, :] = x_component * (
+    #     (1 - 2 * nu) * f[2, :] - y * f[3, :]
+    # ) + y_component * (
+    #     2 * (1 - nu) * f[1, :] - y * -f[4, :]
+    # )  # Note the negative sign in front f[4, :] because f[4, :] = f,xx = -f,yy
+    #
+    # stress[0, :] = 2 * x_component * mu * (
+    #     2 * f[3, :] + y * f[5, :]
+    # ) + 2 * y_component * mu * (-f[4, :] + y * f[6, :])
+    #
+    # stress[1, :] = 2 * x_component * mu * (-y * f[5, :]) + 2 * y_component * mu * (
+    #     -f[4, :] - y * f[6, :]
+    # )
+    #
+    # stress[2, :] = 2 * x_component * mu * (
+    #     -f[4, :] + y * f[6, :]
+    # ) + 2 * y_component * mu * (-y * f[5, :])
+
+    println("slip2dispstress")
+    display(disp)
     return disp, stress
 end
 
@@ -174,8 +209,8 @@ function standardize_elements!(elements)
         elements.halflength[i] = 0.5 * elements.length[i]
         elements.xcenter[i] = 0.5 * (elements.x2[i] + elements.x1[i])
         elements.ycenter[i] = 0.5 * (elements.y2[i] + elements.y1[i])
-        elements.rotmat[i, :, :] = [cos(elements.angle[1]) -sin(elements.angle[1]) ; sin(elements.angle[1]) cos(elements.angle[1])]
-        elements.rotmatinv[i, :, :] = [cos(-elements.angle[1]) -sin(-elements.angle[1]) ; sin(-elements.angle[1]) cos(-elements.angle[1])]
+        elements.rotmat[i, :, :] = [cos(elements.angle[i]) -sin(elements.angle[i]) ; sin(elements.angle[i]) cos(elements.angle[i])]
+        elements.rotmatinv[i, :, :] = [cos(-elements.angle[i]) -sin(-elements.angle[i]) ; sin(-elements.angle[i]) cos(-elements.angle[i])]
         elements.xnormal[i] = dy / magnitude
         elements.ynormal[i] = -dx / magnitude
         elements.xnodes[i, :] = [elements.xcenter[i] - (2 / 3 * dx / 2), elements.xcenter[i], elements.xcenter[i] + (2 / 3 * dx / 2)]
