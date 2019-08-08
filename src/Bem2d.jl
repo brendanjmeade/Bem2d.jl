@@ -286,25 +286,45 @@ function plotfields(elements, xgrid, ygrid, disp, stress, title)
     gui()
 end
 
-export partials_constslip
-function partials_constslip(elements, srcidx, obsidx, mu, nu)
-    partials_disp = zeros(2, 2)
-    partials_stress = zeros(3, 2)
-    partials_trac = zeros(2, 2)
+export partials_constslip_single
+function partials_constslip_single(elements, srcidx, obsidx, mu, nu)
+    pdisp = zeros(2, 2)
+    pstress = zeros(3, 2)
+    ptrac = zeros(2, 2)
 
-    partials_disp[:, 1], partials_stress[:, 1] = dispstress_constslip(
+    pdisp[:, 1], pstress[:, 1] = dispstress_constslip(
         elements.xcenter[obsidx], elements.ycenter[obsidx],
         elements.halflength[srcidx], mu, nu, 1, 0,
         elements.xcenter[srcidx], elements.ycenter[srcidx],
         elements.rotmat[srcidx], elements.rotmatinv[srcidx])
-    partials_disp[:, 2], partials_stress[:, 2] = dispstress_constslip(
+    pdisp[:, 2], pstress[:, 2] = dispstress_constslip(
         elements.xcenter[obsidx], elements.ycenter[obsidx],
         elements.halflength[srcidx], mu, nu, 0, 1,
         elements.xcenter[srcidx], elements.ycenter[srcidx],
         elements.rotmat[srcidx], elements.rotmatinv[srcidx])
 
-    partials_trac[:, 1] = stress2trac(partials_stress[:, 1], [elements.xnormal[obsidx] ; elements.xnormal[obsidx]])
-    partials_trac[:, 2] = stress2trac(partials_stress[:, 2], [elements.xnormal[obsidx] ; elements.xnormal[obsidx]])
+    ptrac[:, 1] = stress2trac(pstress[:, 1], [elements.xnormal[obsidx] ; elements.xnormal[obsidx]])
+    ptrac[:, 2] = stress2trac(pstress[:, 2], [elements.xnormal[obsidx] ; elements.xnormal[obsidx]])
+    return pdisp, pstress, ptrac
+end
+
+export partials_constslip
+function partials_constslip(elements, srcidx, obsidx, mu, nu)
+    partials_disp = zeros(2 * length(srcidx), 2 * length(obsidx))
+    partials_stress = zeros(3 * length(srcidx), 2 * length(obsidx))
+    partials_trac = zeros(2 * length(srcidx), 2 * length(obsidx))
+    for isrc in 1:length(srcidx)
+        for iobs in 1:length(obsidx)
+            # TODO: Should I just move partials_constslip_single into here???
+            pd, ps, pt = partials_constslip_single(elements, srcidx[isrc], obsidx[iobs], mu, nu)
+            partials_disp[2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2,
+                          2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2] = pd
+            partials_stress[3 * (isrc - 1) + 1 : 3 * (isrc - 1) + 3,
+                            2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2] = ps
+            partials_trac[2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2,
+                          2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2] = pt
+        end
+    end
     return partials_disp, partials_stress, partials_trac
 end
 
