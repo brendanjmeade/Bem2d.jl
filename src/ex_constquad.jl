@@ -21,10 +21,10 @@ function ex_constquad()
     standardize_elements!(elements)
 
     # Observation coordinates for far-field calculation
-    npts = 50
+    npts = 20
     width = 20e3
-    xobs = range(-width, stop=width, length=npts)
-    yobs = range(-width, stop=width, length=npts)
+    xobs = LinRange(-width, width, npts)
+    yobs = LinRange(-width, width, npts)
     xobs, yobs = meshgrid(xobs, yobs)
     xobs = xobs[:]
     yobs = yobs[:]
@@ -36,7 +36,7 @@ function ex_constquad()
     stressconst = zeros(length(xobs), 3)
     for i in 1:elements.endidx
         disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[i],
-            mu, nu, 1.0, 0.0, elements.xcenter[i], elements.ycenter[i],
+            mu, nu, sqrt(2)/2, sqrt(2)/2, elements.xcenter[i], elements.ycenter[i],
             elements.rotmat[i, :, :], elements.rotmatinv[i, :, :])
         dispconst += disp
         stressconst += stress
@@ -61,7 +61,6 @@ function ex_constquad()
     # srcidx = findall(x -> x == "fault01", elements.name)
     # obsidx = findall(x -> x == "fault01", elements.name)
     # partials_disp, partials_stress, partials_trac = partials_constslip(elements, srcidx, obsidx, mu, nu)
-
     return nothing
 end
 ex_constquad()

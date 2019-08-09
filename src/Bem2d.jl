@@ -83,12 +83,17 @@ function dispstress_constslip(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, r
     _x = zeros(length(x))
     _y = zeros(length(y))
     for i in 1:length(x)
-        _x[i], _y[i] = rotmat * [x[i] - xcenter ; y[i] - ycenter]
+        _x[i], _y[i] = rotmatinv * [x[i] - xcenter ; y[i] - ycenter]
     end
     _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
+    println(xcomp, " ", ycomp)
+    println(_xcomp, " ", _ycomp)
+    # println("break2")
+    # display(rotmat)
+    # display(rotmatinv)
     f = constantkernel(_x, _y, a, nu)
     disp, stress = slip2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
-    disp, stress = rotdispstress(disp, stress, rotmatinv)
+    disp, stress = rotdispstress(disp, stress, rotmat)
     return disp, stress
 end
 
@@ -186,15 +191,15 @@ function standardize_elements!(elements)
 end
 
 export rotdispstress
-function rotdispstress(disp, stress, rotmatinv)
+function rotdispstress(disp, stress, rotmat)
     # TODO: If this is slow hand expand the matrix vector multiplies
     # inplace for speed.  Some benchmarks suggest 50x speedup!
     _disp = zeros(size(disp))
     _stress = zeros(size(stress))
     for i in 1:size(stress)[1]
-        _disp[i, 1], _disp[i, 2] = rotmatinv * [disp[i, 1] ; disp[i, 2]]
+        _disp[i, 1], _disp[i, 2] = rotmat * [disp[i, 1] ; disp[i, 2]]
         stresstensor = [stress[i, 1] stress[i, 3] ; stress[i, 3] stress[i, 2]]
-        _stress[i, 1], _stress[i, 3], _, _stress[i, 2] = rotmatinv' * stresstensor * rotmatinv
+        _stress[i, 1], _stress[i, 3], _, _stress[i, 2] = rotmat' * stresstensor * rotmat
     end
     return _disp, _stress
 end
@@ -210,8 +215,8 @@ end
 export plotfields
 function plotfields(elements, xgrid, ygrid, disp, stress, title)
     figsize = (1000, 800)
-    quiverscale = 20.0
-    quiveridx = rand(1:length(xgrid[:]), 200)
+    quiverscale = 5.0
+    quiveridx = 1:length(xgrid[:])
     p1 = quiver(xgrid[quiveridx]/1e3, ygrid[quiveridx]/1e3,
                 quiver=(quiverscale .* disp[quiveridx, 1], quiverscale .* disp[quiveridx, 2]),
                 aspect_ratio=:equal, title=L"u" * " (" * title * ")",

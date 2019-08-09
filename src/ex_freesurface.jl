@@ -52,8 +52,8 @@ faultslip = [sqrt(2) / 2 ; sqrt(2) / 2]
 dispfullspace = d1 * faultslip
 dispfreesurface = inv(t2) * (t1 * faultslip)
 
-plot(dispfullspace[1:2:end])
-plot!(dispfullspace[2:2:end])
+plot(dispfreesurface[1:2:end])
+plot!(dispfreesurface[2:2:end])
 gui()
 
 # # Quadratic case: Predict surface displacements from unit strike slip forcing
