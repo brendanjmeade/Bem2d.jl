@@ -4,22 +4,18 @@ using Bem2d
 pyplot()
 
 function ex_constquad()
-    L = 5e3
+    L = 10e3
     mu = 3e10
     nu = 0.25
 
     # Create a flat fault
     elements = Elements()
-    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, 1000)
+    x1, y1, x2, y2 = discretizedline(-L, -L, L, L, 1)
     for i in 1:length(x1)
         elements.x1[i + elements.endidx] = x1[i]
         elements.y1[i + elements.endidx] = y1[i]
         elements.x2[i + elements.endidx] = x2[i]
         elements.y2[i + elements.endidx] = y2[i]
-        elements.uxconst[i + elements.endidx] = 1.0
-        elements.uyconst[i + elements.endidx] = 1.0
-        elements.uxquad[i + elements.endidx, :] = [1.0 1.0 1.0]
-        elements.uyquad[i + elements.endidx, :] = [1.0 1.0 1.0]
         elements.name[i + elements.endidx] = "fault01"
     end
     standardize_elements!(elements)
@@ -36,17 +32,17 @@ function ex_constquad()
     # TODO: Inclined fault
     # TODO: Quadratic element comparision
     # Constant slip element
-    # dispconst = zeros(length(xobs), 2)
-    # stressconst = zeros(length(xobs), 3)
-    # for i in 1:elements.endidx
-    #     disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[i],
-    #         mu, nu, 0.0, 1.0, elements.xcenter[i], elements.ycenter[i],
-    #         elements.rotmat[i, :, :], elements.rotmatinv[i, :, :])
-    #     dispconst += disp
-    #     stressconst += stress
-    # end
-    # plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-    #     dispconst, stressconst, "const slip")
+    dispconst = zeros(length(xobs), 2)
+    stressconst = zeros(length(xobs), 3)
+    for i in 1:elements.endidx
+        disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[i],
+            mu, nu, 1.0, 0.0, elements.xcenter[i], elements.ycenter[i],
+            elements.rotmat[i, :, :], elements.rotmatinv[i, :, :])
+        dispconst += disp
+        stressconst += stress
+    end
+    plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+        dispconst, stressconst, "const slip")
 
     # Constant traction element
     # dispconst = zeros(length(xobs), 2)
@@ -62,9 +58,9 @@ function ex_constquad()
     #            dispconst, stressconst, "const traction")
 
     # Calculate constant slip partial derivatives
-    srcidx = findall(x -> x == "fault01", elements.name)
-    obsidx = findall(x -> x == "fault01", elements.name)
-    partials_disp, partials_stress, partials_trac = partials_constslip(elements, srcidx, obsidx, mu, nu)
+    # srcidx = findall(x -> x == "fault01", elements.name)
+    # obsidx = findall(x -> x == "fault01", elements.name)
+    # partials_disp, partials_stress, partials_trac = partials_constslip(elements, srcidx, obsidx, mu, nu)
 
     return nothing
 end
