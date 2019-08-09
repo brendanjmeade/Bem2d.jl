@@ -1,4 +1,7 @@
+using Revise
+using Plots
 using Bem2d
+pyplot()
 
 # Material properties and observation grid
 # SURFACE_SIGN_FLIP = True
@@ -14,7 +17,7 @@ y = y[:]
 
 # Free surface
 elements = Elements()
-x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, 20)
+x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, 200)
 for i in 1:length(x1)
     elements.x1[i + elements.endidx] = x1[i]
     elements.y1[i + elements.endidx] = y1[i]
@@ -31,10 +34,6 @@ for i in 1:length(x1)
     elements.y1[i + elements.endidx] = y1[i]
     elements.x2[i + elements.endidx] = x2[i]
     elements.y2[i + elements.endidx] = y2[i]
-    # elements.uxconst[i + elements.endidx] = 1.0
-    # elements.uyconst[i + elements.endidx] = 1.0
-    # elements.uxquad[i + elements.endidx, :] = [1.0 1.0 1.0]
-    # elements.uyquad[i + elements.endidx, :] = [1.0 1.0 1.0]
     elements.name[i + elements.endidx] = "fault"
 end
 standardize_elements!(elements)
@@ -48,14 +47,14 @@ obsidx = findall(x -> x == "freesurface", elements.name)
 d2, s2, t2 = partials_constslip(elements, srcidx, obsidx, mu, nu)
 
 # Constant case: Predict surface displacements from unit strike slip forcing
-xcenter = elements.xcenter[findall(x -> x == "freesurface", elements.name)]
-faultslip = zeros(2 * length(findall(x -> x == "fault", elements.name)))
-faultslip[1] = sqrt(2) / 2
-faultslip[2] = sqrt(2) / 2
-# TODO: Shape of d1 is is 2 rows x 40 columns.
-# This needs to be fixed in partials generation
+# xcenter = elements.xcenter[findall(x -> x == "freesurface", elements.name)]
+faultslip = [sqrt(2) / 2 ; sqrt(2) / 2]
 dispfullspace = d1 * faultslip
-# dispfreesurface = inv(t2) * (t1 * faultslip)
+dispfreesurface = inv(t2) * (t1 * faultslip)
+
+plot(dispfullspace[1:2:end])
+plot!(dispfullspace[2:2:end])
+gui()
 
 # # Quadratic case: Predict surface displacements from unit strike slip forcing
 # x_center_quadratic = np.array(
