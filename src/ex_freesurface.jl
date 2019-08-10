@@ -17,7 +17,7 @@ y = y[:]
 
 # Free surface
 elements = Elements()
-x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, 2)
+x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, 200)
 for i in 1:length(x1)
     elements.x1[i + elements.endidx] = x1[i]
     elements.y1[i + elements.endidx] = y1[i]
