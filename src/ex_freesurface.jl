@@ -17,7 +17,7 @@ y = y[:]
 
 # Free surface
 elements = Elements()
-x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, 200)
+x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, 2)
 for i in 1:length(x1)
     elements.x1[i + elements.endidx] = x1[i]
     elements.y1[i + elements.endidx] = y1[i]
@@ -47,11 +47,9 @@ obsidx = findall(x -> x == "freesurface", elements.name)
 d2, s2, t2 = partials_constslip(elements, srcidx, obsidx, mu, nu)
 
 # Constant case: Predict surface displacements from unit strike slip forcing
-# xcenter = elements.xcenter[findall(x -> x == "freesurface", elements.name)]
 faultslip = [sqrt(2) / 2 ; sqrt(2) / 2]
 dispfullspace = d1 * faultslip
 dispfreesurface = inv(t2) * (t1 * faultslip)
-
 plot(dispfreesurface[1:2:end])
 plot!(dispfreesurface[2:2:end])
 gui()

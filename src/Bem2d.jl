@@ -165,7 +165,7 @@ end
 
 export stress2trac
 function stress2trac(stress, nvec)
-    return [stress[1] stress[2] ; stress[2] stress[3]] * nvec
+    return [stress[1] stress[3] ; stress[3] stress[2]] * nvec
 end
 
 export standardize_elements!
@@ -315,35 +315,20 @@ end
 
 export partials_constslip
 function partials_constslip(elements, srcidx, obsidx, mu, nu)
-    # partials_disp = zeros(2 * length(srcidx), 2 * length(obsidx))
-    # partials_stress = zeros(3 * length(srcidx), 2 * length(obsidx))
-    # partials_trac = zeros(2 * length(srcidx), 2 * length(obsidx))
     partials_disp = zeros(2 * length(obsidx), 2 * length(srcidx))
     partials_stress = zeros(3 * length(obsidx), 2 * length(srcidx))
     partials_trac = zeros(2 * length(obsidx), 2 * length(srcidx))
-    println(size(partials_disp))
-    println(size(partials_stress))
-    println(size(partials_trac))
-
 
     for isrc in 1:length(srcidx)
         for iobs in 1:length(obsidx)
             # TODO: Should I just move partials_constslip_single into here???
             pd, ps, pt = partials_constslip_single(elements, srcidx[isrc], obsidx[iobs], mu, nu)
-            # partials_disp[2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2,
-            #               2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2] = pd
-            # partials_stress[3 * (isrc - 1) + 1 : 3 * (isrc - 1) + 3,
-            #                 2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2] = ps
-            # partials_trac[2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2,
-            #               2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2] = pt
-
             partials_disp[2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2,
                           2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = pd
             partials_stress[3 * (iobs - 1) + 1 : 3 * (iobs - 1) + 3,
                             2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = ps
             partials_trac[2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2,
                           2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = pt
-
         end
     end
     return partials_disp, partials_stress, partials_trac
