@@ -79,6 +79,7 @@ end
 # Calculate displacements and stresses for constant slip elements
 export dispstress_constslip
 function dispstress_constslip(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
+    display(Base.@locals())
     # Rotate and translate into local coordinate system with *global* slip components
     _x = zeros(length(x))
     _y = zeros(length(y))
@@ -86,11 +87,6 @@ function dispstress_constslip(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, r
         _x[i], _y[i] = rotmatinv * [x[i] - xcenter ; y[i] - ycenter]
     end
     _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
-    println(xcomp, " ", ycomp)
-    println(_xcomp, " ", _ycomp)
-    # println("break2")
-    # display(rotmat)
-    # display(rotmatinv)
     f = constantkernel(_x, _y, a, nu)
     disp, stress = slip2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
     disp, stress = rotdispstress(disp, stress, rotmat)
@@ -296,17 +292,19 @@ function partials_constslip_single(elements, srcidx, obsidx, mu, nu)
     pdisp = zeros(2, 2)
     pstress = zeros(3, 2)
     ptrac = zeros(2, 2)
-
+    display(srcidx)
+    display(obsidx)
     pdisp[:, 1], pstress[:, 1] = dispstress_constslip(
         elements.xcenter[obsidx], elements.ycenter[obsidx],
         elements.halflength[srcidx], mu, nu, 1, 0,
         elements.xcenter[srcidx], elements.ycenter[srcidx],
-        elements.rotmat[srcidx], elements.rotmatinv[srcidx])
+        elements.rotmat[srcidx, :, :], elements.rotmatinv[srcidx, :, :])
     pdisp[:, 2], pstress[:, 2] = dispstress_constslip(
         elements.xcenter[obsidx], elements.ycenter[obsidx],
         elements.halflength[srcidx], mu, nu, 0, 1,
         elements.xcenter[srcidx], elements.ycenter[srcidx],
-        elements.rotmat[srcidx], elements.rotmatinv[srcidx])
+        elements.rotmat[srcidx, :, :], elements.rotmatinv[srcidx, :, :])
+    display(pdisp)
 
     ptrac[:, 1] = stress2trac(pstress[:, 1], [elements.xnormal[obsidx] ; elements.ynormal[obsidx]])
     ptrac[:, 2] = stress2trac(pstress[:, 2], [elements.xnormal[obsidx] ; elements.ynormal[obsidx]])
