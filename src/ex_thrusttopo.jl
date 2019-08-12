@@ -3,7 +3,6 @@ using Plots
 using Bem2d
 pyplot()
 
-
 function ex_thrusttopo()
     # TOPO_SIGN_FLIP = True
     mu = 30e9
@@ -66,31 +65,34 @@ function ex_thrusttopo()
     dispfault = zeros(length(xobs), 2)
     stressfault = zeros(length(xobs), 3)
     faultidx = findall(x -> x == "fault", elements.name)
-    for i in faultidx[1]:faultidx[end]
-        disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[i],
-            mu, nu, 1, 0, elements.xcenter[i], elements.ycenter[i],
-            elements.rotmat[i, :, :], elements.rotmatinv[i, :, :])
+    for i in 1:length(faultidx)
+        disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[faultidx[i]],
+            mu, nu, 1, 0, elements.xcenter[faultidx[i]], elements.ycenter[faultidx[i]],
+            elements.rotmat[faultidx[i], :, :], elements.rotmatinv[faultidx[i], :, :])
         dispfault += disp
         stressfault += stress
     end
-    plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        dispfault, stressfault, "fault")
-
-    # Free surface in full space
-    # TODO: Need to adopt partials method of indexing into indices
-    # dispfault = zeros(length(xobs), 2)
-    # stressfault = zeros(length(xobs), 3)
-    # faultidx = findall(x -> x == "fault", elements.name)
-    # for i in faultidx[1]:faultidx[end]
-    #     disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[i],
-    #         mu, nu, 1, 0, elements.xcenter[i], elements.ycenter[i],
-    #         elements.rotmat[i, :, :], elements.rotmatinv[i, :, :])
-    #     dispfault += disp
-    #     stressfault += stress
-    # end
     # plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
     #     dispfault, stressfault, "fault")
 
+    # Free surface in full space
+    dispfreesurface = zeros(length(xobs), 2)
+    stressfreesurface = zeros(length(xobs), 3)
+    freesurfaceidx = findall(x -> x == "freesurface", elements.name)
+    for i in 1:length(freesurfaceidx)
+        disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[freesurfaceidx[i]],
+            mu, nu, disp_freesurface[1:2:end][i], disp_freesurface[2:2:end][i],
+            elements.xcenter[freesurfaceidx[i]], elements.ycenter[freesurfaceidx[i]],
+            elements.rotmat[freesurfaceidx[i], :, :], elements.rotmatinv[freesurfaceidx[i], :, :])
+        dispfreesurface += disp
+        stressfreesurface += stress
+    end
+    # plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+    #     dispfreesurface, stressfreesurface, "free surface")
+
+    # Plot fault + free surface
+    plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+        dispfault + dispfreesurface, stressfault + stressfreesurface, "total")
 
     # displacement_from_topo, stress_from_topo = bem2d.integrate(
     #     obs_pts, elements_surface, mu, nu, "slip", displacement_free_surface
