@@ -1,6 +1,8 @@
 module Bem2d
 using LaTeXStrings
-using Plots
+# using Plots
+using PyCall
+using PyPlot
 
 # Based on: http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
 export meshgrid
@@ -202,89 +204,56 @@ end
 
 function plotelements(elements)
     for i in 1:elements.endidx
-        plot!([elements.x1[i]/1e3, elements.x2[i]/1e3],
-              [elements.y1[i]/1e3, elements.y2[i]/1e3],
-              linewidth=0.5, linecolor=:black, legend=:none)
+        plot([elements.x1[i], elements.x2[i]],
+             [elements.y1[i], elements.y2[i]], "-k",
+             linewidth=0.5)
     end
 end
 
+function stylesubplots(xlim, ylim)
+    gca().set_aspect("equal")
+    gca().set_xlim([xlim[1], xlim[2]])
+    gca().set_ylim([ylim[1], ylim[2]])
+    gca().set_xticks([xlim[1], xlim[2]])
+    gca().set_yticks([ylim[1], ylim[2]])
+end
+
+function plotfields_contours(elements, xobs, yobs, idx, field, title)
+    ncontours = 10
+    xlim = [minimum(xobs) maximum(xobs)]
+    ylim = [minimum(yobs) maximum(yobs)]
+    subplot(2, 3, idx)
+    scale = 5e-1
+    fieldmax = maximum(@.abs(field))
+    contourf(xobs, yobs, reshape(field, size(xobs)), ncontours,
+        vmin=-scale * fieldmax, vmax=scale * fieldmax, cmap=plt.get_cmap("PiYG"))
+    clim(-scale * fieldmax, scale * fieldmax)
+    colorbar(fraction=0.046, pad=0.04, extend="both")
+    contour(xobs, yobs, reshape(field, size(xobs)), ncontours,
+        vmin=-scale * fieldmax, vmax=scale * fieldmax, linewidths=0.25, colors="k")
+    PyPlot.title(title)
+    stylesubplots(xlim, ylim)
+    plotelements(elements)
+end
+
 export plotfields
-function plotfields(elements, xgrid, ygrid, disp, stress, title)
-    figsize = (1000, 800)
-    quiverscale = 1.0
-    quiveridx = 1:length(xgrid[:])
-    p1 = quiver(xgrid[quiveridx]/1e3, ygrid[quiveridx]/1e3,
-                quiver=(quiverscale .* disp[quiveridx, 1], quiverscale .* disp[quiveridx, 2]),
-                aspect_ratio=:equal, title=L"u" * " (" * title * ")",
-                xlabel=L"x \; \mathrm{(km)}",
-                ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:none,
-                framestyle=:box, xtickfontsize=12, ytickfontsize=12,
-                xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
-                ylims=(minimum(ygrid)/1e3, maximum(ygrid)/1e3))
+function plotfields(elements, xobs, yobs, disp, stress, suptitle)
+    figure(figsize = (16, 8))
+    subplot(2, 3, 1)
+    quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units="width", color="b")
+    stylesubplots([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
     plotelements(elements)
+    PyPlot.title("displacements")
 
-    field = disp[:, 1]
-    p2 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"u_x" * " (" * title * ")",
-                  xlabel=L"x \; \mathrm{(km)}",
-                  ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:inside,
-                  framestyle=:box, xtickfontsize=12, ytickfontsize=12,
-                  xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
-                  ylims=(minimum(ygrid)/1e3, maximum(ygrid)/1e3))
-    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
-             linecolor=:gray)
-    plotelements(elements)
+    plotfields_contours(elements, xobs, yobs, 2, disp[:, 1], L"u_x")
+    plotfields_contours(elements, xobs, yobs, 3, disp[:, 2], L"u_y")
+    plotfields_contours(elements, xobs, yobs, 4, stress[:, 1], L"\sigma_{xx}")
+    plotfields_contours(elements, xobs, yobs, 5, stress[:, 2], L"\sigma_{yy}")
+    plotfields_contours(elements, xobs, yobs, 6, stress[:, 3], L"\sigma_{xy}")
 
-    field = disp[:, 2]
-    p3 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"u_y" * " (" * title * ")",
-                  xlabel=L"x \; \mathrm{(km)}",
-                  ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
-                  framestyle=:box, xtickfontsize=12, ytickfontsize=12,
-                  xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
-                  ylims=(minimum(ygrid)/1e3, maximum(ygrid)/1e3))
-    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
-             linecolor=:gray)
-    plotelements(elements)
-
-    field = stress[:, 1]
-    p4 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"\sigma_{xx}" * " (" * title * ")",
-                  xlabel=L"x \; \mathrm{(km)}",
-                  ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
-                  framestyle=:box, xtickfontsize=12, ytickfontsize=12,
-                  xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
-                  ylims=(minimum(ygrid)/1e3, maximum(ygrid)/1e3))
-    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
-             linecolor=:gray)
-    plotelements(elements)
-
-    field = stress[:, 2]
-    p5 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"\sigma_{yy}" * " (" * title * ")",
-                  xlabel=L"x \; \mathrm{(km)}",
-                  ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
-                  framestyle=:box, xtickfontsize=12, ytickfontsize=12,
-                  xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
-                  ylims=(minimum(ygrid)/1e3, maximum(ygrid)/1e3))
-    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
-             linecolor=:gray)
-    plotelements(elements)
-
-    field = stress[:, 3]
-    p6 = contourf(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), color=:PiYG,
-                  aspect_ratio=:equal, title=L"\sigma_{xy}" * " (" * title * ")",
-                  xlabel=L"x \; \mathrm{(km)}",
-                  ylabel=L"y \; \mathrm{(km)}", size=figsize, legend=:right,
-                  framestyle=:box, xtickfontsize=12, ytickfontsize=12,
-                  xlims=(minimum(xgrid)/1e3, maximum(xgrid)/1e3),
-                  ylims=(minimum(ygrid)/1e3, maximum(ygrid)/1e3))
-    contour!(xgrid/1e3, ygrid/1e3, reshape(field, size(xgrid)), linewidth = 0.5,
-             linecolor=:gray)
-    plotelements(elements)
-
-    plot(p1, p2, p3, p4, p5, p6, layout=(2, 3))
-    gui()
+    PyPlot.suptitle(suptitle)
+    tight_layout()
+    show()
 end
 
 export partials_constslip
