@@ -228,7 +228,7 @@ function plotfields_contours(elements, xobs, yobs, idx, field, title)
     contourf(xobs, yobs, reshape(field, size(xobs)), ncontours,
         vmin=-scale * fieldmax, vmax=scale * fieldmax, cmap=plt.get_cmap("PiYG"))
     clim(-scale * fieldmax, scale * fieldmax)
-    colorbar(fraction=0.046, pad=0.04, extend="both")
+    colorbar(fraction=0.020, pad=0.05, extend="both")
     contour(xobs, yobs, reshape(field, size(xobs)), ncontours,
         vmin=-scale * fieldmax, vmax=scale * fieldmax, linewidths=0.25, colors="k")
     PyPlot.title(title)
