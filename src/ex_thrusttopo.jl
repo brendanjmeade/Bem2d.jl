@@ -2,21 +2,20 @@ using Revise
 using Bem2d
 
 function ex_thrusttopo()
-    mu::Float64 = 30e9
-    nu::Float64 = 0.25
-    elements::Elements = Elements()
+    mu = 30e9
+    nu = 0.25
+    elements = Elements()
 
     # Observation points for internal evaluation and visualization
-    npts::Int64 = 100
-    xobs::Array{Float64} = LinRange(-10e3, 10e3, npts)
-    yobs::Array{Float64} = LinRange(-5e3, 5e3, npts)
+    npts= 100
+    xobs = LinRange(-10e3, 10e3, npts)
+    yobs = LinRange(-5e3, 5e3, npts)
     xobs, yobs = meshgrid(xobs, yobs)
     xobs = xobs[:]
     yobs = yobs[:]
 
     # Topographic free surface
-    x1::Array{Float64}, y1::Array{Float64},
-        x2::Array{Float64}, y2::Array{Float64} = discretizedline(-10e3, 0, 10e3, 0, 20)
+    x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, 20)
     y1 = -1e3 * @.atan(x1 / 1e3)
     y2 = -1e3 * @.atan(x2 / 1e3)
     for i in 1:length(x1)
@@ -42,25 +41,25 @@ function ex_thrusttopo()
     standardize_elements!(elements)
 
     # Partial derivatves
-    srcidx::Array{Int64} = findall(x -> x == "fault", elements.name)
-    obsidx::Array{Int64} = findall(x -> x == "freesurface", elements.name)
+    srcidx = findall(x -> x == "fault", elements.name)
+    obsidx = findall(x -> x == "freesurface", elements.name)
     d1, s1, t1 = partials_constslip(elements, srcidx, obsidx, mu, nu)
     srcidx = findall(x -> x == "freesurface", elements.name)
     obsidx = findall(x -> x == "freesurface", elements.name)
     d2, s2, t2 = partials_constslip(elements, srcidx, obsidx, mu, nu)
 
     # Remove and separate BCs, local to global transform here?
-    nfaultelements::Int64 = length(findall(x -> x == "fault", elements.name))
-    faultslip::Array{Float64} = zeros(2 * nfaultelements)
+    nfaultelements = length(findall(x -> x == "fault", elements.name))
+    faultslip = zeros(2 * nfaultelements)
     faultslip[1:2:end] .= 1.0 # Global coordinate system
 
     # Solve the BEM problem
-    disp_freesurface::Array{Float64} = inv(t2) * t1 * faultslip
+    disp_freesurface = inv(t2) * t1 * faultslip
 
     # Fault in full space
-    dispfault::Array{Float64} = zeros(length(xobs), 2)
-    stressfault::Array{Float64} = zeros(length(xobs), 3)
-    faultidx::Array{Int64} = findall(x -> x == "fault", elements.name)
+    dispfault = zeros(length(xobs), 2)
+    stressfault = zeros(length(xobs), 3)
+    faultidx = findall(x -> x == "fault", elements.name)
     for i in 1:length(faultidx)
         disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[faultidx[i]],
             mu, nu, 1, 0, elements.xcenter[faultidx[i]], elements.ycenter[faultidx[i]],
