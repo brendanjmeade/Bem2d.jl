@@ -2,34 +2,59 @@ using Revise
 using NLsolve
 using Bem2d
 
-# function f!(dx, x)
-#   dx[1] = x[1]   + x[2]   + x[3]^2 -12
-#   dx[2] = x[1]^2 - x[2]   + x[3]   - 2
-#   dx[3] = 2x[1]  - x[2]^2 + x[3]   - 1
-# end
-
-function f!(F,x,a,b)
-    F[1] = a * sin(x[1]) + b
-end
-# a = 1.0
-# b = 0.5
-# @time res = nlsolve((F, x) -> f!(F, x, a, b), [0.0], autodiff=:forward).zero
-# display(res)
-
 # State evolution law : aging law
 function dθdt!(_dθdt, θ, v, b, v0, dc, f0)
     _dθdt = b .* v0 ./ dc .* (@.exp((f0 .- θ) ./ b) .- (v ./ v0))
-    # display(_dθdt)
 end
 
 # Should I eliminate this since its only called once?
 # Steady-state state for initial condition """
-function steadystate(vels)
-    θ = ones(size(vels))
-    # @time res = nlsolve((F, x) -> f!(F, x, a, b), [0.0], autodiff=:forward).zero
-    # display(res)
-    # state = scipy.optimize.fsolve(dθ, 0.5 * np.ones(N_NODES), args=(velocities))
-    return θ
+# function steadystate(vels)
+#     θ = ones(size(vels))
+#     # @time res = nlsolve((F, x) -> f!(F, x, a, b), [0.0], autodiff=:forward).zero
+#     # display(res)
+#     # state = scipy.optimize.fsolve(dθ, 0.5 * np.ones(N_NODES), args=(velocities))
+#     return θ
+# end
+
+
+# Derivatives to feed to ODE integrator
+function derivatives(t, xθ)
+    x = zeros(2 * nnodes)
+    x[1:2:end] = xθ[1:3:end]
+    x[2:2:end] = xθ[2:3:end]
+    θ = xandstate[3:3:end]
+
+    # Current shear stress on fault (slip->traction)
+    trac = ∂trac * x
+
+    # Solve for the current velocity...This is the algebraic part
+    currentvels = zeros(2 * nnodes)
+#     bem2d.newton_rate_state.rate_state_solver(
+#         ELEMENTS_FAULT_ARRAYS["element_normals"],
+#         tractions,
+#         state,
+#         currentvels,  # Modified in place and returns velocity solution
+#         ELEMENTS_FAULT_ARRAYS["a"],
+#         PARAMETERS["eta"],
+#         PARAMETERS["v_0"],
+#         0.0,
+#         ELEMENTS_FAULT_ARRAYS["additional_normal_stress"],
+#         NEWTON_TOL,
+#         MAXITER,
+#         N_NODES_PER_ELEMENT,
+#     )
+#
+    dxdt = -currentvels  # Is the negative sign for slip deficit convention?
+    dxdt[1:2:end] .+= blockvelx
+    dxdt[2:2:end] .+= blockvely
+    velmags = np.linalg.norm(current_velocity.reshape((-1, 2)), axis=1)
+    dθdt = calc_dθdt(θ, velmags)
+    derivatives = zeros(3 * nnodes)
+    derivatives[0::3] = dxdt[0::2]
+    derivatives[1::3] = dxdt[1::2]
+    derivatives[2::3] = dθdt
+    return derivatives
 end
 
 function ex_planarqdconst()
@@ -74,7 +99,7 @@ function ex_planarqdconst()
     srcidx = findall(x -> x == "fault", elements.name)
     obsidx = srcidx
     println("Calculating ∂s")
-    @time _, slip2stress, slip2traction = partials_constslip(elements, srcidx, obsidx, mu, nu)
+    @time _, ∂stress, ∂trac = partials_constslip(elements, srcidx, obsidx, mu, nu)
 
     # Set initial conditions and time integrate
     initvelx = 1e-3 * blockvelx * ones(nnodes)
@@ -83,25 +108,12 @@ function ex_planarqdconst()
     initconds = zeros(3 * nnodes)
     initconds[1:3:end] = initvelx
     initconds[2:3:end] = initvely
-    initconds[3:3:end] = steadystate(initvelmag)
+    initconds[3:3:end] = 0.5 * ones(nnodes)
 
-    # a = 1.0
-    # b = 0.5
-    # res = nlsolve((F, x) -> f!(F, x, a, b), [0.0], autodiff=:forward).zero
-    println("asdfasdfasdf")
-    # display(res)
-    res = nlsolve((F, x) -> dθdt!(F, x, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff=:forward).zero
+    println("Trying root solver --- no idea what Im doing")
+    # res = nlsolve((F, x) -> dθdt!(F, x, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff=:forward).zero
+    res = nlsolve((_dθdt, θ) -> dθdt!(_dθdt, θ, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff=:forward)
     display(res)
-
-    # display(res)
-    # state = scipy.optimize.fsolve(dθ, 0.5 * np.ones(N_NODES), args=(velocities))
-
-
-    # Try root solver
-    # asdf = dθdt(θ, v, b, v0, dc, f0)
-    # _dθdt = zeros(size(initvelmag))
-    # dθdt!(_dθdt, initconds[3:3:end], initvelmag, elements.b[1:elements.endidx], v0, dc, f0)
-    # display(_dθdt)
 
     # Time integrate
 
@@ -155,45 +167,7 @@ ex_planarqdconst()
 
 
 
-#
-# def calc_derivatives(t, x_and_state):
-#     """ Derivatives to feed to ODE integrator """
-#     state = x_and_state[2::3]
-#     x = np.empty(2 * N_NODES)
-#     x[0::2] = x_and_state[0::3]
-#     x[1::2] = x_and_state[1::3]
-#
-#     # Current shear stress on fault (slip->traction)
-#     tractions = SLIP_TO_TRACTION @ x
-#
-#     # Solve for the current velocity...This is the algebraic part
-#     current_velocity = np.empty(2 * N_NODES)
-#     bem2d.newton_rate_state.rate_state_solver(
-#         ELEMENTS_FAULT_ARRAYS["element_normals"],
-#         tractions,
-#         state,
-#         current_velocity,  # Modified in place and returns velocity solution
-#         ELEMENTS_FAULT_ARRAYS["a"],
-#         PARAMETERS["eta"],
-#         PARAMETERS["v_0"],
-#         0.0,
-#         ELEMENTS_FAULT_ARRAYS["additional_normal_stress"],
-#         NEWTON_TOL,
-#         MAXITER,
-#         N_NODES_PER_ELEMENT,
-#     )
-#
-#     dx_dt = -current_velocity  # Is the negative sign for slip deficit convention?
-#     dx_dt[0::2] += PARAMETERS["block_velocity_x"]
-#     dx_dt[1::2] += PARAMETERS["block_velocity_y"]
-#     velocity_magnitude = np.linalg.norm(current_velocity.reshape((-1, 2)), axis=1)
-#     dstate_dt = calc_state(state, velocity_magnitude)
-#     derivatives = np.empty(3 * N_NODES)
-#     derivatives[0::3] = dx_dt[0::2]
-#     derivatives[1::3] = dx_dt[1::2]
-#     derivatives[2::3] = dstate_dt
-#     return derivatives
-#
+
 #
 #
 #

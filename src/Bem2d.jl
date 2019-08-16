@@ -208,6 +208,7 @@ function rotdispstress(disp, stress, rotmat)
     return _disp, _stress
 end
 
+export plotelements
 function plotelements(elements)
     for i in 1:elements.endidx
         plot([elements.x1[i], elements.x2[i]],

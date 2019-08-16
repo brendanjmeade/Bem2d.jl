@@ -1,4 +1,6 @@
 using Revise
+using PyCall
+using PyPlot
 using Bem2d
 
 function ex_thrusttopo()
@@ -86,7 +88,82 @@ function ex_thrusttopo()
     #     dispfreesurface, stressfreesurface, "free surface")
 
     # Plot fault + free surface
-    plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        dispfault + dispfreesurface, stressfault + stressfreesurface, "total")
+    # plotfields(elements, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+    #     dispfault + dispfreesurface, stressfault + stressfreesurface, "total")
+
+
+
+        # Pretty of displacements and stresses
+    # def common_plot_elements():
+    #     # Create a white fill over portion of the figure above the free surface
+    #     x_surface = np.unique(
+    #         [[_["x1"] for _ in elements_surface], [_["x2"] for _ in elements_surface]]
+    #     )
+    #     x_fill = np.append(x_surface, [10e3, -10e3, -10e3])
+    #     y_surface = np.unique(
+    #         [[_["y1"] for _ in elements_surface], [_["y2"] for _ in elements_surface]]
+    #     )
+    #     y_surface = np.flip(y_surface, 0)
+    #     y_fill = np.append(y_surface, [5e3, 5e3, np.min(y_surface)])
+    #     plt.fill(x_fill, y_fill, "w", zorder=30)
+    #
+    #     for element in elements_fault + elements_surface:
+    #         plt.plot(
+    #             [element["x1"], element["x2"]],
+    #             [element["y1"], element["y2"]],
+    #             "-k",
+    #             linewidth=1.0,
+    #             zorder=50,
+    #         )
+    #
+    #     x_lim = np.array([x_plot.min(), x_plot.max()])
+    #     y_lim = np.array([y_plot.min(), y_plot.max()])
+    #     plt.xticks([x_lim[0], 0, x_lim[1]])
+    #     plt.yticks([y_lim[0], 0, y_lim[1]])
+    #     plt.gca().set_aspect("equal")
+    #     plt.xlabel("$x$ (m)")
+    #     plt.ylabel("$y$ (m)")
+    #
+    #
+    ufield = @.sqrt((dispfault + dispfreesurface)[:, 1].^2 + (dispfault + dispfreesurface)[:, 2].^2)
+
+    σxx = (stressfreesurface + stressfault)[:, 1]
+    σyy = (stressfreesurface + stressfault)[:, 2]
+    σxy = (stressfreesurface + stressfault)[:, 3]
+    I1 = σxx + σyy  # 1st invariant
+    I2 = σxx .* σyy - σxy.^2  # 2nd invariant
+    J2 = (I1.^2) ./ 3.0 - I2  # 2nd invariant (deviatoric)
+    σfield = @.log10(abs(J2))
+
+    ncontours = 5
+    figure(figsize=(6, 8))
+    subplot(2, 1, 1)
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+        reshape(ufield, npts, npts), ncontours, cmap=get_cmap("plasma"))
+    colorbar(fraction=0.020, pad=0.05, extend="both", label=L"$||u||$ (m)")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+        reshape(ufield, npts, npts), ncontours, linewidths=0.5, colors="gray")
+    plotelements(elements)
+    xticks([minimum(xobs), 0, maximum(xobs)])
+    yticks([minimum(yobs), 0, maximum(yobs)])
+    gca().set_aspect("equal")
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+    title("displacement magnitude")
+
+    subplot(2, 1, 2)
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+        reshape(σfield, npts, npts), ncontours, cmap=get_cmap("hot_r"))
+    colorbar(fraction=0.020, pad=0.05, extend="both", label=L"$\log_{10}|\mathrm{J}_2|$ (Pa^2)")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+        reshape(σfield, npts, npts), ncontours, linewidths=0.5, colors="gray")
+    plotelements(elements)
+    xticks([minimum(xobs), 0, maximum(xobs)])
+    yticks([minimum(yobs), 0, maximum(yobs)])
+    gca().set_aspect("equal")
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+    title("2nd stress invariant (deviatoric)")
+    show()
 end
 ex_thrusttopo()
