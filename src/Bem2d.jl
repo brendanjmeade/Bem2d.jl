@@ -36,6 +36,9 @@ mutable struct Elements
     ynormal::Array{Float64, 1}
     xnodes::Array{Float64, 2}
     ynodes::Array{Float64, 2}
+    a::Array{Float64, 1}
+    b::Array{Float64, 1}
+    sigman::Array{Float64, 1}
     endidx::Int64
     Elements() = new(fill(NaN, maxidx), # x1
                 fill(NaN, maxidx), # y1
@@ -57,6 +60,9 @@ mutable struct Elements
                 fill(NaN, maxidx), # ynormal::Array{Float64, 1}
                 fill(NaN, maxidx, 3), # xnodes
                 fill(NaN, maxidx, 3), # ynodes
+                fill(NaN, maxidx), # a::Array{Float64, 1}
+                fill(NaN, maxidx), # b::Array{Float64, 1}
+                fill(NaN, maxidx), # sigman::Array{Float64, 1}
                 0) # endidx
 end
 
