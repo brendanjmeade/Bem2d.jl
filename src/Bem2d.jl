@@ -251,13 +251,11 @@ function plotfields(elements, xobs, yobs, disp, stress, suptitle)
     stylesubplots([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
     plotelements(elements)
     PyPlot.title("displacements")
-
     plotfields_contours(elements, xobs, yobs, 2, disp[:, 1], L"u_x")
     plotfields_contours(elements, xobs, yobs, 3, disp[:, 2], L"u_y")
     plotfields_contours(elements, xobs, yobs, 4, stress[:, 1], L"\sigma_{xx}")
     plotfields_contours(elements, xobs, yobs, 5, stress[:, 2], L"\sigma_{yy}")
     plotfields_contours(elements, xobs, yobs, 6, stress[:, 3], L"\sigma_{xy}")
-
     PyPlot.suptitle(suptitle)
     tight_layout()
     show()
@@ -278,6 +276,38 @@ function partials_constslip(elements, srcidx, obsidx, mu, nu)
                 elements.xcenter[srcidx[isrc]], elements.ycenter[srcidx[isrc]],
                 elements.rotmat[srcidx[isrc], :, :], elements.rotmatinv[srcidx[isrc], :, :])
             pd[:, 2], ps[:, 2] = dispstress_constslip(
+                elements.xcenter[obsidx[iobs]], elements.ycenter[obsidx[iobs]],
+                elements.halflength[srcidx[isrc]], mu, nu, 0, 1,
+                elements.xcenter[srcidx[isrc]], elements.ycenter[srcidx[isrc]],
+                elements.rotmat[srcidx[isrc], :, :], elements.rotmatinv[srcidx[isrc], :, :])
+            pt[:, 1] = stress2trac(ps[:, 1], [elements.xnormal[obsidx[iobs]] ; elements.ynormal[obsidx[iobs]]])
+            pt[:, 2] = stress2trac(ps[:, 2], [elements.xnormal[obsidx[iobs]] ; elements.ynormal[obsidx[iobs]]])
+            partialsdisp[2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2,
+                          2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = pd
+            partialsstress[3 * (iobs - 1) + 1 : 3 * (iobs - 1) + 3,
+                            2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = ps
+            partialstrac[2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2,
+                          2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = pt
+        end
+    end
+    return partialsdisp, partialsstress, partialstrac
+end
+
+export partials_consttrac
+function partials_consttrac(elements, srcidx, obsidx, mu, nu)
+    partialsdisp = zeros(2 * length(obsidx), 2 * length(srcidx))
+    partialsstress = zeros(3 * length(obsidx), 2 * length(srcidx))
+    partialstrac = zeros(2 * length(obsidx), 2 * length(srcidx))
+
+    for isrc in 1:length(srcidx)
+        for iobs in 1:length(obsidx)
+            pd, ps, pt = zeros(2, 2), zeros(3, 2), zeros(2, 2)
+            pd[:, 1], ps[:, 1] = dispstress_consttrac(
+                elements.xcenter[obsidx[iobs]], elements.ycenter[obsidx[iobs]],
+                elements.halflength[srcidx[isrc]], mu, nu, 1, 0,
+                elements.xcenter[srcidx[isrc]], elements.ycenter[srcidx[isrc]],
+                elements.rotmat[srcidx[isrc], :, :], elements.rotmatinv[srcidx[isrc], :, :])
+            pd[:, 2], ps[:, 2] = dispstress_consttrac(
                 elements.xcenter[obsidx[iobs]], elements.ycenter[obsidx[iobs]],
                 elements.halflength[srcidx[isrc]], mu, nu, 0, 1,
                 elements.xcenter[srcidx[isrc]], elements.ycenter[srcidx[isrc]],
