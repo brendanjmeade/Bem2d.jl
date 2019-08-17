@@ -1,6 +1,5 @@
 module Bem2d
 using LaTeXStrings
-# using Plots
 using PyCall
 using PyPlot
 
@@ -85,9 +84,8 @@ function discretizedline(xstart, ystart, xend, yend, nelements)
 end
 
 # Calculate displacements and stresses for constant slip elements
-export dispstress_constslip
-function dispstress_constslip(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
-    # display(Base.@locals())
+export constslip
+function constslip(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
     # Rotate and translate into local coordinate system with *global* slip components
     _x = zeros(length(x))
     _y = zeros(length(y))
@@ -95,15 +93,15 @@ function dispstress_constslip(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, r
         _x[i], _y[i] = rotmatinv * [x[i] - xcenter ; y[i] - ycenter]
     end
     _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
-    f = constantkernel(_x, _y, a, nu)
-    disp, stress = slip2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
-    disp, stress = rotdispstress(disp, stress, rotmat)
-    return disp, stress
+    f = constantkernel(_x, _y, a, ν)
+    u, σ = slip2uσ(_xcomp, _ycomp, f, _y, μ, ν)
+    u, σ = rotuσ(u, σ, rotmat)
+    return u, σ
 end
 
 # Calculate displacements and stresses for constant traction elements
-export dispstress_consttrac
-function dispstress_consttrac(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
+export consttrac
+function consttrac(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
     # Rotate and translate into local coordinate system with *global* slip components
     _x = zeros(length(x))
     _y = zeros(length(y))
@@ -111,10 +109,10 @@ function dispstress_consttrac(x, y, a, mu, nu, xcomp, ycomp, xcenter, ycenter, r
         _x[i], _y[i] = rotmat * [x[i] - xcenter ; y[i] - ycenter]
     end
     _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
-    f = constantkernel(_x, _y, a, nu)
-    disp, stress = trac2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
-    disp, stress = rotdispstress(disp, stress, rotmatinv)
-    return disp, stress
+    f = constantkernel(_x, _y, a, ν)
+    u, σ = trac2uσ(_xcomp, _ycomp, f, _y, μ, ν)
+    u, σ = rotuσ(u, σ, rotmatinv)
+    return u, σ
 end
 
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
@@ -133,87 +131,85 @@ function constantkernel(x, y, a, nu)
 end
 
 # Generalization from Starfield and Crouch
-export trac2dispstress
-function trac2dispstress(xcomp, ycomp, f, y, mu, nu)
-    disp = zeros(length(y), 2)
-    stress = zeros(length(y), 3)
+export trac2uσ
+function trac2uσ(xcomp, ycomp, f, y, mu, nu)
+    u = zeros(length(y), 2)
+    σ = zeros(length(y), 3)
     _xcomp = -xcomp # For Okada consistency
     _ycomp = -ycomp # For Okada consistency
     for i in 1:length(y)
-        disp[i, 1] = _xcomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * mu) * (-y[i] * f[i, 3])
-        disp[i, 2] = _xcomp / (2.0 * mu) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] - y[i] * f[i, 2])
-        stress[i, 1] = _xcomp * ((3.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * nu * f[i, 2] + y[i] * f[i, 5])
-        stress[i, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5])
-        stress[i, 3] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] + y[i] * f[i, 5]) + _ycomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
+        u[i, 1] = _xcomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * mu) * (-y[i] * f[i, 3])
+        u[i, 2] = _xcomp / (2.0 * mu) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] - y[i] * f[i, 2])
+        σ[i, 1] = _xcomp * ((3.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * nu * f[i, 2] + y[i] * f[i, 5])
+        σ[i, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5])
+        σ[i, 3] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] + y[i] * f[i, 5]) + _ycomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
     end
-    return disp, stress
+    return u, σ
 end
 
 # Generalization of Starfield and Crouch
-export slip2dispstress
-function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
-    disp = zeros(length(y), 2)
-    stress = zeros(length(y), 3)
+export slip2uσ
+function slip2uσ(xcomp, ycomp, f, y, mu, nu)
+    u = zeros(length(y), 2)
+    σ = zeros(length(y), 3)
     _xcomp = -xcomp # For Okada consistency
     _ycomp = -ycomp # For Okada consistency
 
     for i in 1:length(y)
-        disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
-        disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
-        stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
-        stress[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
-        stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7]) + 2.0 * _ycomp * mu * (-y[i] * f[i, 6])
+        u[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
+        u[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
+        σ[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
+        σ[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
+        σ[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7]) + 2.0 * _ycomp * mu * (-y[i] * f[i, 6])
     end
-    return disp, stress
+    return u, σ
 end
 
-export stress2trac
-function stress2trac(stress, nvec)
+export σ2t
+function σ2t(stress, nvec)
     return [stress[1] stress[3] ; stress[3] stress[2]] * nvec
 end
 
 export standardize_elements!
-function standardize_elements!(elements)
-    updateendidx!(elements)
-    for i in 1:elements.endidx
-        dx = elements.x2[i] - elements.x1[i]
-        dy = elements.y2[i] - elements.y1[i]
+function standardize_elements!(els)
+    updateendidx!(els)
+    for i in 1:els.endidx
+        dx = els.x2[i] - els.x1[i]
+        dy = els.y2[i] - els.y1[i]
         magnitude = sqrt(dx^2 + dy^2)
-        elements.angle[i] = atan(dy, dx)
-        elements.length[i] = magnitude
-        elements.halflength[i] = 0.5 * elements.length[i]
-        elements.xcenter[i] = 0.5 * (elements.x2[i] + elements.x1[i])
-        elements.ycenter[i] = 0.5 * (elements.y2[i] + elements.y1[i])
-        elements.rotmat[i, :, :] = [cos(elements.angle[i]) -sin(elements.angle[i]) ; sin(elements.angle[i]) cos(elements.angle[i])]
-        elements.rotmatinv[i, :, :] = [cos(-elements.angle[i]) -sin(-elements.angle[i]) ; sin(-elements.angle[i]) cos(-elements.angle[i])]
-        elements.xnormal[i] = dy / magnitude
-        elements.ynormal[i] = -dx / magnitude
-        elements.xnodes[i, :] = [elements.xcenter[i] - (2 / 3 * dx / 2), elements.xcenter[i], elements.xcenter[i] + (2 / 3 * dx / 2)]
-        elements.ynodes[i, :] = [elements.ycenter[i] - (2 / 3 * dy / 2), elements.ycenter[i], elements.ycenter[i] + (2 / 3 * dy / 2)]
+        els.angle[i] = atan(dy, dx)
+        els.length[i] = magnitude
+        els.halflength[i] = 0.5 * els.length[i]
+        els.xcenter[i] = 0.5 * (els.x2[i] + els.x1[i])
+        els.ycenter[i] = 0.5 * (els.y2[i] + els.y1[i])
+        els.rotmat[i, :, :] = [cos(els.angle[i]) -sin(els.angle[i]) ; sin(els.angle[i]) cos(els.angle[i])]
+        els.rotmatinv[i, :, :] = [cos(-els.angle[i]) -sin(-els.angle[i]) ; sin(-els.angle[i]) cos(-els.angle[i])]
+        els.xnormal[i] = dy / magnitude
+        els.ynormal[i] = -dx / magnitude
+        els.xnodes[i, :] = [els.xcenter[i] - (2 / 3 * dx / 2), els.xcenter[i], els.xcenter[i] + (2 / 3 * dx / 2)]
+        els.ynodes[i, :] = [els.ycenter[i] - (2 / 3 * dy / 2), els.ycenter[i], els.ycenter[i] + (2 / 3 * dy / 2)]
     end
     return nothing
 end
 
-export rotdispstress
-function rotdispstress(disp, stress, rotmat)
+export rotuσ
+function rotuσ(u, σ, rotmat)
     # TODO: If this is slow hand expand the matrix vector multiplies
     # inplace for speed.  Some benchmarks suggest 50x speedup!
-    _disp = zeros(size(disp))
-    _stress = zeros(size(stress))
-    for i in 1:size(stress)[1]
-        _disp[i, 1], _disp[i, 2] = rotmat * [disp[i, 1] ; disp[i, 2]]
-        stresstensor = [stress[i, 1] stress[i, 3] ; stress[i, 3] stress[i, 2]]
-        _stress[i, 1], _stress[i, 3], _, _stress[i, 2] = rotmat * stresstensor * rotmat'
+    _u = zeros(size(u))
+    _σ = zeros(size(σ))
+    for i in 1:size(σ)[1]
+        _u[i, 1], _u[i, 2] = rotmat * [u[i, 1] ; u[i, 2]]
+        σtensor = [σ[i, 1] σ[i, 3] ; σ[i, 3] σ[i, 2]]
+        _σ[i, 1], _σ[i, 3], _, _σ[i, 2] = rotmat * σtensor * rotmat'
     end
-    return _disp, _stress
+    return _u, _σ
 end
 
 export plotelements
-function plotelements(elements)
-    for i in 1:elements.endidx
-        plot([elements.x1[i], elements.x2[i]],
-             [elements.y1[i], elements.y2[i]], "-k",
-             linewidth=0.5)
+function plotelements(els)
+    for i in 1:els.endidx
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth=0.5)
     end
 end
 
@@ -225,7 +221,7 @@ function stylesubplots(xlim, ylim)
     gca().set_yticks([ylim[1], ylim[2]])
 end
 
-function plotfields_contours(elements, xobs, yobs, idx, field, title)
+function plotfields_contours(els, xobs, yobs, idx, field, title)
     ncontours = 10
     xlim = [minimum(xobs) maximum(xobs)]
     ylim = [minimum(yobs) maximum(yobs)]
@@ -240,89 +236,87 @@ function plotfields_contours(elements, xobs, yobs, idx, field, title)
         vmin=-scale * fieldmax, vmax=scale * fieldmax, linewidths=0.25, colors="k")
     PyPlot.title(title)
     stylesubplots(xlim, ylim)
-    plotelements(elements)
+    plotelements(els)
 end
 
 export plotfields
-function plotfields(elements, xobs, yobs, disp, stress, suptitle)
+function plotfields(els, xobs, yobs, disp, stress, suptitle)
     figure(figsize = (16, 8))
     subplot(2, 3, 1)
     quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units="width", color="b")
     stylesubplots([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
-    plotelements(elements)
+    plotelements(els)
     PyPlot.title("displacements")
-    plotfields_contours(elements, xobs, yobs, 2, disp[:, 1], L"u_x")
-    plotfields_contours(elements, xobs, yobs, 3, disp[:, 2], L"u_y")
-    plotfields_contours(elements, xobs, yobs, 4, stress[:, 1], L"\sigma_{xx}")
-    plotfields_contours(elements, xobs, yobs, 5, stress[:, 2], L"\sigma_{yy}")
-    plotfields_contours(elements, xobs, yobs, 6, stress[:, 3], L"\sigma_{xy}")
+    plotfields_contours(els, xobs, yobs, 2, disp[:, 1], L"u_x")
+    plotfields_contours(els, xobs, yobs, 3, disp[:, 2], L"u_y")
+    plotfields_contours(els, xobs, yobs, 4, stress[:, 1], L"\sigma_{xx}")
+    plotfields_contours(els, xobs, yobs, 5, stress[:, 2], L"\sigma_{yy}")
+    plotfields_contours(els, xobs, yobs, 6, stress[:, 3], L"\sigma_{xy}")
     PyPlot.suptitle(suptitle)
     tight_layout()
     show()
 end
 
-export partials_constslip
-function partials_constslip(elements, srcidx, obsidx, mu, nu)
-    partialsdisp = zeros(2 * length(obsidx), 2 * length(srcidx))
-    partialsstress = zeros(3 * length(obsidx), 2 * length(srcidx))
-    partialstrac = zeros(2 * length(obsidx), 2 * length(srcidx))
+export ∂constslip
+function ∂constslip(els, srcidx, obsidx, mu, nu)
+    nobs = length(obsidx)
+    nsrc = length(srcidx)
+    ∂u = zeros(2 * nobs, 2 * nsrc)
+    ∂σ = zeros(3 * nobs, 2 * nsrc)
+    ∂t = zeros(2 * nobs, 2 * nsrc)
 
-    for isrc in 1:length(srcidx)
-        for iobs in 1:length(obsidx)
-            pd, ps, pt = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-            pd[:, 1], ps[:, 1] = dispstress_constslip(
-                elements.xcenter[obsidx[iobs]], elements.ycenter[obsidx[iobs]],
-                elements.halflength[srcidx[isrc]], mu, nu, 1, 0,
-                elements.xcenter[srcidx[isrc]], elements.ycenter[srcidx[isrc]],
-                elements.rotmat[srcidx[isrc], :, :], elements.rotmatinv[srcidx[isrc], :, :])
-            pd[:, 2], ps[:, 2] = dispstress_constslip(
-                elements.xcenter[obsidx[iobs]], elements.ycenter[obsidx[iobs]],
-                elements.halflength[srcidx[isrc]], mu, nu, 0, 1,
-                elements.xcenter[srcidx[isrc]], elements.ycenter[srcidx[isrc]],
-                elements.rotmat[srcidx[isrc], :, :], elements.rotmatinv[srcidx[isrc], :, :])
-            pt[:, 1] = stress2trac(ps[:, 1], [elements.xnormal[obsidx[iobs]] ; elements.ynormal[obsidx[iobs]]])
-            pt[:, 2] = stress2trac(ps[:, 2], [elements.xnormal[obsidx[iobs]] ; elements.ynormal[obsidx[iobs]]])
-            partialsdisp[2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2,
-                          2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = pd
-            partialsstress[3 * (iobs - 1) + 1 : 3 * (iobs - 1) + 3,
-                            2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = ps
-            partialstrac[2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2,
-                          2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = pt
+    for isrc in 1:nsrc
+        for iobs in 1:nobs
+            _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
+            _∂u[:, 1], _∂σ[:, 1] = constslip(
+                els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+                els.halflength[srcidx[isrc]], mu, nu, 1, 0,
+                els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
+                els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
+            _∂u[:, 2], _∂σ[:, 2] = constslip(
+                els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+                els.halflength[srcidx[isrc]], mu, nu, 0, 1,
+                els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
+                els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
+            _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            ∂u[2*(iobs-1)+1 : 2*(iobs-1)+2, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂u
+            ∂σ[3*(iobs-1)+1 : 3*(iobs-1)+3, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂σ
+            ∂t[2*(iobs-1)+1 : 2*(iobs-1)+2, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂t
         end
     end
-    return partialsdisp, partialsstress, partialstrac
+    return ∂u, ∂σ, ∂t
 end
 
-export partials_consttrac
-function partials_consttrac(elements, srcidx, obsidx, mu, nu)
-    partialsdisp = zeros(2 * length(obsidx), 2 * length(srcidx))
-    partialsstress = zeros(3 * length(obsidx), 2 * length(srcidx))
-    partialstrac = zeros(2 * length(obsidx), 2 * length(srcidx))
+export ∂consttrac
+function ∂consttrac(els, srcidx, obsidx, mu, nu)
+    nobs = length(obsidx)
+    nsrc = length(srcidx)
+    ∂u = zeros(2 * nobs, 2 * nsrc)
+    ∂σ = zeros(3 * nobs, 2 * nsrc)
+    ∂t = zeros(2 * nobs, 2 * nsrc)
 
-    for isrc in 1:length(srcidx)
-        for iobs in 1:length(obsidx)
-            pd, ps, pt = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-            pd[:, 1], ps[:, 1] = dispstress_consttrac(
-                elements.xcenter[obsidx[iobs]], elements.ycenter[obsidx[iobs]],
-                elements.halflength[srcidx[isrc]], mu, nu, 1, 0,
-                elements.xcenter[srcidx[isrc]], elements.ycenter[srcidx[isrc]],
-                elements.rotmat[srcidx[isrc], :, :], elements.rotmatinv[srcidx[isrc], :, :])
-            pd[:, 2], ps[:, 2] = dispstress_consttrac(
-                elements.xcenter[obsidx[iobs]], elements.ycenter[obsidx[iobs]],
-                elements.halflength[srcidx[isrc]], mu, nu, 0, 1,
-                elements.xcenter[srcidx[isrc]], elements.ycenter[srcidx[isrc]],
-                elements.rotmat[srcidx[isrc], :, :], elements.rotmatinv[srcidx[isrc], :, :])
-            pt[:, 1] = stress2trac(ps[:, 1], [elements.xnormal[obsidx[iobs]] ; elements.ynormal[obsidx[iobs]]])
-            pt[:, 2] = stress2trac(ps[:, 2], [elements.xnormal[obsidx[iobs]] ; elements.ynormal[obsidx[iobs]]])
-            partialsdisp[2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2,
-                          2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = pd
-            partialsstress[3 * (iobs - 1) + 1 : 3 * (iobs - 1) + 3,
-                            2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = ps
-            partialstrac[2 * (iobs - 1) + 1 : 2 * (iobs - 1) + 2,
-                          2 * (isrc - 1) + 1 : 2 * (isrc - 1) + 2] = pt
+    for isrc in 1:nsrc
+        for iobs in 1:nobs
+            _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
+            _∂u[:, 1], _∂σ[:, 1] = consttrac(
+                els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+                els.halflength[srcidx[isrc]], mu, nu, 1, 0,
+                els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
+                els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
+            _∂u[:, 2], _∂σ[:, 2] = consttrac(
+                els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+                els.halflength[srcidx[isrc]], mu, nu, 0, 1,
+                els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
+                els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
+            _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            ∂u[2*(iobs-1)+1 : 2*(iobs-1)+2, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂u
+            ∂σ[3*(iobs-1)+1 : 3*(iobs-1)+3, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂σ
+            ∂t[2*(iobs-1)+1 : 2*(iobs-1)+2, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂t
         end
     end
-    return partialsdisp, partialsstress, partialstrac
+    return ∂u, ∂σ, ∂t
 end
 
 end

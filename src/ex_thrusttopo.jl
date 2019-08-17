@@ -4,8 +4,8 @@ using PyPlot
 using Bem2d
 
 function ex_thrusttopo()
-    mu = 30e9
-    nu = 0.25
+    μ = 30e9
+    ν = 0.25
     els = Elements()
 
     # Observation points for internal evaluation and visualization
@@ -17,15 +17,15 @@ function ex_thrusttopo()
     yobs = yobs[:]
 
     # Topographic free surface
-    nfreesurface = 20
-    x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, nfreesurface)
+    nfreesurf = 20
+    x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, nfreesurf)
     y1 = -1e3 * @.atan(x1 / 1e3)
     y2 = -1e3 * @.atan(x2 / 1e3)
-    els.x1[els.endidx + 1 : els.endidx + nfreesurface] = x1
-    els.y1[els.endidx + 1 : els.endidx + nfreesurface] = y1
-    els.x2[els.endidx + 1 : els.endidx + nfreesurface] = x2
-    els.y2[els.endidx + 1 : els.endidx + nfreesurface] = y2
-    els.name[els.endidx + 1 : els.endidx + nfreesurface] .= "freesurface"
+    els.x1[els.endidx + 1 : els.endidx + nfreesurf] = x1
+    els.y1[els.endidx + 1 : els.endidx + nfreesurf] = y1
+    els.x2[els.endidx + 1 : els.endidx + nfreesurf] = x2
+    els.y2[els.endidx + 1 : els.endidx + nfreesurf] = y2
+    els.name[els.endidx + 1 : els.endidx + nfreesurf] .= "freesurf"
     standardize_elements!(els)
 
     # Curved fault
@@ -42,52 +42,52 @@ function ex_thrusttopo()
 
     # Partial derivatves
     srcidx = findall(x -> x == "fault", els.name)
-    obsidx = findall(x -> x == "freesurface", els.name)
-    d1, s1, t1 = partials_constslip(els, srcidx, obsidx, mu, nu)
-    srcidx = findall(x -> x == "freesurface", els.name)
-    obsidx = findall(x -> x == "freesurface", els.name)
-    d2, s2, t2 = partials_constslip(els, srcidx, obsidx, mu, nu)
+    obsidx = findall(x -> x == "freesurf", els.name)
+    d1, s1, t1 = ∂constslip(els, srcidx, obsidx, μ, ν)
+    srcidx = findall(x -> x == "freesurf", els.name)
+    obsidx = findall(x -> x == "freesurf", els.name)
+    d2, s2, t2 = ∂constslip(els, srcidx, obsidx, μ, ν)
 
     # Solve the BEM problem for unit slip in the x-direction
     faultslip = zeros(2 * nfault)
     faultslip[1:2:end] .= 1.0 # Global coordinate system
-    ufreesurface = inv(t2) * t1 * faultslip
+    ufreesurf = inv(t2) * t1 * faultslip
 
     # Fault in full space
     ufault = zeros(length(xobs), 2)
     σfault = zeros(length(xobs), 3)
     faultidx = findall(x -> x == "fault", els.name)
     for i in 1:length(faultidx)
-        u, σ = dispstress_constslip(xobs, yobs, els.halflength[faultidx[i]],
-            mu, nu, 1, 0, els.xcenter[faultidx[i]], els.ycenter[faultidx[i]],
+        u, σ = constslip(xobs, yobs, els.halflength[faultidx[i]],
+            μ, ν, 1, 0, els.xcenter[faultidx[i]], els.ycenter[faultidx[i]],
             els.rotmat[faultidx[i], :, :], els.rotmatinv[faultidx[i], :, :])
         ufault += u
         σfault += σ
     end
 
     # Free surface in full space
-    ufreesurface = zeros(length(xobs), 2)
-    σfreesurface = zeros(length(xobs), 3)
-    freesurfaceidx = findall(x -> x == "freesurface", els.name)
-    for i in 1:length(freesurfaceidx)
-        u, σ = dispstress_constslip(xobs, yobs, els.halflength[freesurfaceidx[i]],
-            mu, nu, ufreesurface[1:2:end][i], ufreesurface[2:2:end][i],
-            els.xcenter[freesurfaceidx[i]], els.ycenter[freesurfaceidx[i]],
-            els.rotmat[freesurfaceidx[i], :, :], els.rotmatinv[freesurfaceidx[i], :, :])
-        ufreesurface += u
-        σfreesurface += σ
+    ufreesurf = zeros(length(xobs), 2)
+    σfreesurf = zeros(length(xobs), 3)
+    freesurfidx = findall(x -> x == "freesurf", els.name)
+    for i in 1:length(freesurfidx)
+        u, σ = constslip(xobs, yobs, els.halflength[freesurfidx[i]],
+            μ, ν, ufreesurf[1:2:end][i], ufreesurf[2:2:end][i],
+            els.xcenter[freesurfidx[i]], els.ycenter[freesurfidx[i]],
+            els.rotmat[freesurfidx[i], :, :], els.rotmatinv[freesurfidx[i], :, :])
+        ufreesurf += u
+        σfreesurf += σ
     end
 
     # Pretty of displacements and stresses
-    freesurfaceidx = findall(x -> x == "freesurface", els.name)
-    xfreesurface = unique([els.x1[freesurfaceidx] ; els.x2[freesurfaceidx]])
-    xfill = [xfreesurface ; [10e3 ; -10e3 ; -10e3]]
-    yfreesurface = unique([els.y1[freesurfaceidx] ; els.y2[freesurfaceidx]])
-    yfill = [yfreesurface ; [5e3 ; 5e3 ; minimum(yfreesurface)]]
-    ufield = @.sqrt((ufault + ufreesurface)[:, 1].^2 + (ufault + ufreesurface)[:, 2].^2)
-    σxx = (σfreesurface + σfault)[:, 1]
-    σyy = (σfreesurface + σfault)[:, 2]
-    σxy = (σfreesurface + σfault)[:, 3]
+    freesurfidx = findall(x -> x == "freesurf", els.name)
+    xfreesurf = unique([els.x1[freesurfidx] ; els.x2[freesurfidx]])
+    xfill = [xfreesurf ; [10e3 ; -10e3 ; -10e3]]
+    yfreesurf = unique([els.y1[freesurfidx] ; els.y2[freesurfidx]])
+    yfill = [yfreesurf ; [5e3 ; 5e3 ; minimum(yfreesurf)]]
+    ufield = @.sqrt((ufault + ufreesurf)[:, 1].^2 + (ufault + ufreesurf)[:, 2].^2)
+    σxx = (σfreesurf + σfault)[:, 1]
+    σyy = (σfreesurf + σfault)[:, 2]
+    σxy = (σfreesurf + σfault)[:, 3]
     I1 = σxx + σyy  # 1st invariant
     I2 = σxx .* σyy - σxy.^2  # 2nd invariant
     J2 = (I1.^2) ./ 3.0 - I2  # 2nd invariant (deviatoric)
