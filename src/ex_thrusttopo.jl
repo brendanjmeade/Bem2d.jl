@@ -6,10 +6,10 @@ using Bem2d
 function ex_thrusttopo()
     mu = 30e9
     nu = 0.25
-    elements = Elements()
+    els = Elements()
 
     # Observation points for internal evaluation and visualization
-    npts= 200
+    npts = 100
     xobs = LinRange(-10e3, 10e3, npts)
     yobs = LinRange(-5e3, 5e3, npts)
     xobs, yobs = meshgrid(xobs, yobs)
@@ -17,82 +17,77 @@ function ex_thrusttopo()
     yobs = yobs[:]
 
     # Topographic free surface
-    x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, 200)
+    nfreesurface = 20
+    x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, nfreesurface)
     y1 = -1e3 * @.atan(x1 / 1e3)
     y2 = -1e3 * @.atan(x2 / 1e3)
-    for i in 1:length(x1)
-        elements.x1[i + elements.endidx] = x1[i]
-        elements.y1[i + elements.endidx] = y1[i]
-        elements.x2[i + elements.endidx] = x2[i]
-        elements.y2[i + elements.endidx] = y2[i]
-        elements.name[i + elements.endidx] = "freesurface"
-    end
-    standardize_elements!(elements)
+    els.x1[els.endidx + 1 : els.endidx + nfreesurface] = x1
+    els.y1[els.endidx + 1 : els.endidx + nfreesurface] = y1
+    els.x2[els.endidx + 1 : els.endidx + nfreesurface] = x2
+    els.y2[els.endidx + 1 : els.endidx + nfreesurface] = y2
+    els.name[els.endidx + 1 : els.endidx + nfreesurface] .= "freesurface"
+    standardize_elements!(els)
 
     # Curved fault
-    x1, y1, x2, y2 = discretizedline(-7e3, 0e3, 0, 0, 100)
+    nfault = 10
+    x1, y1, x2, y2 = discretizedline(-7e3, 0e3, 0, 0, nfault)
     y1 = 3e3 * @.atan(x1 / 1e3)
     y2 = 3e3 * @.atan(x2 / 1e3)
-    for i in 1:length(x1)
-        elements.x1[i + elements.endidx] = x1[i]
-        elements.y1[i + elements.endidx] = y1[i]
-        elements.x2[i + elements.endidx] = x2[i]
-        elements.y2[i + elements.endidx] = y2[i]
-        elements.name[i + elements.endidx] = "fault"
-    end
-    standardize_elements!(elements)
+    els.x1[els.endidx + 1 : els.endidx + nfault] = x1
+    els.y1[els.endidx + 1 : els.endidx + nfault] = y1
+    els.x2[els.endidx + 1 : els.endidx + nfault] = x2
+    els.y2[els.endidx + 1 : els.endidx + nfault] = y2
+    els.name[els.endidx + 1 : els.endidx + nfault] .= "fault"
+    standardize_elements!(els)
 
     # Partial derivatves
-    srcidx = findall(x -> x == "fault", elements.name)
-    obsidx = findall(x -> x == "freesurface", elements.name)
-    d1, s1, t1 = partials_constslip(elements, srcidx, obsidx, mu, nu)
-    srcidx = findall(x -> x == "freesurface", elements.name)
-    obsidx = findall(x -> x == "freesurface", elements.name)
-    d2, s2, t2 = partials_constslip(elements, srcidx, obsidx, mu, nu)
+    srcidx = findall(x -> x == "fault", els.name)
+    obsidx = findall(x -> x == "freesurface", els.name)
+    d1, s1, t1 = partials_constslip(els, srcidx, obsidx, mu, nu)
+    srcidx = findall(x -> x == "freesurface", els.name)
+    obsidx = findall(x -> x == "freesurface", els.name)
+    d2, s2, t2 = partials_constslip(els, srcidx, obsidx, mu, nu)
 
-    # Remove and separate BCs, local to global transform here?
-    nfaultelements = length(findall(x -> x == "fault", elements.name))
-    faultslip = zeros(2 * nfaultelements)
+    # Solve the BEM problem for unit slip in the x-direction
+    faultslip = zeros(2 * nfault)
     faultslip[1:2:end] .= 1.0 # Global coordinate system
-
-    # Solve the BEM problem
-    disp_freesurface = inv(t2) * t1 * faultslip
+    ufreesurface = inv(t2) * t1 * faultslip
 
     # Fault in full space
-    dispfault = zeros(length(xobs), 2)
-    stressfault = zeros(length(xobs), 3)
-    faultidx = findall(x -> x == "fault", elements.name)
+    ufault = zeros(length(xobs), 2)
+    σfault = zeros(length(xobs), 3)
+    faultidx = findall(x -> x == "fault", els.name)
     for i in 1:length(faultidx)
-        disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[faultidx[i]],
-            mu, nu, 1, 0, elements.xcenter[faultidx[i]], elements.ycenter[faultidx[i]],
-            elements.rotmat[faultidx[i], :, :], elements.rotmatinv[faultidx[i], :, :])
-        dispfault += disp
-        stressfault += stress
+        u, σ = dispstress_constslip(xobs, yobs, els.halflength[faultidx[i]],
+            mu, nu, 1, 0, els.xcenter[faultidx[i]], els.ycenter[faultidx[i]],
+            els.rotmat[faultidx[i], :, :], els.rotmatinv[faultidx[i], :, :])
+        ufault += u
+        σfault += σ
     end
 
     # Free surface in full space
-    dispfreesurface::Array{Float64} = zeros(length(xobs), 2)
-    stressfreesurface::Array{Float64} = zeros(length(xobs), 3)
-    freesurfaceidx::Array{Int64} = findall(x -> x == "freesurface", elements.name)
+    ufreesurface = zeros(length(xobs), 2)
+    σfreesurface = zeros(length(xobs), 3)
+    freesurfaceidx = findall(x -> x == "freesurface", els.name)
     for i in 1:length(freesurfaceidx)
-        disp, stress = dispstress_constslip(xobs, yobs, elements.halflength[freesurfaceidx[i]],
-            mu, nu, disp_freesurface[1:2:end][i], disp_freesurface[2:2:end][i],
-            elements.xcenter[freesurfaceidx[i]], elements.ycenter[freesurfaceidx[i]],
-            elements.rotmat[freesurfaceidx[i], :, :], elements.rotmatinv[freesurfaceidx[i], :, :])
-        dispfreesurface += disp
-        stressfreesurface += stress
+        u, σ = dispstress_constslip(xobs, yobs, els.halflength[freesurfaceidx[i]],
+            mu, nu, ufreesurface[1:2:end][i], ufreesurface[2:2:end][i],
+            els.xcenter[freesurfaceidx[i]], els.ycenter[freesurfaceidx[i]],
+            els.rotmat[freesurfaceidx[i], :, :], els.rotmatinv[freesurfaceidx[i], :, :])
+        ufreesurface += u
+        σfreesurface += σ
     end
 
     # Pretty of displacements and stresses
-    freesurfaceidx = findall(x -> x == "freesurface", elements.name)
-    xfreesurface = unique([elements.x1[freesurfaceidx] ; elements.x2[freesurfaceidx]])
+    freesurfaceidx = findall(x -> x == "freesurface", els.name)
+    xfreesurface = unique([els.x1[freesurfaceidx] ; els.x2[freesurfaceidx]])
     xfill = [xfreesurface ; [10e3 ; -10e3 ; -10e3]]
-    yfreesurface = unique([elements.y1[freesurfaceidx] ; elements.y2[freesurfaceidx]])
+    yfreesurface = unique([els.y1[freesurfaceidx] ; els.y2[freesurfaceidx]])
     yfill = [yfreesurface ; [5e3 ; 5e3 ; minimum(yfreesurface)]]
-    ufield = @.sqrt((dispfault + dispfreesurface)[:, 1].^2 + (dispfault + dispfreesurface)[:, 2].^2)
-    σxx = (stressfreesurface + stressfault)[:, 1]
-    σyy = (stressfreesurface + stressfault)[:, 2]
-    σxy = (stressfreesurface + stressfault)[:, 3]
+    ufield = @.sqrt((ufault + ufreesurface)[:, 1].^2 + (ufault + ufreesurface)[:, 2].^2)
+    σxx = (σfreesurface + σfault)[:, 1]
+    σyy = (σfreesurface + σfault)[:, 2]
+    σxy = (σfreesurface + σfault)[:, 3]
     I1 = σxx + σyy  # 1st invariant
     I2 = σxx .* σyy - σxy.^2  # 2nd invariant
     J2 = (I1.^2) ./ 3.0 - I2  # 2nd invariant (deviatoric)
@@ -107,7 +102,7 @@ function ex_thrusttopo()
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         reshape(ufield, npts, npts), ncontours, linewidths=0.5, colors="gray")
     fill(xfill, yfill, "w", zorder=30)
-    plotelements(elements)
+    plotelements(els)
     xticks([minimum(xobs), 0, maximum(xobs)])
     yticks([minimum(yobs), 0, maximum(yobs)])
     gca().set_aspect("equal")
@@ -122,7 +117,7 @@ function ex_thrusttopo()
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         reshape(σfield, npts, npts), ncontours, linewidths=0.5, colors="gray")
     fill(xfill, yfill, "w", zorder=30)
-    plotelements(elements)
+    plotelements(els)
     xticks([minimum(xobs), 0, maximum(xobs)])
     yticks([minimum(yobs), 0, maximum(yobs)])
     gca().set_aspect("equal")

@@ -3,9 +3,11 @@ using NLsolve
 using Bem2d
 
 # State evolution law : aging law
-function dθdt!(_dθdt, θ, v, b, v0, dc, f0)
-    _dθdt = b .* v0 ./ dc .* (@.exp((f0 .- θ) ./ b) .- (v ./ v0))
+function calcdθdt!(dθdt, θ, v, b, v0, dc, f0)
+    dθdt = b .* v0 ./ dc .* (@.exp((f0 .- θ) ./ b) .- (v ./ v0))
 end
+
+# https://discourse.julialang.org/t/parametrize-nlsolve-function/11886
 
 # Should I eliminate this since its only called once?
 # Steady-state state for initial condition """
@@ -112,7 +114,7 @@ function ex_planarqdconst()
 
     println("Trying root solver --- no idea what Im doing")
     # res = nlsolve((F, x) -> dθdt!(F, x, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff=:forward).zero
-    res = nlsolve((_dθdt, θ) -> dθdt!(_dθdt, θ, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff=:forward)
+    res = nlsolve((dθdt, θ) -> calcdθdt!(dθdt, θ, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff=:forward)
     display(res)
 
     # Time integrate
