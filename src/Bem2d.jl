@@ -11,7 +11,7 @@ end
 
 maxidx = Int64(1e5)
 println()
-println("Bem2d.jl: Maximum number of elements: maxidx = ", maxidx)
+println("Bem2d.jl: Maxiμm number of elements: maxidx = ", maxidx)
 println()
 export Elements
 mutable struct Elements
@@ -93,7 +93,7 @@ function constslip(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotm
         _x[i], _y[i] = rotmatinv * [x[i] - xcenter ; y[i] - ycenter]
     end
     _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
-    f = constantkernel(_x, _y, a, ν)
+    f = constkernel(_x, _y, a, ν)
     u, σ = slip2uσ(_xcomp, _ycomp, f, _y, μ, ν)
     u, σ = rotuσ(u, σ, rotmat)
     return u, σ
@@ -109,61 +109,63 @@ function consttrac(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotm
         _x[i], _y[i] = rotmat * [x[i] - xcenter ; y[i] - ycenter]
     end
     _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
-    f = constantkernel(_x, _y, a, ν)
+    f = constkernel(_x, _y, a, ν)
     u, σ = trac2uσ(_xcomp, _ycomp, f, _y, μ, ν)
     u, σ = rotuσ(u, σ, rotmatinv)
     return u, σ
 end
 
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
-function constantkernel(x, y, a, nu)
+function constkernel(x, y, a, ν)
     f = zeros(length(x), 7)
     for i in 1:length(x)
-        f[i, 1] = -1 / (4 * pi * (1 - nu)) * (y[i] * (atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a)))- (x[i] - a) * log(sqrt((x[i] - a)^2 + y[i]^2)) + (x[i] + a) * log(sqrt((x[i] + a)^2 + y[i]^2)))
-        f[i, 2] = -1 / (4 * pi * (1 - nu)) * ((atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a))))
-        f[i, 3] = 1 / (4 * pi * (1 - nu)) * (log(sqrt((x[i] - a)^2 + y[i]^2)) - log(sqrt((x[i] + a)^2 + y[i]^2)))
-        f[i, 4] = 1 / (4 * pi * (1 - nu)) * (y[i] / ((x[i] - a)^2 + y[i]^2) - y[i] / ((x[i] + a)^2 + y[i]^2))
-        f[i, 5] = 1 / (4 * pi * (1 - nu)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2) - (x[i] + a) / ((x[i] + a)^2 + y[i]^2))
-        f[i, 6] = 1 / (4 * pi * (1 - nu)) * (((x[i] - a)^2 - y[i]^2) / ((x[i] - a)^2 + y[i]^2)^2 - ((x[i] + a)^2 - y[i]^2) / ((x[i] + a)^2 + y[i]^2)^2)
-        f[i, 7] = 2 * y[i] / (4 * pi * (1 - nu)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2)^2 - (x[i] + a) / ((x[i] + a)^2 + y[i]^2)^2)
+        f[i, 1] = -1 / (4 * π * (1 - ν)) * (y[i] * (atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a)))- (x[i] - a) * log(sqrt((x[i] - a)^2 + y[i]^2)) + (x[i] + a) * log(sqrt((x[i] + a)^2 + y[i]^2)))
+        f[i, 2] = -1 / (4 * π * (1 - ν)) * ((atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a))))
+        f[i, 3] = 1 / (4 * π * (1 - ν)) * (log(sqrt((x[i] - a)^2 + y[i]^2)) - log(sqrt((x[i] + a)^2 + y[i]^2)))
+        f[i, 4] = 1 / (4 * π * (1 - ν)) * (y[i] / ((x[i] - a)^2 + y[i]^2) - y[i] / ((x[i] + a)^2 + y[i]^2))
+        f[i, 5] = 1 / (4 * π * (1 - ν)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2) - (x[i] + a) / ((x[i] + a)^2 + y[i]^2))
+        f[i, 6] = 1 / (4 * π * (1 - ν)) * (((x[i] - a)^2 - y[i]^2) / ((x[i] - a)^2 + y[i]^2)^2 - ((x[i] + a)^2 - y[i]^2) / ((x[i] + a)^2 + y[i]^2)^2)
+        f[i, 7] = 2 * y[i] / (4 * π * (1 - ν)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2)^2 - (x[i] + a) / ((x[i] + a)^2 + y[i]^2)^2)
     end
     return f
 end
 
+
 # Generalization from Starfield and Crouch
 export trac2uσ
-function trac2uσ(xcomp, ycomp, f, y, mu, nu)
+function trac2uσ(xcomp, ycomp, f, y, μ, ν)
     u = zeros(length(y), 2)
     σ = zeros(length(y), 3)
     _xcomp = -xcomp # For Okada consistency
     _ycomp = -ycomp # For Okada consistency
     for i in 1:length(y)
-        u[i, 1] = _xcomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * mu) * (-y[i] * f[i, 3])
-        u[i, 2] = _xcomp / (2.0 * mu) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] - y[i] * f[i, 2])
-        σ[i, 1] = _xcomp * ((3.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * nu * f[i, 2] + y[i] * f[i, 5])
-        σ[i, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5])
-        σ[i, 3] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] + y[i] * f[i, 5]) + _ycomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
+        u[i, 1] = _xcomp / (2.0 * μ) * ((3.0 - 4.0 * ν) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * μ) * (-y[i] * f[i, 3])
+        u[i, 2] = _xcomp / (2.0 * μ) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * μ) * ((3.0 - 4.0 * ν) * f[i, 1] - y[i] * f[i, 2])
+        σ[i, 1] = _xcomp * ((3.0 - 2.0 * ν) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * ν * f[i, 2] + y[i] * f[i, 5])
+        σ[i, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * ν) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * (1.0 - ν) * f[i, 2] - y[i] * f[i, 5])
+        σ[i, 3] = _xcomp * (2.0 * (1.0 - ν) * f[i, 2] + y[i] * f[i, 5]) + _ycomp * ((1.0 - 2.0 * ν) * f[i, 3] - y[i] * f[i, 4])
     end
     return u, σ
 end
 
 # Generalization of Starfield and Crouch
 export slip2uσ
-function slip2uσ(xcomp, ycomp, f, y, mu, nu)
+function slip2uσ(xcomp, ycomp, f, y, μ, ν)
     u = zeros(length(y), 2)
     σ = zeros(length(y), 3)
     _xcomp = -xcomp # For Okada consistency
     _ycomp = -ycomp # For Okada consistency
 
     for i in 1:length(y)
-        u[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
-        u[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
-        σ[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
-        σ[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
-        σ[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7]) + 2.0 * _ycomp * mu * (-y[i] * f[i, 6])
+        u[i, 1] = _xcomp * (2.0 * (1.0 - ν) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * ν) * f[i, 3] - y[i] * f[i, 4])
+        u[i, 2] = _xcomp * ((1.0 - 2.0 * ν) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - ν) * f[i, 2] - y[i] * -f[i, 5])
+        σ[i, 1] = 2.0 * _xcomp * μ * (2.0 * f[i, 4] + y[i] * f[i, 6]) + 2.0 * _ycomp * μ * (-f[i, 5] + y[i] * f[i, 7])
+        σ[i, 2] = 2.0 * _xcomp * μ * (-y[i] * f[i, 6]) + 2.0 * _ycomp * μ * (-f[i, 5] - y[i] * f[i, 7])
+        σ[i, 3] = 2.0 * _xcomp * μ * (-f[i, 5] + y[i] * f[i, 7]) + 2.0 * _ycomp * μ * (-y[i] * f[i, 6])
     end
     return u, σ
 end
+
 
 export σ2t
 function σ2t(stress, nvec)
@@ -194,7 +196,7 @@ end
 
 export rotuσ
 function rotuσ(u, σ, rotmat)
-    # TODO: If this is slow hand expand the matrix vector multiplies
+    # TODO: If this is slow hand expand the matrix vector μltiplies
     # inplace for speed.  Some benchmarks suggest 50x speedup!
     _u = zeros(size(u))
     _σ = zeros(size(σ))
@@ -223,11 +225,11 @@ end
 
 function plotfields_contours(els, xobs, yobs, idx, field, title)
     ncontours = 10
-    xlim = [minimum(xobs) maximum(xobs)]
-    ylim = [minimum(yobs) maximum(yobs)]
+    xlim = [miniμm(xobs) maxiμm(xobs)]
+    ylim = [miniμm(yobs) maxiμm(yobs)]
     subplot(2, 3, idx)
     scale = 5e-1
-    fieldmax = maximum(@.abs(field))
+    fieldmax = maxiμm(@.abs(field))
     contourf(xobs, yobs, reshape(field, size(xobs)), ncontours,
         vmin=-scale * fieldmax, vmax=scale * fieldmax, cmap=plt.get_cmap("PiYG"))
     clim(-scale * fieldmax, scale * fieldmax)
@@ -244,7 +246,7 @@ function plotfields(els, xobs, yobs, disp, stress, suptitle)
     figure(figsize = (16, 8))
     subplot(2, 3, 1)
     quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units="width", color="b")
-    stylesubplots([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
+    stylesubplots([miniμm(xobs) maxiμm(xobs)], [miniμm(yobs) maxiμm(yobs)])
     plotelements(els)
     PyPlot.title("displacements")
     plotfields_contours(els, xobs, yobs, 2, disp[:, 1], L"u_x")
@@ -258,7 +260,7 @@ function plotfields(els, xobs, yobs, disp, stress, suptitle)
 end
 
 export ∂constslip
-function ∂constslip(els, srcidx, obsidx, mu, nu)
+function ∂constslip(els, srcidx, obsidx, μ, nu)
     nobs = length(obsidx)
     nsrc = length(srcidx)
     ∂u = zeros(2 * nobs, 2 * nsrc)
@@ -270,12 +272,12 @@ function ∂constslip(els, srcidx, obsidx, mu, nu)
             _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
             _∂u[:, 1], _∂σ[:, 1] = constslip(
                 els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els.halflength[srcidx[isrc]], mu, nu, 1, 0,
+                els.halflength[srcidx[isrc]], μ, nu, 1, 0,
                 els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
                 els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
             _∂u[:, 2], _∂σ[:, 2] = constslip(
                 els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els.halflength[srcidx[isrc]], mu, nu, 0, 1,
+                els.halflength[srcidx[isrc]], μ, nu, 0, 1,
                 els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
                 els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
@@ -289,7 +291,7 @@ function ∂constslip(els, srcidx, obsidx, mu, nu)
 end
 
 export ∂consttrac
-function ∂consttrac(els, srcidx, obsidx, mu, nu)
+function ∂consttrac(els, srcidx, obsidx, μ, nu)
     nobs = length(obsidx)
     nsrc = length(srcidx)
     ∂u = zeros(2 * nobs, 2 * nsrc)
@@ -301,12 +303,12 @@ function ∂consttrac(els, srcidx, obsidx, mu, nu)
             _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
             _∂u[:, 1], _∂σ[:, 1] = consttrac(
                 els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els.halflength[srcidx[isrc]], mu, nu, 1, 0,
+                els.halflength[srcidx[isrc]], μ, nu, 1, 0,
                 els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
                 els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
             _∂u[:, 2], _∂σ[:, 2] = consttrac(
                 els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els.halflength[srcidx[isrc]], mu, nu, 0, 1,
+                els.halflength[srcidx[isrc]], μ, nu, 0, 1,
                 els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
                 els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
@@ -318,177 +320,5 @@ function ∂consttrac(els, srcidx, obsidx, mu, nu)
     end
     return ∂u, ∂σ, ∂t
 end
-
-
-# Kernels for coincident integrals f, shape_function_idx, node_idx
-function quadratic_kernel_coincident(a, ν)
-    # TODO: Need to update all indices + 1 for Julia
-    f = zeros(7, 3, 3)
-
-    # f0
-    f[0, 0, 0] = (
-        -5 / 144 * a * log(25 / 9 * a^2) / (π - π * ν)
-        - 17 / 288 * a * log(1 / 9 * a^2) / (π - π * ν)
-        + 1 / 12 * a / (π - π * ν)
-    )
-    f[0, 1, 0] = (
-        -25 / 288 * a * log(25 / 9 * a^2) / (π - π * ν)
-        + 7 / 288 * a * log(1 / 9 * a^2) / (π - π * ν)
-        + 1 / 12 * a / (π - π * ν)
-    )
-    f[0, 2, 0] = (
-        -25 / 288 * a * log(25 / 9 * a^2) / (π - π * ν)
-        - 1 / 144 * a * log(1 / 9 * a^2) / (π - π * ν)
-        - 1 / 6 * a / (π - π * ν)
-    )
-    f[0, 0, 1] = -3 / 16 * a * log(a) / (π - π * ν) - 1 / 8 * a / (
-        π - π * ν
-    )
-    f[0, 1, 1] = -1 / 8 * a * log(a) / (π - π * ν) + 1 / 4 * a / (
-        π - π * ν
-    )
-    f[0, 2, 1] = -3 / 16 * a * log(a) / (π - π * ν) - 1 / 8 * a / (
-        π - π * ν
-    )
-    f[0, 0, 2] = (
-        -25 / 288 * a * log(25 / 9 * a^2) / (π - π * ν)
-        - 1 / 144 * a * log(1 / 9 * a^2) / (π - π * ν)
-        - 1 / 6 * a / (π - π * ν)
-    )
-    f[0, 1, 2] = (
-        -25 / 288 * a * log(25 / 9 * a^2) / (π - π * ν)
-        + 7 / 288 * a * log(1 / 9 * a^2) / (π - π * ν)
-        + 1 / 12 * a / (π - π * ν)
-    )
-    f[0, 2, 2] = (
-        -5 / 144 * a * log(25 / 9 * a^2) / (π - π * ν)
-        - 17 / 288 * a * log(1 / 9 * a^2) / (π - π * ν)
-        + 1 / 12 * a / (π - π * ν)
-    )
-
-    # f1
-    f[1, 0, 0] = 1 / 4 / (ν - 1)
-    f[1, 1, 0] = 0
-    f[1, 2, 0] = 0
-    f[1, 0, 1] = 0
-    f[1, 1, 1] = 1 / 4 / (ν - 1)
-    f[1, 2, 1] = 0
-    f[1, 0, 2] = 0
-    f[1, 1, 2] = 0
-    f[1, 2, 2] = 1 / 4 / (ν - 1)
-
-    # f2
-    f[2, 0, 0] = (
-        1 / 8 * log(25 / 9 * a^2) / (π - π * ν)
-        - 1 / 8 * log(1 / 9 * a^2) / (π - π * ν)
-        - 3 / 4 / (π - π * ν)
-    )
-    f[2, 1, 0] = 3 / 4 / (π - π * ν)
-    f[2, 2, 0] = 0
-    f[2, 0, 1] = -3 / 8 / (π - π * ν)
-    f[2, 1, 1] = 0
-    f[2, 2, 1] = 3 / 8 / (π - π * ν)
-    f[2, 0, 2] = 0
-    f[2, 1, 2] = -3 / 4 / (π - π * ν)
-    f[2, 2, 2] = (
-        -1 / 8 * log(25 / 9 * a^2) / (π - π * ν)
-        + 1 / 8 * log(1 / 9 * a^2) / (π - π * ν)
-        + 3 / 4 / (π - π * ν)
-    )
-
-    # f3
-    f[3, 0, 0] = -9 / 16 / (a * ν - a)
-    f[3, 1, 0] = 3 / 4 / (a * ν - a)
-    f[3, 2, 0] = -3 / 16 / (a * ν - a)
-    f[3, 0, 1] = -3 / 16 / (a * ν - a)
-    f[3, 1, 1] = 0
-    f[3, 2, 1] = 3 / 16 / (a * ν - a)
-    f[3, 0, 2] = 3 / 16 / (a * ν - a)
-    f[3, 1, 2] = -3 / 4 / (a * ν - a)
-    f[3, 2, 2] = 9 / 16 / (a * ν - a)
-
-    # f4
-    f[4, 0, 0] = (
-        9 / 32 * log(25 / 9 * a^2) / (π * a * ν - π * a)
-        - 9 / 32 * log(1 / 9 * a^2) / (π * a * ν - π * a)
-        + 27 / 80 / (π * a * ν - π * a)
-    )
-    f[4, 1, 0] = (
-        -3 / 8 * log(25 / 9 * a^2) / (π * a * ν - π * a)
-        + 3 / 8 * log(1 / 9 * a^2) / (π * a * ν - π * a)
-        + 9 / 8 / (π * a * ν - π * a)
-    )
-    f[4, 2, 0] = (
-        3 / 32 * log(25 / 9 * a^2) / (π * a * ν - π * a)
-        - 3 / 32 * log(1 / 9 * a^2) / (π * a * ν - π * a)
-        - 9 / 16 / (π * a * ν - π * a)
-    )
-    f[4, 0, 1] = -9 / 16 / (π * a * ν - π * a)
-    f[4, 1, 1] = 13 / 8 / (π * a * ν - π * a)
-    f[4, 2, 1] = -9 / 16 / (π * a * ν - π * a)
-    f[4, 0, 2] = (
-        3 / 32 * log(25 / 9 * a^2) / (π * a * ν - π * a)
-        - 3 / 32 * log(1 / 9 * a^2) / (π * a * ν - π * a)
-        - 9 / 16 / (π * a * ν - π * a)
-    )
-    f[4, 1, 2] = (
-        -3 / 8 * log(25 / 9 * a^2) / (π * a * ν - π * a)
-        + 3 / 8 * log(1 / 9 * a^2) / (π * a * ν - π * a)
-        + 9 / 8 / (π * a * ν - π * a)
-    )
-    f[4, 2, 2] = (
-        9 / 32 * log(25 / 9 * a^2) / (π * a * ν - π * a)
-        - 9 / 32 * log(1 / 9 * a^2) / (π * a * ν - π * a)
-        + 27 / 80 / (π * a * ν - π * a)
-    )
-
-    # f5
-    f[5, 0, 0] = (
-        9 / 32 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        - 9 / 32 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        + 621 / 100 / (π * a^2 * ν - π * a^2)
-    )
-    f[5, 1, 0] = (
-        -9 / 16 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        + 9 / 16 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        - 27 / 5 / (π * a^2 * ν - π * a^2)
-    )
-    f[5, 2, 0] = (
-        9 / 32 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        - 9 / 32 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        + 27 / 20 / (π * a^2 * ν - π * a^2)
-    )
-    f[5, 0, 1] = 3 / 4 / (π * a^2 * ν - π * a^2)
-    f[5, 1, 1] = 0
-    f[5, 2, 1] = -3 / 4 / (π * a^2 * ν - π * a^2)
-    f[5, 0, 2] = (
-        -9 / 32 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        + 9 / 32 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        - 27 / 20 / (π * a^2 * ν - π * a^2)
-    )
-    f[5, 1, 2] = (
-        9 / 16 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        - 9 / 16 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        + 27 / 5 / (π * a^2 * ν - π * a^2)
-    )
-    f[5, 2, 2] = (
-        -9 / 32 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        + 9 / 32 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2)
-        - 621 / 100 / (π * a^2 * ν - π * a^2)
-    )
-
-    # f6
-    f[6, 0, 0] = -9 / 16 / (a^2 * ν - a^2)
-    f[6, 1, 0] = 9 / 8 / (a^2 * ν - a^2)
-    f[6, 2, 0] = -9 / 16 / (a^2 * ν - a^2)
-    f[6, 0, 1] = -9 / 16 / (a^2 * ν - a^2)
-    f[6, 1, 1] = 9 / 8 / (a^2 * ν - a^2)
-    f[6, 2, 1] = -9 / 16 / (a^2 * ν - a^2)
-    f[6, 0, 2] = -9 / 16 / (a^2 * ν - a^2)
-    f[6, 1, 2] = 9 / 8 / (a^2 * ν - a^2)
-    f[6, 2, 2] = -9 / 16 / (a^2 * ν - a^2)
-    return f
-end
-
 
 end
