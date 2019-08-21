@@ -2,6 +2,8 @@ module Bem2d
 using LaTeXStrings
 using PyCall
 using PyPlot
+include("Bem2dQuadKernels.jl")
+using Bem2dQuadKernels
 
 # Based on: http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
 export meshgrid
@@ -115,6 +117,30 @@ function consttrac(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotm
     return u, σ
 end
 
+# Calculate displacements and stresses for constant slip elements
+export quadslip
+function quadslip(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
+    # Rotate and translate into local coordinate system with *global* slip components
+    _x = zeros(length(x))
+    _y = zeros(length(y))
+    for i in 1:length(x)
+        _x[i], _y[i] = rotmatinv * [x[i] - xcenter ; y[i] - ycenter]
+    end
+    f = quadkernel_farfield(x, y, a, ν)
+    u = zeros(length(x), 2)
+    σ = zeros(length(x), 2)
+    for i in 1:3
+        # f = f_all[:, i, :] # TODO: How to update indexing from python???
+        _xcomp, _ycomp = rotmatinv * [xcomp[i] ; ycomp[i]]
+        _u, _σ = slip2uσ(_xcomp, _ycomp, f[:, i, :], _y, μ, ν)
+        _u, _σ = rotuσ(_u, _σ, rotmat)
+        u += _u
+        σ += _σ
+    end
+    return u, σ
+end
+
+
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constkernel(x, y, a, ν)
     f = zeros(length(x), 7)
@@ -225,11 +251,11 @@ end
 
 function plotfields_contours(els, xobs, yobs, idx, field, title)
     ncontours = 10
-    xlim = [miniμm(xobs) maxiμm(xobs)]
-    ylim = [miniμm(yobs) maxiμm(yobs)]
+    xlim = [minimum(xobs) maximum(xobs)]
+    ylim = [minimum(yobs) maximum(yobs)]
     subplot(2, 3, idx)
     scale = 5e-1
-    fieldmax = maxiμm(@.abs(field))
+    fieldmax = maximum(@.abs(field))
     contourf(xobs, yobs, reshape(field, size(xobs)), ncontours,
         vmin=-scale * fieldmax, vmax=scale * fieldmax, cmap=plt.get_cmap("PiYG"))
     clim(-scale * fieldmax, scale * fieldmax)
@@ -246,7 +272,7 @@ function plotfields(els, xobs, yobs, disp, stress, suptitle)
     figure(figsize = (16, 8))
     subplot(2, 3, 1)
     quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units="width", color="b")
-    stylesubplots([miniμm(xobs) maxiμm(xobs)], [miniμm(yobs) maxiμm(yobs)])
+    stylesubplots([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
     plotelements(els)
     PyPlot.title("displacements")
     plotfields_contours(els, xobs, yobs, 2, disp[:, 1], L"u_x")
