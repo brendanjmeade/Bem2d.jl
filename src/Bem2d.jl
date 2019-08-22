@@ -2,8 +2,6 @@ module Bem2d
 using LaTeXStrings
 using PyCall
 using PyPlot
-include("Bem2dQuadKernels.jl")
-using Bem2dQuadKernels
 
 # Based on: http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
 export meshgrid
@@ -17,29 +15,29 @@ println("Bem2d.jl: Maxiμm number of elements: maxidx = ", maxidx)
 println()
 export Elements
 mutable struct Elements
-    x1::Array{Float64, 1}
-    y1::Array{Float64, 1}
-    x2::Array{Float64, 1}
-    y2::Array{Float64, 1}
-    name::Array{String, 1}
-    uxconst::Array{Float64, 1}
-    uyconst::Array{Float64, 1}
-    uxquad::Array{Float64, 2}
-    uyquad::Array{Float64, 2}
-    angle::Array{Float64, 1}
-    length::Array{Float64, 1}
-    halflength::Array{Float64, 1}
-    xcenter::Array{Float64, 1}
-    ycenter::Array{Float64, 1}
-    rotmat::Array{Float64, 3}
-    rotmatinv::Array{Float64, 3}
-    xnormal::Array{Float64, 1}
-    ynormal::Array{Float64, 1}
-    xnodes::Array{Float64, 2}
-    ynodes::Array{Float64, 2}
-    a::Array{Float64, 1}
-    b::Array{Float64, 1}
-    sigman::Array{Float64, 1}
+    x1::Array{Float64,1}
+    y1::Array{Float64,1}
+    x2::Array{Float64,1}
+    y2::Array{Float64,1}
+    name::Array{String,1}
+    uxconst::Array{Float64,1}
+    uyconst::Array{Float64,1}
+    uxquad::Array{Float64,2}
+    uyquad::Array{Float64,2}
+    angle::Array{Float64,1}
+    length::Array{Float64,1}
+    halflength::Array{Float64,1}
+    xcenter::Array{Float64,1}
+    ycenter::Array{Float64,1}
+    rotmat::Array{Float64,3}
+    rotmatinv::Array{Float64,3}
+    xnormal::Array{Float64,1}
+    ynormal::Array{Float64,1}
+    xnodes::Array{Float64,2}
+    ynodes::Array{Float64,2}
+    a::Array{Float64,1}
+    b::Array{Float64,1}
+    sigman::Array{Float64,1}
     endidx::Int64
     Elements() = new(fill(NaN, maxidx), # x1
                 fill(NaN, maxidx), # y1
@@ -76,10 +74,10 @@ end
 export discretizedline
 function discretizedline(xstart, ystart, xend, yend, nelements)
     npts = nelements + 1
-    x = range(xstart, stop=xend, length=npts)
-    y = range(ystart, stop=yend, length=npts)
-    x1 = x[1:1:end-1]
-    y1 = y[1:1:end-1]
+    x = range(xstart, stop = xend, length = npts)
+    y = range(ystart, stop = yend, length = npts)
+    x1 = x[1:1:end - 1]
+    y1 = y[1:1:end - 1]
     x2 = x[2:1:end]
     y2 = y[2:1:end]
     return x1, y1, x2, y2
@@ -126,13 +124,13 @@ function quadslip(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotma
     for i in 1:length(x)
         _x[i], _y[i] = rotmatinv * [x[i] - xcenter ; y[i] - ycenter]
     end
-    f = quadkernel_farfield(x, y, a, ν)
+    f = quadkernel_farfield(_x, _y, a, ν)
+    println(size(f))
     u = zeros(length(x), 2)
-    σ = zeros(length(x), 2)
+    σ = zeros(length(x), 3)
     for i in 1:3
-        # f = f_all[:, i, :] # TODO: How to update indexing from python???
         _xcomp, _ycomp = rotmatinv * [xcomp[i] ; ycomp[i]]
-        _u, _σ = slip2uσ(_xcomp, _ycomp, f[:, i, :], _y, μ, ν)
+        _u, _σ = slip2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
         _u, _σ = rotuσ(_u, _σ, rotmat)
         u += _u
         σ += _σ
@@ -145,13 +143,141 @@ end
 function constkernel(x, y, a, ν)
     f = zeros(length(x), 7)
     for i in 1:length(x)
-        f[i, 1] = -1 / (4 * π * (1 - ν)) * (y[i] * (atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a)))- (x[i] - a) * log(sqrt((x[i] - a)^2 + y[i]^2)) + (x[i] + a) * log(sqrt((x[i] + a)^2 + y[i]^2)))
+        f[i, 1] = -1 / (4 * π * (1 - ν)) * (y[i] * (atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a))) - (x[i] - a) * log(sqrt((x[i] - a)^2 + y[i]^2)) + (x[i] + a) * log(sqrt((x[i] + a)^2 + y[i]^2)))
         f[i, 2] = -1 / (4 * π * (1 - ν)) * ((atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a))))
         f[i, 3] = 1 / (4 * π * (1 - ν)) * (log(sqrt((x[i] - a)^2 + y[i]^2)) - log(sqrt((x[i] + a)^2 + y[i]^2)))
         f[i, 4] = 1 / (4 * π * (1 - ν)) * (y[i] / ((x[i] - a)^2 + y[i]^2) - y[i] / ((x[i] + a)^2 + y[i]^2))
         f[i, 5] = 1 / (4 * π * (1 - ν)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2) - (x[i] + a) / ((x[i] + a)^2 + y[i]^2))
         f[i, 6] = 1 / (4 * π * (1 - ν)) * (((x[i] - a)^2 - y[i]^2) / ((x[i] - a)^2 + y[i]^2)^2 - ((x[i] + a)^2 - y[i]^2) / ((x[i] + a)^2 + y[i]^2)^2)
         f[i, 7] = 2 * y[i] / (4 * π * (1 - ν)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2)^2 - (x[i] + a) / ((x[i] + a)^2 + y[i]^2)^2)
+    end
+    return f
+end
+
+# Coincident 3-node quadratic kernels
+# Kernels for coincident integrals f, shape_function_idx, node_idx
+export quadkernel_coincident
+function quadkernel_coincident(a, ν)
+    # TODO: Should I swap order: nodeidx, f, shapefunction Probably
+    f = zeros(7, 3, 3)
+
+    f[1, 1, 1] = -5 / 144 * a * log(25 / 9 * a^2) / (π - π * ν) - 17 / 288 * a * log(1 / 9 * a^2) / (π - π * ν) + 1 / 12 * a / (π - π * ν)
+    f[1, 2, 1] = -25 / 288 * a * log(25 / 9 * a^2) / (π - π * ν) + 7 / 288 * a * log(1 / 9 * a^2) / (π - π * ν) + 1 / 12 * a / (π - π * ν)
+    f[1, 3, 1] = -25 / 288 * a * log(25 / 9 * a^2) / (π - π * ν) - 1 / 144 * a * log(1 / 9 * a^2) / (π - π * ν) - 1 / 6 * a / (π - π * ν)
+    f[1, 1, 2] = -3 / 16 * a * log(a) / (π - π * ν) - 1 / 8 * a / (π - π * ν)
+    f[1, 2, 2] = -1 / 8 * a * log(a) / (π - π * ν) + 1 / 4 * a / (π - π * ν)
+    f[1, 3, 2] = -3 / 16 * a * log(a) / (π - π * ν) - 1 / 8 * a / (π - π * ν)
+    f[1, 1, 3] = -25 / 288 * a * log(25 / 9 * a^2) / (π - π * ν) - 1 / 144 * a * log(1 / 9 * a^2) / (π - π * ν) - 1 / 6 * a / (π - π * ν)
+    f[1, 2, 3] = -25 / 288 * a * log(25 / 9 * a^2) / (π - π * ν) + 7 / 288 * a * log(1 / 9 * a^2) / (π - π * ν) + 1 / 12 * a / (π - π * ν)
+    f[1, 3, 3] = -5 / 144 * a * log(25 / 9 * a^2) / (π - π * ν) - 17 / 288 * a * log(1 / 9 * a^2) / (π - π * ν) + 1 / 12 * a / (π - π * ν)
+
+    f[2, 1, 1] = 1 / 4 / (ν - 1)
+    f[2, 2, 1] = 0
+    f[2, 3, 1] = 0
+    f[2, 1, 2] = 0
+    f[2, 2, 2] = 1 / 4 / (ν - 1)
+    f[2, 3, 2] = 0
+    f[2, 1, 3] = 0
+    f[2, 2, 3] = 0
+    f[2, 3, 3] = 1 / 4 / (ν - 1)
+
+    f[3, 1, 1] = 1 / 8 * log(25 / 9 * a^2) / (π - π * ν) - 1 / 8 * log(1 / 9 * a^2) / (π - π * ν) - 3 / 4 / (π - π * ν)
+    f[3, 2, 1] = 3 / 4 / (π - π * ν)
+    f[3, 3, 1] = 0
+    f[3, 1, 2] = -3 / 8 / (π - π * ν)
+    f[3, 2, 2] = 0
+    f[3, 3, 2] = 3 / 8 / (π - π * ν)
+    f[3, 1, 3] = 0
+    f[3, 2, 3] = -3 / 4 / (π - π * ν)
+    f[3, 3, 3] = -1 / 8 * log(25 / 9 * a^2) / (π - π * ν) + 1 / 8 * log(1 / 9 * a^2) / (π - π * ν) + 3 / 4 / (π - π * ν)
+
+    f[4, 1, 1] = -9 / 16 / (a * ν - a)
+    f[4, 2, 1] = 3 / 4 / (a * ν - a)
+    f[4, 3, 1] = -3 / 16 / (a * ν - a)
+    f[4, 1, 2] = -3 / 16 / (a * ν - a)
+    f[4, 2, 2] = 0
+    f[4, 3, 2] = 3 / 16 / (a * ν - a)
+    f[4, 1, 3] = 3 / 16 / (a * ν - a)
+    f[4, 2, 3] = -3 / 4 / (a * ν - a)
+    f[4, 3, 3] = 9 / 16 / (a * ν - a)
+
+    f[5, 1, 1] = 9 / 32 * log(25 / 9 * a^2) / (π * a * ν - π * a) - 9 / 32 * log(1 / 9 * a^2) / (π * a * ν - π * a) + 27 / 80 / (π * a * ν - π * a)
+    f[5, 2, 1] = -3 / 8 * log(25 / 9 * a^2) / (π * a * ν - π * a) + 3 / 8 * log(1 / 9 * a^2) / (π * a * ν - π * a) + 9 / 8 / (π * a * ν - π * a)
+    f[5, 3, 1] = 3 / 32 * log(25 / 9 * a^2) / (π * a * ν - π * a) - 3 / 32 * log(1 / 9 * a^2) / (π * a * ν - π * a) - 9 / 16 / (π * a * ν - π * a)
+    f[5, 1, 2] = -9 / 16 / (π * a * ν - π * a)
+    f[5, 2, 2] = 13 / 8 / (π * a * ν - π * a)
+    f[5, 3, 2] = -9 / 16 / (π * a * ν - π * a)
+    f[5, 1, 3] = 3 / 32 * log(25 / 9 * a^2) / (π * a * ν - π * a) - 3 / 32 * log(1 / 9 * a^2) / (π * a * ν - π * a) - 9 / 16 / (π * a * ν - π * a)
+    f[5, 2, 3] = -3 / 8 * log(25 / 9 * a^2) / (π * a * ν - π * a) + 3 / 8 * log(1 / 9 * a^2) / (π * a * ν - π * a) + 9 / 8 / (π * a * ν - π * a)
+    f[5, 3, 3] = 9 / 32 * log(25 / 9 * a^2) / (π * a * ν - π * a) - 9 / 32 * log(1 / 9 * a^2) / (π * a * ν - π * a) + 27 / 80 / (π * a * ν - π * a)
+
+    f[6, 1, 1] = 9 / 32 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2) - 9 / 32 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2) + 621 / 100 / (π * a^2 * ν - π * a^2)
+    f[6, 2, 1] = -9 / 16 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2) + 9 / 16 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2) - 27 / 5 / (π * a^2 * ν - π * a^2)
+    f[6, 3, 1] = 9 / 32 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2) - 9 / 32 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2) + 27 / 20 / (π * a^2 * ν - π * a^2)
+    f[6, 1, 2] = 3 / 4 / (π * a^2 * ν - π * a^2)
+    f[6, 2, 2] = 0
+    f[6, 3, 2] = -3 / 4 / (π * a^2 * ν - π * a^2)
+    f[6, 1, 3] = -9 / 32 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2) + 9 / 32 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2) - 27 / 20 / (π * a^2 * ν - π * a^2)
+    f[6, 2, 3] = 9 / 16 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2) - 9 / 16 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2) + 27 / 5 / (π * a^2 * ν - π * a^2)
+    f[6, 3, 3] = -9 / 32 * log(25 / 9 * a^2) / (π * a^2 * ν - π * a^2) + 9 / 32 * log(1 / 9 * a^2) / (π * a^2 * ν - π * a^2) - 621 / 100 / (π * a^2 * ν - π * a^2)
+
+    f[7, 1, 1] = -9 / 16 / (a^2 * ν - a^2)
+    f[7, 2, 1] = 9 / 8 / (a^2 * ν - a^2)
+    f[7, 3, 1] = -9 / 16 / (a^2 * ν - a^2)
+    f[7, 1, 2] = -9 / 16 / (a^2 * ν - a^2)
+    f[7, 2, 2] = 9 / 8 / (a^2 * ν - a^2)
+    f[7, 3, 2] = -9 / 16 / (a^2 * ν - a^2)
+    f[7, 1, 3] = -9 / 16 / (a^2 * ν - a^2)
+    f[7, 2, 3] = 9 / 8 / (a^2 * ν - a^2)
+    f[7, 3, 3] = -9 / 16 / (a^2 * ν - a^2)
+    return f
+end
+
+
+# Farfield 3-node quadratic kernels
+# f has dimensions [nobs, f=7, shapefunctions=3]
+# Classic form of:
+# term1 = atan((a - x) / y)
+# term2 = atan((a + x) / y)
+# has been replaced these with the equaivalent terms below to
+# avoid singularities at y = 0.  Singularities at x = +/- a still exist
+export quadkernel_farfield
+function quadkernel_farfield(x, y, a, ν)
+    # term1 = π / 2 * @.sign(y / (a - x)) - @.atan(y / (a - x)) # term1 transformation: np.arctan((a - x) / y)
+    # term2 = π / 2 * @.sign(y / (a + x)) - @.atan(y / (a + x)) # term2 transformation: np.arctan((a + x) / y)
+
+    term1 = @.atan((a - x) / y)
+    term2 = @.atan((a + x) / y)
+
+    f = zeros(length(x), 7, 3)
+    for i in 1:length(x)
+        f[i, 1, 1] = -1 / 64 * ( 6 * y[i]^3 * (term2[i] + term1[i]) - 6 * a^3 * log(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2) - 8 * a^3 - 12 * a^2 * x[i] + 12 * a * x[i]^2 - 12 * a * y[i]^2 + 6 * ( (2 * a * x[i] - 3 * x[i]^2) * term2[i] + (2 * a * x[i] - 3 * x[i]^2) * term1[i] ) * y[i] + 3 * (a * x[i]^2 - x[i]^3 - (a - 3 * x[i]) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - 3 * (a * x[i]^2 - x[i]^3 - (a - 3 * x[i]) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2)) ) / (π * a^2 * ν - π * a^2)
+        f[i, 1, 2] = 1 / 32 * (6 * y[i]^3 * (term2[i] + term1[i]) + a^3 * log(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2) + a^3 * log(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2) - 8 * a^3 + 12 * a * x[i]^2 - 12 * a * y[i]^2 + 2 * ((4 * a^2 - 9 * x[i]^2) * term2[i] + (4 * a^2 - 9 * x[i]^2) * term1[i]) * y[i] + (4 * a^2 * x[i] - 3 * x[i]^3 + 9 * x[i] * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - (4 * a^2 * x[i] - 3 * x[i]^3 + 9 * x[i] * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^2 * ν - π * a^2)
+        f[i, 1, 3] = -1 / 64 * (6 * y[i]^3 * (term2[i] + term1[i]) - 6 * a^3 * log(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2) - 8 * a^3 + 12 * a^2 * x[i] + 12 * a * x[i]^2 - 12 * a * y[i]^2 - 6 * ((2 * a * x[i] + 3 * x[i]^2) * term2[i] + (2 * a * x[i] + 3 * x[i]^2) * term1[i]) * y[i] - 3 * (a * x[i]^2 + x[i]^3 - (a + 3 * x[i]) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) + 3 * (a * x[i]^2 + x[i]^3 - (a + 3 * x[i]) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^2 * ν - π * a^2)
+
+        f[i, 2, 1] = -3 / 32 * (3 * y[i]^2 * (term2[i] + term1[i]) - (a - 3 * x[i]) * y[i] * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) + (a - 3 * x[i]) * y[i] * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2)) - 6 * a * y[i] + (2 * a * x[i] - 3 * x[i]^2) * term2[i] + (2 * a * x[i] - 3 * x[i]^2) * term1[i]) / (π * a^2 * ν - π * a^2)
+        f[i, 2, 2] = 1 / 16 * (9 * y[i]^2 * (term2[i] + term1[i]) + 9 * x[i] * y[i] * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - 9 * x[i] * y[i] * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2)) - 18 * a * y[i] + (4 * a^2 - 9 * x[i]^2) * term2[i] + (4 * a^2 - 9 * x[i]^2) * term1[i]) / (π * a^2 * ν - π * a^2)
+        f[i, 2, 3] = -3 / 32 * (3 * y[i]^2 * (term2[i] + term1[i]) + (a + 3 * x[i]) * y[i] * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - (a + 3 * x[i]) * y[i] * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2)) - 6 * a * y[i] - (2 * a * x[i] + 3 * x[i]^2) * term2[i] - (2 * a * x[i] + 3 * x[i]^2) * term1[i]) / (π * a^2 * ν - π * a^2)
+
+        f[i, 3, 1] = 3 / 64 * (8 * a^2 - 12 * a * x[i] - 4 * ((a - 3 * x[i]) * term2[i] + (a - 3 * x[i]) * term1[i]) * y[i] - (2 * a * x[i] - 3 * x[i]^2 + 3 * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) + (2 * a * x[i] - 3 * x[i]^2 + 3 * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^2 * ν - π * a^2)
+        f[i, 3, 2] = 1 / 32 * (36 * a * x[i] - 36 * (x[i] * term2[i] + x[i] * term1[i]) * y[i] + (4 * a^2 - 9 * x[i]^2 + 9 * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - (4 * a^2 - 9 * x[i]^2 + 9 * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^2 * ν - π * a^2)
+        f[i, 3, 3] = -3 / 64 * (8 * a^2 + 12 * a * x[i] - 4 * ((a + 3 * x[i]) * term2[i] + (a + 3 * x[i]) * term1[i]) * y[i] - (2 * a * x[i] + 3 * x[i]^2 - 3 * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) + (2 * a * x[i] + 3 * x[i]^2 - 3 * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^2 * ν - π * a^2)
+
+        f[i, 4, 1] = 3 / 32 * (4 * a^2 * y[i]^3 - 2 * ((a - 3 * x[i]) * term2[i] + (a - 3 * x[i]) * term1[i]) * y[i]^4 - 4 * ((a^3 - 3 * a^2 * x[i] + a * x[i]^2 - 3 * x[i]^3) * term2[i] + (a^3 - 3 * a^2 * x[i] + a * x[i]^2 - 3 * x[i]^3) * term1[i]) * y[i]^2 + 4 * (a^4 - 3 * a^3 * x[i] + a^2 * x[i]^2) * y[i] - 2 * (a^5 - 3 * a^4 * x[i] - 2 * a^3 * x[i]^2 + 6 * a^2 * x[i]^3 + a * x[i]^4 - 3 * x[i]^5) * term2[i] - 2 * (a^5 - 3 * a^4 * x[i] - 2 * a^3 * x[i]^2 + 6 * a^2 * x[i]^3 + a * x[i]^4 - 3 * x[i]^5) * term1[i] - 3 * (y[i]^5 + 2 * (a^2 + x[i]^2) * y[i]^3 + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * y[i]) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) + 3 * (y[i]^5 + 2 * (a^2 + x[i]^2) * y[i]^3 + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * y[i]) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^6 * ν - π * a^6 + (π * a^2 * ν - π * a^2) * x[i]^4 + (π * a^2 * ν - π * a^2) * y[i]^4 - 2 * (π * a^4 * ν - π * a^4) * x[i]^2 + 2 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^2)
+        f[i, 4, 2] = 1 / 16 * (20 * a^3 * x[i] * y[i] - 18 * (x[i] * term2[i] + x[i] * term1[i]) * y[i]^4 - 36 * ((a^2 * x[i] + x[i]^3) * term2[i] + (a^2 * x[i] + x[i]^3) * term1[i]) * y[i]^2 - 18 * (a^4 * x[i] - 2 * a^2 * x[i]^3 + x[i]^5) * term2[i] - 18 * (a^4 * x[i] - 2 * a^2 * x[i]^3 + x[i]^5) * term1[i] + 9 * (y[i]^5 + 2 * (a^2 + x[i]^2) * y[i]^3 + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * y[i]) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - 9 * (y[i]^5 + 2 * (a^2 + x[i]^2) * y[i]^3 + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * y[i]) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^6 * ν - π * a^6 + (π * a^2 * ν - π * a^2) * x[i]^4 + (π * a^2 * ν - π * a^2) * y[i]^4 - 2 * (π * a^4 * ν - π * a^4) * x[i]^2 + 2 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^2)
+        f[i, 4, 3] = -3 / 32 * (4 * a^2 * y[i]^3 - 2 * ((a + 3 * x[i]) * term2[i] + (a + 3 * x[i]) * term1[i]) * y[i]^4 - 4 * ((a^3 + 3 * a^2 * x[i] + a * x[i]^2 + 3 * x[i]^3) * term2[i] + (a^3 + 3 * a^2 * x[i] + a * x[i]^2 + 3 * x[i]^3) * term1[i]) * y[i]^2 + 4 * (a^4 + 3 * a^3 * x[i] + a^2 * x[i]^2) * y[i] - 2 * (a^5 + 3 * a^4 * x[i] - 2 * a^3 * x[i]^2 - 6 * a^2 * x[i]^3 + a * x[i]^4 + 3 * x[i]^5) * term2[i] - 2 * (a^5 + 3 * a^4 * x[i] - 2 * a^3 * x[i]^2 - 6 * a^2 * x[i]^3 + a * x[i]^4 + 3 * x[i]^5) * term1[i] + 3 * (y[i]^5 + 2 * (a^2 + x[i]^2) * y[i]^3 + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * y[i]) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - 3 * (y[i]^5 + 2 * (a^2 + x[i]^2) * y[i]^3 + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * y[i]) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^6 * ν - π * a^6 + (π * a^2 * ν - π * a^2) * x[i]^4 + (π * a^2 * ν - π * a^2) * y[i]^4 - 2 * (π * a^4 * ν - π * a^4) * x[i]^2 + 2 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^2)
+
+        f[i, 5, 1] = 3 / 32 * (6 * y[i]^5 * (term2[i] + term1[i]) - 6 * a^5 - 4 * a^4 * x[i] + 18 * a^3 * x[i]^2 + 4 * a^2 * x[i]^3 - 12 * a * x[i]^4 - 12 * a * y[i]^4 + 12 * ((a^2 + x[i]^2) * term2[i] + (a^2 + x[i]^2) * term1[i]) * y[i]^3 - 2 * (9 * a^3 - 2 * a^2 * x[i] + 12 * a * x[i]^2) * y[i]^2 + 6 * ((a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * term2[i] + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * term1[i]) * y[i] - (a^5 - 3 * a^4 * x[i] - 2 * a^3 * x[i]^2 + 6 * a^2 * x[i]^3 + a * x[i]^4 - 3 * x[i]^5 + (a - 3 * x[i]) * y[i]^4 + 2 * (a^3 - 3 * a^2 * x[i] + a * x[i]^2 - 3 * x[i]^3) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) + (a^5 - 3 * a^4 * x[i] - 2 * a^3 * x[i]^2 + 6 * a^2 * x[i]^3 + a * x[i]^4 - 3 * x[i]^5 + (a - 3 * x[i]) * y[i]^4 + 2 * (a^3 - 3 * a^2 * x[i] + a * x[i]^2 - 3 * x[i]^3) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^6 * ν - π * a^6 + (π * a^2 * ν - π * a^2) * x[i]^4 + (π * a^2 * ν - π * a^2) * y[i]^4 - 2 * (π * a^4 * ν - π * a^4) * x[i]^2 + 2 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^2)
+        f[i, 5, 2] = -1 / 16 * (18 * y[i]^5 * (term2[i] + term1[i]) - 26 * a^5 + 62 * a^3 * x[i]^2 - 36 * a * x[i]^4 - 36 * a * y[i]^4 + 36 * ((a^2 + x[i]^2) * term2[i] + (a^2 + x[i]^2) * term1[i]) * y[i]^3 - 2 * (31 * a^3 + 36 * a * x[i]^2) * y[i]^2 + 18 * ((a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * term2[i] + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * term1[i]) * y[i] + 9 * (a^4 * x[i] - 2 * a^2 * x[i]^3 + x[i]^5 + x[i] * y[i]^4 + 2 * (a^2 * x[i] + x[i]^3) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - 9 * (a^4 * x[i] - 2 * a^2 * x[i]^3 + x[i]^5 + x[i] * y[i]^4 + 2 * (a^2 * x[i] + x[i]^3) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^6 * ν - π * a^6 + (π * a^2 * ν - π * a^2) * x[i]^4 + (π * a^2 * ν - π * a^2) * y[i]^4 - 2 * (π * a^4 * ν - π * a^4) * x[i]^2 + 2 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^2)
+        f[i, 5, 3] = 3 / 32 * (6 * y[i]^5 * (term2[i] + term1[i]) - 6 * a^5 + 4 * a^4 * x[i] + 18 * a^3 * x[i]^2 - 4 * a^2 * x[i]^3 - 12 * a * x[i]^4 - 12 * a * y[i]^4 + 12 * ((a^2 + x[i]^2) * term2[i] + (a^2 + x[i]^2) * term1[i]) * y[i]^3 - 2 * (9 * a^3 + 2 * a^2 * x[i] + 12 * a * x[i]^2) * y[i]^2 + 6 * ((a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * term2[i] + (a^4 - 2 * a^2 * x[i]^2 + x[i]^4) * term1[i]) * y[i] + (a^5 + 3 * a^4 * x[i] - 2 * a^3 * x[i]^2 - 6 * a^2 * x[i]^3 + a * x[i]^4 + 3 * x[i]^5 + (a + 3 * x[i]) * y[i]^4 + 2 * (a^3 + 3 * a^2 * x[i] + a * x[i]^2 + 3 * x[i]^3) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - (a^5 + 3 * a^4 * x[i] - 2 * a^3 * x[i]^2 - 6 * a^2 * x[i]^3 + a * x[i]^4 + 3 * x[i]^5 + (a + 3 * x[i]) * y[i]^4 + 2 * (a^3 + 3 * a^2 * x[i] + a * x[i]^2 + 3 * x[i]^3) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^6 * ν - π * a^6 + (π * a^2 * ν - π * a^2) * x[i]^4 + (π * a^2 * ν - π * a^2) * y[i]^4 - 2 * (π * a^4 * ν - π * a^4) * x[i]^2 + 2 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^2)
+
+        f[i, 6, 1] = 3 / 32 * (8 * a^8 - 24 * a^7 * x[i] - 16 * a^6 * x[i]^2 + 60 * a^5 * x[i]^3 + 8 * a^4 * x[i]^4 - 48 * a^3 * x[i]^5 + 12 * a * x[i]^7 + 12 * a * x[i] * y[i]^6 + 4 * (2 * a^4 + 12 * a^3 * x[i] + 9 * a * x[i]^3) * y[i]^4 + 4 * (4 * a^6 + 3 * a^5 * x[i] - 12 * a^4 * x[i]^2 + 9 * a * x[i]^5) * y[i]^2 - 3 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8 + y[i]^8 + 4 * (a^2 + x[i]^2) * y[i]^6 + 2 * (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * y[i]^4 + 4 * (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) + 3 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8 + y[i]^8 + 4 * (a^2 + x[i]^2) * y[i]^6 + 2 * (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * y[i]^4 + 4 * (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^10 * ν - π * a^10 + (π * a^2 * ν - π * a^2) * x[i]^8 + (π * a^2 * ν - π * a^2) * y[i]^8 - 4 * (π * a^4 * ν - π * a^4) * x[i]^6 + 4 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^6 + 6 * (π * a^6 * ν - π * a^6) * x[i]^4 + 2 * (3 * π * a^6 * ν - 3 * π * a^6 + 3 * (π * a^2 * ν - π * a^2) * x[i]^4 + 2 * (π * a^4 * ν - π * a^4) * x[i]^2) * y[i]^4 - 4 * (π * a^8 * ν - π * a^8) * x[i]^2 + 4 * (π * a^8 * ν - π * a^8 + (π * a^2 * ν - π * a^2) * x[i]^6 - (π * a^4 * ν - π * a^4) * x[i]^4 - (π * a^6 * ν - π * a^6) * x[i]^2) * y[i]^2)
+        f[i, 6, 2] = 1 / 16 * (56 * a^7 * x[i] - 148 * a^5 * x[i]^3 + 128 * a^3 * x[i]^5 - 36 * a * x[i]^7 - 36 * a * x[i] * y[i]^6 - 12 * (8 * a^3 * x[i] + 9 * a * x[i]^3) * y[i]^4 - 4 * (a^5 * x[i] - 8 * a^3 * x[i]^3 + 27 * a * x[i]^5) * y[i]^2 + 9 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8 + y[i]^8 + 4 * (a^2 + x[i]^2) * y[i]^6 + 2 * (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * y[i]^4 + 4 * (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - 9 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8 + y[i]^8 + 4 * (a^2 + x[i]^2) * y[i]^6 + 2 * (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * y[i]^4 + 4 * (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^10 * ν - π * a^10 + (π * a^2 * ν - π * a^2) * x[i]^8 + (π * a^2 * ν - π * a^2) * y[i]^8 - 4 * (π * a^4 * ν - π * a^4) * x[i]^6 + 4 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^6 + 6 * (π * a^6 * ν - π * a^6) * x[i]^4 + 2 * (3 * π * a^6 * ν - 3 * π * a^6 + 3 * (π * a^2 * ν - π * a^2) * x[i]^4 + 2 * (π * a^4 * ν - π * a^4) * x[i]^2) * y[i]^4 - 4 * (π * a^8 * ν - π * a^8) * x[i]^2 + 4 * (π * a^8 * ν - π * a^8 + (π * a^2 * ν - π * a^2) * x[i]^6 - (π * a^4 * ν - π * a^4) * x[i]^4 - (π * a^6 * ν - π * a^6) * x[i]^2) * y[i]^2)
+        f[i, 6, 3] = -3 / 32 * (8 * a^8 + 24 * a^7 * x[i] - 16 * a^6 * x[i]^2 - 60 * a^5 * x[i]^3 + 8 * a^4 * x[i]^4 + 48 * a^3 * x[i]^5 - 12 * a * x[i]^7 - 12 * a * x[i] * y[i]^6 + 4 * (2 * a^4 - 12 * a^3 * x[i] - 9 * a * x[i]^3) * y[i]^4 + 4 * (4 * a^6 - 3 * a^5 * x[i] - 12 * a^4 * x[i]^2 - 9 * a * x[i]^5) * y[i]^2 + 3 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8 + y[i]^8 + 4 * (a^2 + x[i]^2) * y[i]^6 + 2 * (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * y[i]^4 + 4 * (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - 3 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8 + y[i]^8 + 4 * (a^2 + x[i]^2) * y[i]^6 + 2 * (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * y[i]^4 + 4 * (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^10 * ν - π * a^10 + (π * a^2 * ν - π * a^2) * x[i]^8 + (π * a^2 * ν - π * a^2) * y[i]^8 - 4 * (π * a^4 * ν - π * a^4) * x[i]^6 + 4 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^6 + 6 * (π * a^6 * ν - π * a^6) * x[i]^4 + 2 * (3 * π * a^6 * ν - 3 * π * a^6 + 3 * (π * a^2 * ν - π * a^2) * x[i]^4 + 2 * (π * a^4 * ν - π * a^4) * x[i]^2) * y[i]^4 - 4 * (π * a^8 * ν - π * a^8) * x[i]^2 + 4 * (π * a^8 * ν - π * a^8 + (π * a^2 * ν - π * a^2) * x[i]^6 - (π * a^4 * ν - π * a^4) * x[i]^4 - (π * a^6 * ν - π * a^6) * x[i]^2) * y[i]^2)
+
+        f[i, 7, 1] = -3 / 16 * (3 * y[i]^8 * (term2[i] + term1[i]) - 6 * a * y[i]^7 + 12 * ((a^2 + x[i]^2) * term2[i] + (a^2 + x[i]^2) * term1[i]) * y[i]^6 - 6 * (4 * a^3 + 3 * a * x[i]^2) * y[i]^5 + 6 * ((3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * term2[i] + (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * term1[i]) * y[i]^4 - 2 * (15 * a^5 - 8 * a^4 * x[i] + 9 * a * x[i]^4) * y[i]^3 + 12 * ((a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * term2[i] + (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * term1[i]) * y[i]^2 - 2 * (6 * a^7 - 8 * a^6 * x[i] + 3 * a^5 * x[i]^2 + 8 * a^4 * x[i]^3 - 12 * a^3 * x[i]^4 + 3 * a * x[i]^6) * y[i] + 3 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8) * term2[i] + 3 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8) * term1[i]) / (π * a^10 * ν - π * a^10 + (π * a^2 * ν - π * a^2) * x[i]^8 + (π * a^2 * ν - π * a^2) * y[i]^8 - 4 * (π * a^4 * ν - π * a^4) * x[i]^6 + 4 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^6 + 6 * (π * a^6 * ν - π * a^6) * x[i]^4 + 2 * (3 * π * a^6 * ν - 3 * π * a^6 + 3 * (π * a^2 * ν - π * a^2) * x[i]^4 + 2 * (π * a^4 * ν - π * a^4) * x[i]^2) * y[i]^4 - 4 * (π * a^8 * ν - π * a^8) * x[i]^2 + 4 * (π * a^8 * ν - π * a^8 + (π * a^2 * ν - π * a^2) * x[i]^6 - (π * a^4 * ν - π * a^4) * x[i]^4 - (π * a^6 * ν - π * a^6) * x[i]^2) * y[i]^2)
+        f[i, 7, 2] = 1 / 8 * (9 * y[i]^8 * (term2[i] + term1[i]) - 18 * a * y[i]^7 + 36 * ((a^2 + x[i]^2) * term2[i] + (a^2 + x[i]^2) * term1[i]) * y[i]^6 - 2 * (32 * a^3 + 27 * a * x[i]^2) * y[i]^5 + 18 * ((3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * term2[i] + (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * term1[i]) * y[i]^4 - 2 * (37 * a^5 + 8 * a^3 * x[i]^2 + 27 * a * x[i]^4) * y[i]^3 + 36 * ((a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * term2[i] + (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * term1[i]) * y[i]^2 - 2 * (14 * a^7 + a^5 * x[i]^2 - 24 * a^3 * x[i]^4 + 9 * a * x[i]^6) * y[i] + 9 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8) * term2[i] + 9 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8) * term1[i]) / (π * a^10 * ν - π * a^10 + (π * a^2 * ν - π * a^2) * x[i]^8 + (π * a^2 * ν - π * a^2) * y[i]^8 - 4 * (π * a^4 * ν - π * a^4) * x[i]^6 + 4 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^6 + 6 * (π * a^6 * ν - π * a^6) * x[i]^4 + 2 * (3 * π * a^6 * ν - 3 * π * a^6 + 3 * (π * a^2 * ν - π * a^2) * x[i]^4 + 2 * (π * a^4 * ν - π * a^4) * x[i]^2) * y[i]^4 - 4 * (π * a^8 * ν - π * a^8) * x[i]^2 + 4 * (π * a^8 * ν - π * a^8 + (π * a^2 * ν - π * a^2) * x[i]^6 - (π * a^4 * ν - π * a^4) * x[i]^4 - (π * a^6 * ν - π * a^6) * x[i]^2) * y[i]^2)
+        f[i, 7, 3] = -3 / 16 * (3 * y[i]^8 * (term2[i] + term1[i]) - 6 * a * y[i]^7 + 12 * ((a^2 + x[i]^2) * term2[i] + (a^2 + x[i]^2) * term1[i]) * y[i]^6 - 6 * (4 * a^3 + 3 * a * x[i]^2) * y[i]^5 + 6 * ((3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * term2[i] + (3 * a^4 + 2 * a^2 * x[i]^2 + 3 * x[i]^4) * term1[i]) * y[i]^4 - 2 * (15 * a^5 + 8 * a^4 * x[i] + 9 * a * x[i]^4) * y[i]^3 + 12 * ((a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * term2[i] + (a^6 - a^4 * x[i]^2 - a^2 * x[i]^4 + x[i]^6) * term1[i]) * y[i]^2 - 2 * (6 * a^7 + 8 * a^6 * x[i] + 3 * a^5 * x[i]^2 - 8 * a^4 * x[i]^3 - 12 * a^3 * x[i]^4 + 3 * a * x[i]^6) * y[i] + 3 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8) * term2[i] + 3 * (a^8 - 4 * a^6 * x[i]^2 + 6 * a^4 * x[i]^4 - 4 * a^2 * x[i]^6 + x[i]^8) * term1[i]) / (π * a^10 * ν - π * a^10 + (π * a^2 * ν - π * a^2) * x[i]^8 + (π * a^2 * ν - π * a^2) * y[i]^8 - 4 * (π * a^4 * ν - π * a^4) * x[i]^6 + 4 * (π * a^4 * ν - π * a^4 + (π * a^2 * ν - π * a^2) * x[i]^2) * y[i]^6 + 6 * (π * a^6 * ν - π * a^6) * x[i]^4 + 2 * (3 * π * a^6 * ν - 3 * π * a^6 + 3 * (π * a^2 * ν - π * a^2) * x[i]^4 + 2 * (π * a^4 * ν - π * a^4) * x[i]^2) * y[i]^4 - 4 * (π * a^8 * ν - π * a^8) * x[i]^2 + 4 * (π * a^8 * ν - π * a^8 + (π * a^2 * ν - π * a^2) * x[i]^6 - (π * a^4 * ν - π * a^4) * x[i]^4 - (π * a^6 * ν - π * a^6) * x[i]^2) * y[i]^2)
     end
     return f
 end
@@ -191,7 +317,6 @@ function slip2uσ(xcomp, ycomp, f, y, μ, ν)
     end
     return u, σ
 end
-
 
 export σ2t
 function σ2t(stress, nvec)
@@ -237,7 +362,7 @@ end
 export plotelements
 function plotelements(els)
     for i in 1:els.endidx
-        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth=0.5)
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 0.5)
     end
 end
 
@@ -257,11 +382,11 @@ function plotfields_contours(els, xobs, yobs, idx, field, title)
     scale = 5e-1
     fieldmax = maximum(@.abs(field))
     contourf(xobs, yobs, reshape(field, size(xobs)), ncontours,
-        vmin=-scale * fieldmax, vmax=scale * fieldmax, cmap=plt.get_cmap("PiYG"))
+        vmin = -scale * fieldmax, vmax = scale * fieldmax, cmap = plt.get_cmap("PiYG"))
     clim(-scale * fieldmax, scale * fieldmax)
-    colorbar(fraction=0.020, pad=0.05, extend="both")
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both")
     contour(xobs, yobs, reshape(field, size(xobs)), ncontours,
-        vmin=-scale * fieldmax, vmax=scale * fieldmax, linewidths=0.25, colors="k")
+        vmin = -scale * fieldmax, vmax = scale * fieldmax, linewidths = 0.25, colors = "k")
     PyPlot.title(title)
     stylesubplots(xlim, ylim)
     plotelements(els)
@@ -271,7 +396,7 @@ export plotfields
 function plotfields(els, xobs, yobs, disp, stress, suptitle)
     figure(figsize = (16, 8))
     subplot(2, 3, 1)
-    quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units="width", color="b")
+    quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units = "width", color = "b")
     stylesubplots([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
     plotelements(els)
     PyPlot.title("displacements")
@@ -296,21 +421,19 @@ function ∂constslip(els, srcidx, obsidx, μ, nu)
     for isrc in 1:nsrc
         for iobs in 1:nobs
             _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-            _∂u[:, 1], _∂σ[:, 1] = constslip(
-                els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+            _∂u[:, 1], _∂σ[:, 1] = constslip(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
                 els.halflength[srcidx[isrc]], μ, nu, 1, 0,
                 els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
                 els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
-            _∂u[:, 2], _∂σ[:, 2] = constslip(
-                els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+            _∂u[:, 2], _∂σ[:, 2] = constslip(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
                 els.halflength[srcidx[isrc]], μ, nu, 0, 1,
                 els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
                 els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-            ∂u[2*(iobs-1)+1 : 2*(iobs-1)+2, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂u
-            ∂σ[3*(iobs-1)+1 : 3*(iobs-1)+3, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂σ
-            ∂t[2*(iobs-1)+1 : 2*(iobs-1)+2, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂t
+            ∂u[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂u
+            ∂σ[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂σ
+            ∂t[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂t
         end
     end
     return ∂u, ∂σ, ∂t
@@ -327,21 +450,19 @@ function ∂consttrac(els, srcidx, obsidx, μ, nu)
     for isrc in 1:nsrc
         for iobs in 1:nobs
             _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-            _∂u[:, 1], _∂σ[:, 1] = consttrac(
-                els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+            _∂u[:, 1], _∂σ[:, 1] = consttrac(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
                 els.halflength[srcidx[isrc]], μ, nu, 1, 0,
                 els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
                 els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
-            _∂u[:, 2], _∂σ[:, 2] = consttrac(
-                els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+            _∂u[:, 2], _∂σ[:, 2] = consttrac(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
                 els.halflength[srcidx[isrc]], μ, nu, 0, 1,
                 els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
                 els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-            ∂u[2*(iobs-1)+1 : 2*(iobs-1)+2, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂u
-            ∂σ[3*(iobs-1)+1 : 3*(iobs-1)+3, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂σ
-            ∂t[2*(iobs-1)+1 : 2*(iobs-1)+2, 2*(isrc-1)+1 : 2*(isrc-1)+2] = _∂t
+            ∂u[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂u
+            ∂σ[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂σ
+            ∂t[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂t
         end
     end
     return ∂u, ∂σ, ∂t

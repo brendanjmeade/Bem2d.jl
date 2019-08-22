@@ -1,6 +1,6 @@
 using Revise
 using Bem2d
-using Bem2dQuadKernels
+# using Bem2dQuadKernels
 
 function ex_constquad()
     L = 10e3
@@ -10,12 +10,14 @@ function ex_constquad()
     # Create a flat fault
     els = Elements()
     nfault = 1
-    x1, y1, x2, y2 = discretizedline(-L, -L, L, L, nfault)
-    els.x1[els.endidx+1 : els.endidx+nfault] = x1
-    els.y1[els.endidx+1 : els.endidx+nfault] = y1
-    els.x2[els.endidx+1 : els.endidx+nfault] = x2
-    els.y2[els.endidx+1 : els.endidx+nfault] = y2
-    els.name[els.endidx+1 : els.endidx + nfault] .= "fault"
+    # x1, y1, x2, y2 = discretizedline(-L, -L, L, L, nfault)
+    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nfault)
+
+    els.x1[els.endidx + 1:els.endidx + nfault] = x1
+    els.y1[els.endidx + 1:els.endidx + nfault] = y1
+    els.x2[els.endidx + 1:els.endidx + nfault] = x2
+    els.y2[els.endidx + 1:els.endidx + nfault] = y2
+    els.name[els.endidx + 1:els.endidx + nfault] .= "fault"
     standardize_elements!(els)
 
     # Observation coordinates for far-field calculation
@@ -32,7 +34,7 @@ function ex_constquad()
     σconst = zeros(length(xobs), 3)
     for i in 1:els.endidx
         u, σ = constslip(xobs, yobs, els.halflength[i],
-            μ, ν, sqrt(2)/2, sqrt(2)/2, els.xcenter[i], els.ycenter[i],
+            μ, ν, 1, 0, els.xcenter[i], els.ycenter[i],
             els.rotmat[i, :, :], els.rotmatinv[i, :, :])
         uconst += u
         σconst += σ
@@ -43,19 +45,19 @@ function ex_constquad()
     # TODO: Should I push the loop over elements into quadslip/constslip?
     #   It would behave the same for a single element
     # TODO: Quadratic element comparision
-    # Constant slip element build from quadratic elements
+    # Quadratic elements
     uquad = zeros(length(xobs), 2)
     σquad = zeros(length(xobs), 3)
     for i in 1:els.endidx
         u, σ = quadslip(xobs, yobs, els.halflength[i], μ, ν,
-            [sqrt(2)/2 sqrt(2)/2 sqrt(2)/2], [sqrt(2)/2 sqrt(2)/2 sqrt(2)/2],
+            [1 1 1], [0 0 0],
             els.xcenter[i], els.ycenter[i],
             els.rotmat[i, :, :], els.rotmatinv[i, :, :])
         uquad += u
-    #     σquad += σ
+        σquad += σ
     end
-    # plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-    #     uquad, σquad, "quadratic slip element")
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+        uquad, σquad, "quadratic slip element")
 
     return nothing
 end

@@ -39,12 +39,12 @@ end
 standardize_elements!(elements)
 
 # Constant slip fault
-srcidx = findall(x -> x == "fault", elements.name)
-obsidx = findall(x -> x == "freesurface", elements.name)
-d1, s1, t1 = partials_constslip(elements, srcidx, obsidx, mu, nu)
-srcidx = findall(x -> x == "freesurface", elements.name)
-obsidx = findall(x -> x == "freesurface", elements.name)
-d2, s2, t2 = partials_constslip(elements, srcidx, obsidx, mu, nu)
+srcidx = findall(x->x == "fault", elements.name)
+obsidx = findall(x->x == "freesurface", elements.name)
+d1, s1, t1 = ∂constslip(elements, srcidx, obsidx, mu, nu)
+srcidx = findall(x->x == "freesurface", elements.name)
+obsidx = findall(x->x == "freesurface", elements.name)
+d2, s2, t2 = ∂constslip(elements, srcidx, obsidx, mu, nu)
 
 # Constant case: Predict surface displacements from unit strike slip forcing
 faultslip = [sqrt(2) / 2 ; sqrt(2) / 2]
