@@ -10,9 +10,7 @@ function ex_constquad()
     # Create a flat fault
     els = Elements()
     nfault = 1
-    # x1, y1, x2, y2 = discretizedline(-L, -L, L, L, nfault)
-    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nfault)
-
+    x1, y1, x2, y2 = discretizedline(-L, -L, L, L, nfault)
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2
@@ -34,7 +32,7 @@ function ex_constquad()
     σconst = zeros(length(xobs), 3)
     for i in 1:els.endidx
         u, σ = constslip(xobs, yobs, els.halflength[i],
-            μ, ν, 1, 0, els.xcenter[i], els.ycenter[i],
+            μ, ν, sqrt(2) / 2, sqrt(2) / 2, els.xcenter[i], els.ycenter[i],
             els.rotmat[i, :, :], els.rotmatinv[i, :, :])
         uconst += u
         σconst += σ
@@ -44,15 +42,16 @@ function ex_constquad()
 
     # TODO: Should I push the loop over elements into quadslip/constslip?
     #   It would behave the same for a single element
-    # TODO: Quadratic element comparision
     # Quadratic elements
     uquad = zeros(length(xobs), 2)
     σquad = zeros(length(xobs), 3)
     for i in 1:els.endidx
         u, σ = quadslip(xobs, yobs, els.halflength[i], μ, ν,
-            [1 1 1], [0 0 0],
+            [sqrt(2) / 2 sqrt(2) / 2 sqrt(2) / 2], [sqrt(2) / 2 sqrt(2) / 2 sqrt(2) / 2],
             els.xcenter[i], els.ycenter[i],
             els.rotmat[i, :, :], els.rotmatinv[i, :, :])
+
+        # u, σ = quadslip(xobs, yobs, els, idx, μ, ν, [1 1 1], [0 0 0])
         uquad += u
         σquad += σ
     end
