@@ -1,6 +1,5 @@
 using Revise
 using Bem2d
-# using Bem2dQuadKernels
 
 function ex_constquad()
     L = 10e3
@@ -19,42 +18,17 @@ function ex_constquad()
     standardize_elements!(els)
 
     # Observation coordinates for far-field calculation
-    npts = 200
-    width = 20e3
-    xobs = LinRange(-width, width, npts)
-    yobs = LinRange(-width, width, npts)
-    xobs, yobs = meshgrid(xobs, yobs)
-    xobs = xobs[:]
-    yobs = yobs[:]
+    npts = 30
+    L = 20e3
+    xobs, yobs = obsgrid(-L, -L, L, L, npts)
 
-    # Constant slip element
+    # Constant slip with constant element
     uconst, σconst = constslip(xobs, yobs, els, 1, 1, 1, μ, ν)
-
-    # uconst = zeros(length(xobs), 2)
-    # σconst = zeros(length(xobs), 3)
-    # for i in 1:els.endidx
-    #     u, σ = constslip(xobs, yobs, els.halflength[i],
-    #         μ, ν, sqrt(2) / 2, sqrt(2) / 2, els.xcenter[i], els.ycenter[i],
-    #         els.rotmat[i, :, :], els.rotmatinv[i, :, :])
-    #     uconst += u
-    #     σconst += σ
-    # end
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uconst, σconst, "constant slip element")
 
-    # TODO: Should I push the loop over elements into quadslip/constslip?
-    #   It would behave the same for a single element
-    # Quadratic elements
-    uquad = zeros(length(xobs), 2)
-    σquad = zeros(length(xobs), 3)
-    for i in 1:els.endidx
-        u, σ = quadslip(xobs, yobs, els.halflength[i], μ, ν,
-            [sqrt(2) / 2 sqrt(2) / 2 sqrt(2) / 2], [sqrt(2) / 2 sqrt(2) / 2 sqrt(2) / 2],
-            els.xcenter[i], els.ycenter[i],
-            els.rotmat[i, :, :], els.rotmatinv[i, :, :])
-        uquad += u
-        σquad += σ
-    end
+    # Constant slip with quadratic elements
+    uquad, σquad = quadslip(xobs, yobs, els, 1, [1 1 1], [1 1 1], μ, ν)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uquad, σquad, "quadratic slip element")
 
