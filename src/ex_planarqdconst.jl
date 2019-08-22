@@ -50,7 +50,7 @@ function derivatives(t, xθ)
     dxdt = -currentvels  # Is the negative sign for slip deficit convention?
     dxdt[1:2:end] .+= blockvelx
     dxdt[2:2:end] .+= blockvely
-    velmags = np.linalg.norm(current_velocity.reshape((-1, 2)), axis=1)
+    # velmags = np.linalg.norm(current_velocity.reshape((-1, 2)), axis=1)
     dθdt = calc_dθdt(θ, velmags)
     derivatives = zeros(3 * nnodes)
     derivatives[0::3] = dxdt[0::2]
@@ -98,10 +98,10 @@ function ex_planarqdconst()
     standardize_elements!(elements)
 
     # Calculate slip to traction partials on the fault
-    srcidx = findall(x -> x == "fault", elements.name)
+    srcidx = findall(x->x == "fault", elements.name)
     obsidx = srcidx
     println("Calculating ∂s")
-    @time _, ∂stress, ∂trac = partials_constslip(elements, srcidx, obsidx, mu, nu)
+    @time _, ∂stress, ∂trac = ∂constslip(elements, srcidx, obsidx, mu, nu)
 
     # Set initial conditions and time integrate
     initvelx = 1e-3 * blockvelx * ones(nnodes)
@@ -114,7 +114,7 @@ function ex_planarqdconst()
 
     println("Trying root solver --- no idea what Im doing")
     # res = nlsolve((F, x) -> dθdt!(F, x, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff=:forward).zero
-    res = nlsolve((dθdt, θ) -> calcdθdt!(dθdt, θ, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff=:forward)
+    res = nlsolve((dθdt, θ)->calcdθdt!(dθdt, θ, initvelmag, elements.b[1:elements.endidx], v0, dc, f0), initconds[3:3:end], autodiff = :forward)
     display(res)
 
     # Time integrate

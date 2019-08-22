@@ -19,8 +19,8 @@ function ex_constquad()
 
     # Observation coordinates for far-field calculation
     npts = 30
-    L = 20e3
-    xobs, yobs = obsgrid(-L, -L, L, L, npts)
+    obswidth = 20e3
+    xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Constant slip with constant element
     uconst, σconst = constslip(xobs, yobs, els, 1, 1, 1, μ, ν)
