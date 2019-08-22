@@ -19,7 +19,7 @@ function ex_constquad()
     standardize_elements!(els)
 
     # Observation coordinates for far-field calculation
-    npts = 20
+    npts = 200
     width = 20e3
     xobs = LinRange(-width, width, npts)
     yobs = LinRange(-width, width, npts)
@@ -28,15 +28,17 @@ function ex_constquad()
     yobs = yobs[:]
 
     # Constant slip element
-    uconst = zeros(length(xobs), 2)
-    σconst = zeros(length(xobs), 3)
-    for i in 1:els.endidx
-        u, σ = constslip(xobs, yobs, els.halflength[i],
-            μ, ν, sqrt(2) / 2, sqrt(2) / 2, els.xcenter[i], els.ycenter[i],
-            els.rotmat[i, :, :], els.rotmatinv[i, :, :])
-        uconst += u
-        σconst += σ
-    end
+    uconst, σconst = constslip(xobs, yobs, els, 1, 1, 1, μ, ν)
+
+    # uconst = zeros(length(xobs), 2)
+    # σconst = zeros(length(xobs), 3)
+    # for i in 1:els.endidx
+    #     u, σ = constslip(xobs, yobs, els.halflength[i],
+    #         μ, ν, sqrt(2) / 2, sqrt(2) / 2, els.xcenter[i], els.ycenter[i],
+    #         els.rotmat[i, :, :], els.rotmatinv[i, :, :])
+    #     uconst += u
+    #     σconst += σ
+    # end
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uconst, σconst, "constant slip element")
 
@@ -50,8 +52,6 @@ function ex_constquad()
             [sqrt(2) / 2 sqrt(2) / 2 sqrt(2) / 2], [sqrt(2) / 2 sqrt(2) / 2 sqrt(2) / 2],
             els.xcenter[i], els.ycenter[i],
             els.rotmat[i, :, :], els.rotmatinv[i, :, :])
-
-        # u, σ = quadslip(xobs, yobs, els, idx, μ, ν, [1 1 1], [0 0 0])
         uquad += u
         σquad += σ
     end

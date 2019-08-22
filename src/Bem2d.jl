@@ -85,33 +85,46 @@ end
 
 # Calculate displacements and stresses for constant slip elements
 export constslip
-function constslip(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
-    # Rotate and translate into local coordinate system with *global* slip components
-    _x = zeros(length(x))
-    _y = zeros(length(y))
-    for i in 1:length(x)
-        _x[i], _y[i] = rotmatinv * [x[i] - xcenter ; y[i] - ycenter]
+function constslip(x, y, els, idx, xcomp, ycomp, μ, ν)
+    u = zeros(length(x), 2)
+    σ = zeros(length(x), 3)
+    for j in 1:length(idx)
+        # Rotate and translate into local coordinate system with *global* slip components
+        _x = zeros(length(x))
+        _y = zeros(length(y))
+        for i in 1:length(x)
+            _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
+        end
+        _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
+        f = constkernel(_x, _y, els.halflength[idx[j]], ν)
+        _u, _σ = slip2uσ(_xcomp, _ycomp, f, _y, μ, ν)
+        _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
+        u += _u
+        σ += _σ
     end
-    _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
-    f = constkernel(_x, _y, a, ν)
-    u, σ = slip2uσ(_xcomp, _ycomp, f, _y, μ, ν)
-    u, σ = rotuσ(u, σ, rotmat)
     return u, σ
 end
 
+
 # Calculate displacements and stresses for constant traction elements
 export consttrac
-function consttrac(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
-    # Rotate and translate into local coordinate system with *global* slip components
-    _x = zeros(length(x))
-    _y = zeros(length(y))
-    for i in 1:length(x)
-        _x[i], _y[i] = rotmat * [x[i] - xcenter ; y[i] - ycenter]
+function consttrac(x, y, els, idx, xcomp, ycomp, μ, ν)
+    u = zeros(length(x), 2)
+    σ = zeros(length(x), 3)
+    for j in 1:length(idx)
+        # Rotate and translate into local coordinate system with *global* slip components
+        _x = zeros(length(x))
+        _y = zeros(length(y))
+        for i in 1:length(x)
+            _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
+        end
+        _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
+        f = constkernel(_x, _y, els.halflength[idx[j]], ν)
+        _u, _σ = trac2uσ(_xcomp, _ycomp, f, _y, μ, ν)
+        _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
+        u += _u
+        σ += _σ
     end
-    _xcomp, _ycomp = rotmatinv * [xcomp ; ycomp]
-    f = constkernel(_x, _y, a, ν)
-    u, σ = trac2uσ(_xcomp, _ycomp, f, _y, μ, ν)
-    u, σ = rotuσ(u, σ, rotmatinv)
     return u, σ
 end
 
@@ -136,7 +149,6 @@ function quadslip(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotma
     end
     return u, σ
 end
-
 
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constkernel(x, y, a, ν)
@@ -367,7 +379,7 @@ function stylesubplots(xlim, ylim)
 end
 
 function plotfields_contours(els, xobs, yobs, idx, field, title)
-    ncontours = 10
+    ncontours = 20
     xlim = [minimum(xobs) maximum(xobs)]
     ylim = [minimum(yobs) maximum(yobs)]
     subplot(2, 3, idx)
