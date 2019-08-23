@@ -187,30 +187,6 @@ function quadtrac(x, y, els, idx, xcomp, ycomp, μ, ν)
     return u, σ
 end
 
-
-# # Calculate displacements and stresses for constant quadratic elements
-# export quadslip
-# function quadslip(x, y, a, μ, ν, xcomp, ycomp, xcenter, ycenter, rotmat, rotmatinv)
-#     # Rotate and translate into local coordinate system with *global* slip components
-#     _x = zeros(length(x))
-#     _y = zeros(length(y))
-#     for i in 1:length(x)
-#         _x[i], _y[i] = rotmatinv * [x[i] - xcenter ; y[i] - ycenter]
-#     end
-#     f = quadkernel_farfield(_x, _y, a, ν)
-#     u = zeros(length(x), 2)
-#     σ = zeros(length(x), 3)
-#     for i in 1:3
-#         _xcomp, _ycomp = rotmatinv * [xcomp[i] ; ycomp[i]]
-#         _u, _σ = slip2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
-#         _u, _σ = rotuσ(_u, _σ, rotmat)
-#         u += _u
-#         σ += _σ
-#     end
-#     return u, σ
-# end
-
-
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constkernel(x, y, a, ν)
     f = zeros(length(x), 7)
@@ -476,24 +452,19 @@ function plotfields(els, xobs, yobs, disp, stress, suptitle)
 end
 
 export ∂constslip
-function ∂constslip(els, srcidx, obsidx, μ, nu)
+function ∂constslip(els, srcidx, obsidx, μ, ν)
     nobs = length(obsidx)
     nsrc = length(srcidx)
     ∂u = zeros(2 * nobs, 2 * nsrc)
     ∂σ = zeros(3 * nobs, 2 * nsrc)
     ∂t = zeros(2 * nobs, 2 * nsrc)
-
     for isrc in 1:nsrc
         for iobs in 1:nobs
             _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
             _∂u[:, 1], _∂σ[:, 1] = constslip(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els.halflength[srcidx[isrc]], μ, nu, 1, 0,
-                els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
-                els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
+                els, srcidx[isrc], 1, 0, μ, ν)
             _∂u[:, 2], _∂σ[:, 2] = constslip(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els.halflength[srcidx[isrc]], μ, nu, 0, 1,
-                els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
-                els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
+                els, srcidx[isrc], 0, 1, μ, ν)
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             ∂u[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂u
@@ -505,24 +476,19 @@ function ∂constslip(els, srcidx, obsidx, μ, nu)
 end
 
 export ∂consttrac
-function ∂consttrac(els, srcidx, obsidx, μ, nu)
+function ∂consttrac(els, srcidx, obsidx, μ, ν)
     nobs = length(obsidx)
     nsrc = length(srcidx)
     ∂u = zeros(2 * nobs, 2 * nsrc)
     ∂σ = zeros(3 * nobs, 2 * nsrc)
     ∂t = zeros(2 * nobs, 2 * nsrc)
-
     for isrc in 1:nsrc
         for iobs in 1:nobs
             _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
             _∂u[:, 1], _∂σ[:, 1] = consttrac(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els.halflength[srcidx[isrc]], μ, nu, 1, 0,
-                els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
-                els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
+                els, srcidx[isrc], 1, 0, μ, ν)
             _∂u[:, 2], _∂σ[:, 2] = consttrac(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els.halflength[srcidx[isrc]], μ, nu, 0, 1,
-                els.xcenter[srcidx[isrc]], els.ycenter[srcidx[isrc]],
-                els.rotmat[srcidx[isrc], :, :], els.rotmatinv[srcidx[isrc], :, :])
+                els, srcidx[isrc], 0, 1, μ, ν)
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             ∂u[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂u
