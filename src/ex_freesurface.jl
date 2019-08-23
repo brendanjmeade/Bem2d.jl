@@ -12,53 +12,72 @@ function ex_freesurface()
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Free surface
-    elements = Elements()
-    x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, 20)
-    for i in 1:length(x1)
-        elements.x1[i + elements.endidx] = x1[i]
-        elements.y1[i + elements.endidx] = y1[i]
-        elements.x2[i + elements.endidx] = x2[i]
-        elements.y2[i + elements.endidx] = y2[i]
-        elements.name[i + elements.endidx] = "freesurface"
-    end
-    standardize_elements!(elements)
+    els = Elements()
+    nfreesurf = 200
+    x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
+    els.x1[els.endidx + 1:els.endidx + nfreesurf] = x1
+    els.y1[els.endidx + 1:els.endidx + nfreesurf] = y1
+    els.x2[els.endidx + 1:els.endidx + nfreesurf] = x2
+    els.y2[els.endidx + 1:els.endidx + nfreesurf] = y2
+    els.name[els.endidx + 1:els.endidx + nfreesurf] .= "freesurf"
+    standardize_elements!(els)
 
     # 45 degree dipping fault
-    x1, y1, x2, y2 = discretizedline(-1, -1, 0, 0, 1)
-    for i in 1:length(x1)
-        elements.x1[i + elements.endidx] = x1[i]
-        elements.y1[i + elements.endidx] = y1[i]
-        elements.x2[i + elements.endidx] = x2[i]
-        elements.y2[i + elements.endidx] = y2[i]
-        elements.name[i + elements.endidx] = "fault"
-    end
-    standardize_elements!(elements)
+    nfault = 1
+    x1, y1, x2, y2 = discretizedline(-1, -1, 0, 0, nfault)
+    els.x1[els.endidx + 1:els.endidx + nfault] = x1
+    els.y1[els.endidx + 1:els.endidx + nfault] = y1
+    els.x2[els.endidx + 1:els.endidx + nfault] = x2
+    els.y2[els.endidx + 1:els.endidx + nfault] = y2
+    els.name[els.endidx + 1:els.endidx + nfault] .= "fault"
+    standardize_elements!(els)
 
     # Constant slip fault
-    srcidx = findall(x->x == "fault", elements.name)
-    obsidx = findall(x->x == "freesurface", elements.name)
-    u1, σ1, t1 = ∂constslip(elements, srcidx, obsidx, μ, ν)
-    srcidx = findall(x->x == "freesurface", elements.name)
-    obsidx = findall(x->x == "freesurface", elements.name)
-    u2, σ2, t2 = ∂constslip(elements, srcidx, obsidx, μ, ν)
+    srcidx = findall(x->x == "fault", els.name)
+    obsidx = findall(x->x == "freesurf", els.name)
+    u1, σ1, t1 = ∂constslip(els, srcidx, obsidx, μ, ν)
+    srcidx = findall(x->x == "freesurf", els.name)
+    obsidx = findall(x->x == "freesurf", els.name)
+    u2, σ2, t2 = ∂constslip(els, srcidx, obsidx, μ, ν)
 
     # Constant case: Predict surface displacements from unit strike slip forcing
-    faultslip = [1 ; 1]
+    faultslip = sqrt(2) / 2 * [1 ; 1]
     ufullspace = u1 * faultslip
     ufreesurface = inv(t2) * (t1 * faultslip)
-    plot(ufullspace[1:2:end], "r.")
-    plot(ufreesurface[1:2:end], "b+")
-    
-    # gca().set_aspect("equal")
-    # gca().set_xlim([xlim[1], xlim[2]])
-    # gca().set_ylim([ylim[1], ylim[2]])
-    # gca().set_xticks([xlim[1], xlim[2]])
-    # gca().set_yticks([ylim[1], ylim[2]])
+    xplotconst = els.xcenter[findall(x->x == "freesurf", els.name)]
+  
+    close("all")
+    figure(figsize = (8, 10))
+    subplot(3, 1, 1)
+    plotelements(els)
+    gca().set_xlim([-5, 5])
+    gca().set_xticks([-5, 0, 5])
+    gca().set_aspect("equal")
+    ylabel("y (m)")
+    title("geometry")
+  
+    subplot(3, 1, 2)
+    plot(xplotconst, ufullspace[1:2:end], "r-", label = "full space")
+    plot(xplotconst, ufreesurface[1:2:end], "b-", label = "half space")    
+    gca().set_xlim([-5, 5])
+    gca().set_ylim([-0.6, 0.6])
+    gca().set_xticks([-5, 0, 5])
+    gca().set_yticks([-0.5, 0.0, 0.5])
+    legend()
+    ylabel("u (m)")
+    title("x displacements")
+
+    subplot(3, 1, 3)
+    plot(xplotconst, ufullspace[2:2:end], "r-", label = "full space")
+    plot(xplotconst, ufreesurface[2:2:end], "b-", label = "half space")    
+    gca().set_xlim([-5, 5])
+    gca().set_ylim([-0.6, 0.6])
+    gca().set_xticks([-5, 0, 5])
+    gca().set_yticks([-0.5, 0.0, 0.5])
+    legend()
     xlabel("x (m)")
     ylabel("u (m)")
+    title("y displacements")
     show()
-
-    # plot(dispfreesurface[1:2:end])
-    # plot!(dispfreesurface[2:2:end])
 end
 ex_freesurface()
