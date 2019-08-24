@@ -48,7 +48,7 @@ mutable struct Elements
     ynodes::Array{Float64,2}
     a::Array{Float64,1}
     b::Array{Float64,1}
-    sigman::Array{Float64,1}
+    σn::Array{Float64,1}
     endidx::Int64
     Elements() = new(fill(NaN, maxidx), # x1
                 fill(NaN, maxidx), # y1
