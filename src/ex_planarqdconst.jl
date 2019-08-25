@@ -21,7 +21,7 @@ function calc_dvθ(dvθ, vθ, params, t)
     # Acceleration evolution
     dv = 1 ./ (η ./ els.σn[1:els.endidx] .+ els.a[1:els.endidx] ./ v) .*
         (dτ ./ els.σn[1:els.endidx] .- els.b[1:els.endidx] .* dθ ./ θ)
-    display(dv)
+    # display(dv)
     
     dvθ = zeros(3 * els.endidx)
     # dvθ[1:3:end] .= -dv .+ blockvelx # TODO: Flat fault only
@@ -29,7 +29,6 @@ function calc_dvθ(dvθ, vθ, params, t)
     dvθ[1:3:end] .= -dv # TODO: Flat fault only
     dvθ[2:3:end] .= 0 # TODO: Flat fault only
     dvθ[3:3:end] .= dθ
-    return dvθ
 end
 
 function ex_planarqdconst()
