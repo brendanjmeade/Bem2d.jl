@@ -61,6 +61,5 @@ function ex_1d()
     yscale("log")
     xlabel("time (step)")
     ylabel("v (m/s)")
-
 end
 ex_1d()
