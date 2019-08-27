@@ -3,7 +3,7 @@ using DifferentialEquations
 using PyCall
 using PyPlot
 
-# Derivatives to feed to ODE integrator
+# Derivatives to feed to ODE integrator (returned values)
 function calcdvθ(vθ, p, t)
     dc, η, σn, a, b, μ, Vp, L, ρ = p
     θ = vθ[1]
@@ -12,6 +12,16 @@ function calcdvθ(vθ, p, t)
     dv = 1 / (η / σn + a / v) * (μ * (Vp - v)  / (L * σn) - b * dθ / θ)
     dvθ = [dθ, dv]
     return dvθ
+end
+
+# Doesn't work: Derivatives to feed to ODE integrator (in place)
+function calcdvθ!(dvθ, vθ, p, t)
+    dc, η, σn, a, b, μ, Vp, L, ρ = p
+    θ = vθ[1]
+    v = vθ[2]
+    dθ = -v * θ / dc * log(v * θ / dc)
+    dv = 1 / (η / σn + a / v) * (μ * (Vp - v)  / (L * σn) - b * dθ / θ)
+    dvθ = [dθ, dv]
 end
 
 function ex_1d()
@@ -35,7 +45,7 @@ function ex_1d()
     # Time integrate
     p = (dc, η, σn, a, b, μ, Vp, L, ρ)
     prob = ODEProblem(calcdvθ, ics, tspan, p)
-    @time sol = solve(prob, Tsit5(), abstol = 1e-4, reltol = 1e-4)    
+    sol = solve(prob, Tsit5(), abstol = 1e-4, reltol = 1e-4)    
     t = [x / siay for x in sol.t]
     θ = [x[1] for x in sol.u]
     v = [x[2] for x in sol.u]
