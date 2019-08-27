@@ -14,7 +14,7 @@ function calcdvθ(vθ, p, t)
     return dvθ
 end
 
-# Doesn't work: Derivatives to feed to ODE integrator (in place)
+# Doesn't wor...yet: Derivatives to feed to ODE integrator (in place)
 function calcdvθ!(dvθ, vθ, p, t)
     dc, η, σn, a, b, μ, Vp, L, ρ = p
     θ = vθ[1]
@@ -22,6 +22,7 @@ function calcdvθ!(dvθ, vθ, p, t)
     dθ = -v * θ / dc * log(v * θ / dc)
     dv = 1 / (η / σn + a / v) * (μ * (Vp - v)  / (L * σn) - b * dθ / θ)
     dvθ = [dθ, dv]
+    return nothing
 end
 
 function ex_1d()
@@ -71,5 +72,6 @@ function ex_1d()
     yscale("log")
     xlabel("time (step)")
     ylabel("v (m/s)")
+    return nothing
 end
 ex_1d()
