@@ -14,7 +14,7 @@ function calcdvθ(vθ, p, t)
     return dvθ
 end
 
-# Doesn't wor...yet: Derivatives to feed to ODE integrator (in place)
+# Doesn't work...yet: Derivatives to feed to ODE integrator (in place)
 function calcdvθ!(dvθ, vθ, p, t)
     dc, η, σn, a, b, μ, Vp, L, ρ = p
     θ = vθ[1]
