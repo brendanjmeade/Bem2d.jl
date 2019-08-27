@@ -26,7 +26,7 @@ function calcdvθ!(dvθ, vθ, p, t)
 end
 
 function ex_1d()
-    # Constants and model parameters
+    # Model parameters
     siay = 365.25 * 24 * 60 * 60
     tspan = (0.0, siay * 5000.0)
     μ = 3e10
@@ -40,7 +40,7 @@ function ex_1d()
     σn = 30e6
     dc = 0.2
 
-    # Set initial conditions
+    # Initial conditions
     ics = [1e8, Vp / 1000]
 
     # Time integrate
