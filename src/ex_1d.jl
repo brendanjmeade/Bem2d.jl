@@ -9,7 +9,7 @@ function calcdvθ(vθ, p, t)
     θ = vθ[1]
     v = vθ[2]
     dθ = -v * θ / dc * log(v * θ / dc)
-    dv = 1 / (η / σn + a / v) * (μ * (Vp - v)  / (L * σn) - b * dθ / θ)
+    dv = 1 / (η / σn + a / v) * (μ * (Vp - v) / (L * σn) - b * dθ / θ)
     dvθ = [dθ, dv]
     return dvθ
 end
@@ -20,7 +20,7 @@ function calcdvθ!(dvθ, vθ, p, t)
     θ = vθ[1]
     v = vθ[2]
     dθ = -v * θ / dc * log(v * θ / dc)
-    dv = 1 / (η / σn + a / v) * (μ * (Vp - v)  / (L * σn) - b * dθ / θ)
+    dv = 1 / (η / σn + a / v) * (μ * (Vp - v) / (L * σn) - b * dθ / θ)
     dvθ = [dθ, dv]
     return nothing
 end
