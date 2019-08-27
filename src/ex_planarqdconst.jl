@@ -6,16 +6,14 @@ using Bem2d
 
 # Derivatives to feed to ODE integrator
 function calc_dvθ(vθ, p, t)
-    println(t, "   ", t / (365.25 * 24 * 60 * 60))
-
-    ∂t, els, blockvelx, blockvely, η, dc = p
+    display(t)
+    ∂t, els, η, dc = p
     θ = vθ[3:3:end]
     v = @.sqrt(vθ[1:3:end].^2 + vθ[2:3:end].^2) # TODO: Flat fault only
     dt = ∂t * [vθ[1:3:end] ; vθ[2:3:end]]
     dτ = dt[1:2:end]
 
     # State evolution: aging law
-    # dθ = 1 .- θ .* v ./ dc
     dθ = -v .* θ ./ dc .* @.log(v .* θ ./ dc)
 
     # Acceleration evolution
@@ -65,45 +63,17 @@ function ex_planarqdconst()
 
     # Set initial conditions
     ics = zeros(3 * nnodes)
-    # ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
-    # ics[2:3:end] = 1e-3 * blockvely * ones(nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 1e-3 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
 
     # Time integrate
-    p = (∂t, els, blockvelx, blockvely, η, dc)
+    p = (∂t, els, η, dc)
     prob = ODEProblem(calc_dvθ, ics, tspan, p)
-    sol = solve(prob, abstol = 1e-4, reltol = 1e-4)
+    sol = solve(prob, abstol = 1e-4, reltol = 1e-4, StepsizeLimiter = false)
     
     close("all")
     plot(sol.t, "-b")
     show()
 end
 ex_planarqdconst()
-
-# function plottimeseries(solution, siay)
-#     figure(figsize=(12, 9))
-#     subplot(3, 2, 1)
-#         plot(SOLUTION["t"] / SPY, SOLUTION["y"][:, 0::3], linewidth=0.5)
-#         ylabel(L"$u_x$ (m)")
-#     subplot(3, 2, 2)
-#         plot(SOLUTION["y"][:, 0::3], linewidth=0.5)
-#         ylabel(L"$u_x$ (m)")
-#     subplot(3, 2, 3)
-#         plot(SOLUTION["t"] / SPY, SOLUTION["y"][:, 1::3], linewidth=0.5)
-#         ylabel(L"$u_y$ (m)")
-#     subplot(3, 2, 4)
-#         plot(SOLUTION["y"][:, 1::3], linewidth=0.5)
-#         ylabel(L"$u_y$ (m)")
-#     subplot(3, 2, 5)
-#         plot(SOLUTION["t"] / SPY, SOLUTION["y"][:, 2::3], linewidth=0.5)
-#         xlabel("time (years)")
-#         ylabel(L"$\theta$")
-#     subplot(3, 2, 6)
-#         plot(SOLUTION["y"][:, 2::3], linewidth=0.5)
-#         xlabel("steps")
-#         ylabel(L"$\theta$")
-#     show()
-# end
-# plottimeseries()
