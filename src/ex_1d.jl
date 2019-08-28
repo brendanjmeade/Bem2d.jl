@@ -42,11 +42,12 @@ function ex_1d()
 
     # Initial conditions
     ics = [1e8, Vp / 1000]
+    display(ics)
 
     # Time integrate
     p = (dc, η, σn, a, b, μ, Vp, L, ρ)
     prob = ODEProblem(calcdvθ, ics, tspan, p)
-    sol = solve(prob, abstol = 1e-4, reltol = 1e-4)    
+    sol = solve(prob, Rosenbrock23(autodiff = true), abstol = 1e-4, reltol = 1e-4)    
     t = [x / siay for x in sol.t]
     θ = [x[1] for x in sol.u]
     v = [x[2] for x in sol.u]
