@@ -30,7 +30,7 @@ end
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0.0, siay * 1000.00)
+    tspan = (0.0, siay * 100000.00)
     μ = 3e10
     ν = 0.25
     ρ = 2700.0
@@ -70,7 +70,7 @@ function ex_planarqdconst()
     # Time integrate
     p = (∂t, els, η, dc)
     prob = ODEProblem(calc_dvθ, ics, tspan, p)
-    sol = solve(prob, abstol = 1e-4, reltol = 1e-4, StepsizeLimiter = false)
+    sol = solve(prob, Rosenbrock23(autodiff = false), abstol = 1e-4, reltol = 1e-4, StepsizeLimiter = false)
     
     close("all")
     plot(sol.t, "-b")
