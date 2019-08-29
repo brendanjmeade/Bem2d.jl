@@ -30,47 +30,24 @@ function plottimeseries(sol, nfault, siay)
     show()
 end
 
-# # Derivatives to feed to ODE integrator
-# function calc_dvθ(vθ, p, t)
-#     display(t / (365.25 * 24 * 60 * 60))
-#     ∂t, els, η, dc = p
-#     θ = vθ[3:3:end]
-#     v = @.sqrt(vθ[1:3:end].^2 + vθ[2:3:end].^2) # TODO: Flat fault only
-#     dt = ∂t * [vθ[1:3:end] ; vθ[2:3:end]]
-#     dτ = dt[1:2:end]
-
-#     # State evolution: aging law
-#     dθ = -v .* θ ./ dc .* @.log(v .* θ ./ dc)
-
-#     # Acceleration evolution
-#     dv = 1 ./ (η ./ els.σn[1:els.endidx] .+ els.a[1:els.endidx] ./ v) .*
-#         (dτ ./ els.σn[1:els.endidx] .- els.b[1:els.endidx] .* dθ ./ θ)
-
-#     dvθ = zeros(3 * els.endidx)
-#     dvθ[1:3:end] = dv # TODO: Flat fault only
-#     dvθ[2:3:end] .= 0 # TODO: Flat fault only
-#     dvθ[3:3:end] = dθ
-#     return dvθ
-# end
-
-
-# 1-D Derivatives to feed to ODE integrator
-function calc_dvθ1d(vθ, p, t)
-    # display(t / (365.25 * 24 * 60 * 60))
-    v = vθ[1:3:end]
+# Derivatives to feed to ODE integrator
+function calc_dvθ(vθ, p, t)
+    display(t / (365.25 * 24 * 60 * 60))
+    ∂t, els, η, dc = p
     θ = vθ[3:3:end]
-    dc, η, μ, blockvelx, blockvely, L, ρ, els = p
-    siay = 365.25 * 24 * 60 * 60
+    v = @.sqrt(vθ[1:3:end].^2 + vθ[2:3:end].^2) # TODO: Flat fault only
+    dt = ∂t * [vθ[1:3:end] ; vθ[2:3:end]]
+    dτ = dt[1:2:end]
 
-    # Hacky "1d" version
+    display(dτ)
+
     dθ = zeros(els.endidx)
     dv = zeros(els.endidx)
     for i in 1:els.endidx
-        dτ = μ * (blockvelx - v[i]) / L
         dθ[i] = -v[i] * θ[i] / dc * log(v[i] * θ[i] / dc)
-        dv[i] = 1 / (η / els.σn[i] + els.a[i] / v[i]) * (dτ / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+        dv[i] = 1 / (η / els.σn[i] + els.a[i] / v[i]) * (dτ[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
     end
-    
+
     dvθ = zeros(3 * els.endidx)
     dvθ[1:3:end] = dv # TODO: Flat fault only
     dvθ[2:3:end] .= 0 # TODO: Flat fault only
@@ -78,10 +55,35 @@ function calc_dvθ1d(vθ, p, t)
     return dvθ
 end
 
+
+# # 1-D Derivatives to feed to ODE integrator
+# function calc_dvθ1d(vθ, p, t)
+#     # display(t / (365.25 * 24 * 60 * 60))
+#     v = vθ[1:3:end]
+#     θ = vθ[3:3:end]
+#     dc, η, μ, blockvelx, blockvely, L, ρ, els = p
+#     siay = 365.25 * 24 * 60 * 60
+
+#     # Hacky "1d" version
+#     dθ = zeros(els.endidx)
+#     dv = zeros(els.endidx)
+#     for i in 1:els.endidx
+#         dτ = μ * (blockvelx - v[i]) / L
+#         dθ[i] = -v[i] * θ[i] / dc * log(v[i] * θ[i] / dc)
+#         dv[i] = 1 / (η / els.σn[i] + els.a[i] / v[i]) * (dτ / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+#     end
+    
+#     dvθ = zeros(3 * els.endidx)
+#     dvθ[1:3:end] = dv # TODO: Flat fault only
+#     dvθ[2:3:end] .= 0 # TODO: Flat fault only
+#     dvθ[3:3:end] = dθ
+#     return dvθ
+# end
+
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0.0, siay * 5000.00)
+    tspan = (0.0, siay * 505.00)
     μ = 3e10
     ν = 0.25
     ρ = 2700.0
@@ -94,7 +96,7 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Elements()
-    nfault = 50
+    nfault = 3
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
@@ -112,20 +114,37 @@ function ex_planarqdconst()
     println("Calculating velocity to traction matrix")
     srcidx = findall(x->x == "fault", els.name)
     obsidx = srcidx
-    _, _, ∂t = ∂constslip(els, srcidx, obsidx, μ, ν)
+    ∂u, ∂σ, ∂t = ∂constslip(els, srcidx, obsidx, μ, ν)
 
+    display(∂σ)  # Rows look strange here
+    close("all")
+    matshow(∂u)
+    colorbar()
+
+    matshow(∂σ)
+    colorbar()
+
+    matshow(∂t)
+    colorbar()
+    show()
     # Set initial conditions
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 1e-3 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
 
-    # Time integrate
-    p = (∂t, els, η, dc)
-    p1d = (dc, η, μ, blockvelx, blockvely, L, ρ, els)
-    prob = ODEProblem(calc_dvθ1d, ics, tspan, p1d)
-    @time sol = solve(prob, RK4(), abstol = 1e-4, reltol = 1e-4)
+    # # Time integrate psuedo 1d model
+    # p1d = (dc, η, μ, blockvelx, blockvely, L, ρ, els)
+    # prob = ODEProblem(calc_dvθ1d, ics, tspan, p1d)
+    # @time sol = solve(prob, RK4(), abstol = 1e-4, reltol = 1e-4)
+
+
+
+    # Time integrate elastic model
+    # p = (∂t, els, η, dc)
+    # prob = ODEProblem(calc_dvθ, ics, tspan, p)
+    # @time sol = solve(prob, RK4(), abstol = 1e-4, reltol = 1e-4)
     
-    plottimeseries(sol, nfault, siay)
+    # plottimeseries(sol, nfault, siay)
 end
 ex_planarqdconst()
