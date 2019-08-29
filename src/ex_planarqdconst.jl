@@ -60,15 +60,12 @@ function calc_dvθ1d(vθ, p, t)
     v = vθ[1:3:end]
     θ = vθ[3:3:end]
     dc, η, μ, blockvelx, blockvely, L, ρ, els = p
+    siay = 365.25 * 24 * 60 * 60
 
     # Hacky "1d" version
-    # dτ = μ .* (blockvelx .- v) ./ L
-    # dθ = -v .* θ ./ dc .* @.log(v .* θ ./ dc)
-    # dv = 1 ./ (η ./ els.σn[1:els.endidx] .+ els.a[1:els.endidx] ./ v) .* (dτ ./ els.σn[1:els.endidx] .- els.b[1:els.endidx] .* dθ ./ θ)
     dθ = zeros(els.endidx)
     dv = zeros(els.endidx)
     for i in 1:els.endidx
-        println(i, "  ", θ[i])
         dτ = μ * (blockvelx - v[i]) / L
         dθ[i] = -v[i] * θ[i] / dc * log(v[i] * θ[i] / dc)
         dv[i] = 1 / (η / els.σn[i] + els.a[i] / v[i]) * (dτ / els.σn[i] - els.b[i] * dθ[i] / θ[i])
@@ -127,8 +124,7 @@ function ex_planarqdconst()
     p = (∂t, els, η, dc)
     p1d = (dc, η, μ, blockvelx, blockvely, L, ρ, els)
     prob = ODEProblem(calc_dvθ1d, ics, tspan, p1d)
-    # sol = solve(prob, Rosenbrock23(autodiff = false), abstol = 1e-4, reltol = 1e-4)
-    @time sol = solve(prob, abstol = 1e-4, reltol = 1e-4)
+    @time sol = solve(prob, RK4(), abstol = 1e-4, reltol = 1e-4)
     
     plottimeseries(sol, nfault, siay)
 end
