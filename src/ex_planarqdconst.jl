@@ -30,28 +30,28 @@ function plottimeseries(sol, nfault, siay)
     show()
 end
 
-# Derivatives to feed to ODE integrator
-function calc_dvθ(vθ, p, t)
-    display(t / (365.25 * 24 * 60 * 60))
-    ∂t, els, η, dc = p
-    θ = vθ[3:3:end]
-    v = @.sqrt(vθ[1:3:end].^2 + vθ[2:3:end].^2) # TODO: Flat fault only
-    dt = ∂t * [vθ[1:3:end] ; vθ[2:3:end]]
-    dτ = dt[1:2:end]
+# # Derivatives to feed to ODE integrator
+# function calc_dvθ(vθ, p, t)
+#     display(t / (365.25 * 24 * 60 * 60))
+#     ∂t, els, η, dc = p
+#     θ = vθ[3:3:end]
+#     v = @.sqrt(vθ[1:3:end].^2 + vθ[2:3:end].^2) # TODO: Flat fault only
+#     dt = ∂t * [vθ[1:3:end] ; vθ[2:3:end]]
+#     dτ = dt[1:2:end]
 
-    # State evolution: aging law
-    dθ = -v .* θ ./ dc .* @.log(v .* θ ./ dc)
+#     # State evolution: aging law
+#     dθ = -v .* θ ./ dc .* @.log(v .* θ ./ dc)
 
-    # Acceleration evolution
-    dv = 1 ./ (η ./ els.σn[1:els.endidx] .+ els.a[1:els.endidx] ./ v) .*
-        (dτ ./ els.σn[1:els.endidx] .- els.b[1:els.endidx] .* dθ ./ θ)
+#     # Acceleration evolution
+#     dv = 1 ./ (η ./ els.σn[1:els.endidx] .+ els.a[1:els.endidx] ./ v) .*
+#         (dτ ./ els.σn[1:els.endidx] .- els.b[1:els.endidx] .* dθ ./ θ)
 
-    dvθ = zeros(3 * els.endidx)
-    dvθ[1:3:end] = dv # TODO: Flat fault only
-    dvθ[2:3:end] .= 0 # TODO: Flat fault only
-    dvθ[3:3:end] = dθ
-    return dvθ
-end
+#     dvθ = zeros(3 * els.endidx)
+#     dvθ[1:3:end] = dv # TODO: Flat fault only
+#     dvθ[2:3:end] .= 0 # TODO: Flat fault only
+#     dvθ[3:3:end] = dθ
+#     return dvθ
+# end
 
 
 # 1-D Derivatives to feed to ODE integrator
@@ -76,7 +76,7 @@ end
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0.0, siay * 500.00)
+    tspan = (0.0, siay * 2000.00)
     μ = 3e10
     ν = 0.25
     ρ = 2700.0
@@ -118,16 +118,21 @@ function ex_planarqdconst()
     # Time integrate
     p = (∂t, els, η, dc)
 
+    μ = 3e10
+    ν = 0.25
+    ρ = 2700.0
+    η = μ / (2.0 * sqrt(μ / ρ))
+    L = 60 * 1e3
     a = 0.015
     b = 0.02
-    σn = 30e6
-    μ = 3e10
     Vp = 1e-9
+    σn = 30e6
+    dc = 0.2
 
     p1d = (dc, η, σn, a, b, μ, Vp, L, ρ)
     prob = ODEProblem(calc_dvθ1d, ics, tspan, p1d)
     # sol = solve(prob, Rosenbrock23(autodiff = true), abstol = 1e-4, reltol = 1e-4)
-    sol = solve(prob, abstol = 1e-4, reltol = 1e-4)
+    @time sol = solve(prob, abstol = 1e-4, reltol = 1e-4)
     
     plottimeseries(sol, nfault, siay)
 end

@@ -28,7 +28,7 @@ end
 function ex_1d()
     # Model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0.0, siay * 5000.0)
+    tspan = (0.0, siay * 2000.0)
     μ = 3e10
     ν = 0.25
     ρ = 2700.0
@@ -47,7 +47,7 @@ function ex_1d()
     # Time integrate
     p = (dc, η, σn, a, b, μ, Vp, L, ρ)
     prob = ODEProblem(calcdvθ, ics, tspan, p)
-    sol = solve(prob, Rosenbrock23(autodiff = true), abstol = 1e-4, reltol = 1e-4)    
+    @time sol = solve(prob, Rosenbrock23(autodiff = true), abstol = 1e-4, reltol = 1e-4)    
     t = [x / siay for x in sol.t]
     θ = [x[1] for x in sol.u]
     v = [x[2] for x in sol.u]
