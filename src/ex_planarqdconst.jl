@@ -59,14 +59,22 @@ function calc_dvθ1d(vθ, p, t)
     # display(t / (365.25 * 24 * 60 * 60))
     v = vθ[1:3:end]
     θ = vθ[3:3:end]
-    dc, η, σn, a, b, μ, Vp, L, ρ = p
+    dc, η, μ, blockvelx, blockvely, L, ρ, els = p
 
     # Hacky "1d" version
-    dτ = μ .* (Vp .- v) ./ L
-    dθ = -v .* θ ./ dc .* @.log(v .* θ ./ dc)
-    dv = 1 ./ (η ./ σn .+ a ./ v) .* (dτ ./ σn .- b .* dθ ./ θ)
-
-    dvθ = zeros(3)
+    # dτ = μ .* (blockvelx .- v) ./ L
+    # dθ = -v .* θ ./ dc .* @.log(v .* θ ./ dc)
+    # dv = 1 ./ (η ./ els.σn[1:els.endidx] .+ els.a[1:els.endidx] ./ v) .* (dτ ./ els.σn[1:els.endidx] .- els.b[1:els.endidx] .* dθ ./ θ)
+    dθ = zeros(els.endidx)
+    dv = zeros(els.endidx)
+    for i in 1:els.endidx
+        println(i, "  ", θ[i])
+        dτ = μ * (blockvelx - v[i]) / L
+        dθ[i] = -v[i] * θ[i] / dc * log(v[i] * θ[i] / dc)
+        dv[i] = 1 / (η / els.σn[i] + els.a[i] / v[i]) * (dτ / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+    end
+    
+    dvθ = zeros(3 * els.endidx)
     dvθ[1:3:end] = dv # TODO: Flat fault only
     dvθ[2:3:end] .= 0 # TODO: Flat fault only
     dvθ[3:3:end] = dθ
@@ -76,7 +84,7 @@ end
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0.0, siay * 2000.00)
+    tspan = (0.0, siay * 5000.00)
     μ = 3e10
     ν = 0.25
     ρ = 2700.0
@@ -84,13 +92,15 @@ function ex_planarqdconst()
     dc = 0.2
     blockvelx = 1e-9
     blockvely = 0.0
+    L = 60 * 1e3
+    Vp = 1e-9
 
     # Create fault elements
     els = Elements()
-    nfault = 1
+    nfault = 50
     nnodes = 1 * nfault
-    L = 10000
-    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nfault)
+    faultwidth = 10000
+    x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2
@@ -108,30 +118,16 @@ function ex_planarqdconst()
     _, _, ∂t = ∂constslip(els, srcidx, obsidx, μ, ν)
 
     # Set initial conditions
-    Vp = 1e-9
     ics = zeros(3 * nnodes)
-    ics[1:3:end] = 1e-3 * Vp * ones(nnodes)
+    ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 1e-3 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
-    display(ics)
 
     # Time integrate
     p = (∂t, els, η, dc)
-
-    μ = 3e10
-    ν = 0.25
-    ρ = 2700.0
-    η = μ / (2.0 * sqrt(μ / ρ))
-    L = 60 * 1e3
-    a = 0.015
-    b = 0.02
-    Vp = 1e-9
-    σn = 30e6
-    dc = 0.2
-
-    p1d = (dc, η, σn, a, b, μ, Vp, L, ρ)
+    p1d = (dc, η, μ, blockvelx, blockvely, L, ρ, els)
     prob = ODEProblem(calc_dvθ1d, ics, tspan, p1d)
-    # sol = solve(prob, Rosenbrock23(autodiff = true), abstol = 1e-4, reltol = 1e-4)
+    # sol = solve(prob, Rosenbrock23(autodiff = false), abstol = 1e-4, reltol = 1e-4)
     @time sol = solve(prob, abstol = 1e-4, reltol = 1e-4)
     
     plottimeseries(sol, nfault, siay)
