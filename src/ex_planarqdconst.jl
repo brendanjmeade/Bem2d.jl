@@ -16,17 +16,37 @@ function plottimeseries(sol, nfault, siay)
     end
 
     close("all")
-    figure(figsize = (6, 12))
-    subplot(2, 1, 1)
+    figure(figsize = (15, 8))
+
+    subplot(3, 2, 1)
+    plot(t, vx, "-b", linewidth = 0.5)
+    yscale("log")
+    ylabel(L"v_x")
+    subplot(3, 2, 3)
+    plot(t, vy, "-b", linewidth = 0.5)
+    yscale("log")
+    ylabel(L"v_y")
+    subplot(3, 2, 5)
     plot(t, θ, "-b", linewidth = 0.5)
+    yscale("log")
     xlabel("t (years)")
     ylabel(L"\theta")
 
-    subplot(2, 1, 2)
-    plot(t, vx, "-b", linewidth = 0.5)
+    subplot(3, 2, 2)
+    plot(1:1:length(t), vx, "-b", linewidth = 0.5)
     yscale("log")
-    xlabel("t (years)")
     ylabel(L"v_x")
+    subplot(3, 2, 4)
+    plot(1:1:length(t), vy, "-b", linewidth = 0.5)
+    yscale("log")
+    ylabel(L"v_y")
+    subplot(3, 2, 6)
+    plot(1:1:length(t), θ, "-b", linewidth = 0.5)
+    yscale("log")
+    xlabel("time step #")
+    ylabel(L"\theta")
+
+
     show()
 end
 
@@ -41,7 +61,6 @@ function calc_dvθ(vθ, p, t)
     dθ = zeros(els.endidx)
     dv = zeros(els.endidx)
     for i in 1:els.endidx
-        # println(i, "  ", dτ[i])
         dθ[i] = -vmag[i] * θ[i] / dc * log(vmag[i] * θ[i] / dc)
         dv[i] = 1 / (η / els.σn[i] + els.a[i] / vmag[i]) * (dτ[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
     end
@@ -98,8 +117,7 @@ function ex_planarqdconst()
     prob = ODEProblem(calc_dvθ, ics, tspan, (∂t, els, η, dc, blockvelx, blockvely))
     println("Integrating")
     @time sol = solve(prob, RK4(), abstol = 1e-4, reltol = 1e-4)
-    # @time sol = solve(prob, Rosenbrock23(autodiff = false), abstol = 1e-4, reltol = 1e-4)
-    
+
     plottimeseries(sol, nfault, siay)
 end
 ex_planarqdconst()
