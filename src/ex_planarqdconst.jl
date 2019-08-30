@@ -32,8 +32,7 @@ end
 
 # Derivatives to feed to ODE integrator
 function calc_dvθ(vθ, p, t)
-    # println(rand(1))
-    # println(t / 365.25 * 24 * 60 * 60)
+    # println(t / (365.25 * 24 * 60 * 60))
     ∂t, els, η, dc, blockvelx, blockvely = p
     θ = vθ[3:3:end]
     vmag = @.sqrt(vθ[1:3:end].^2 + vθ[2:3:end].^2) # TODO: Flat fault only
@@ -52,28 +51,6 @@ function calc_dvθ(vθ, p, t)
     dvθ[3:3:end] = dθ
     return dvθ
 end
-
-
-# # Pseudo 1-D derivatives to feed to ODE integrator
-# function calc_dvθ1d(vθ, p, t)
-#     # display(t / (365.25 * 24 * 60 * 60))
-#     v = vθ[1:3:end]
-#     θ = vθ[3:3:end]
-#     dc, η, μ, blockvelx, blockvely, L, ρ, els = p
-#     dθ = zeros(els.endidx)
-#     dv = zeros(els.endidx)
-#     for i in 1:els.endidx
-#         dτ = μ * (blockvelx - v[i]) / L
-#         println(i, "  ", dτ)
-#         dθ[i] = -v[i] * θ[i] / dc * log(v[i] * θ[i] / dc)
-#         dv[i] = 1 / (η / els.σn[i] + els.a[i] / v[i]) * (dτ / els.σn[i] - els.b[i] * dθ[i] / θ[i])
-#     end
-#     dvθ = zeros(3 * els.endidx)
-#     dvθ[1:3:end] = dv # TODO: Flat fault only
-#     dvθ[2:3:end] .= 0 # TODO: Flat fault only
-#     dvθ[3:3:end] = dθ
-#     return dvθ
-# end
 
 function ex_planarqdconst()
     # Constants and model parameters
@@ -117,14 +94,11 @@ function ex_planarqdconst()
     ics[2:3:end] = 1e-3 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
 
-    # Time integrate psuedo 1d model
-    # p1d = (dc, η, μ, blockvelx, blockvely, L, ρ, els)
-    # prob = ODEProblem(calc_dvθ1d, ics, tspan, p1d)
-    # sol = solve(prob, RK4(), abstol = 1e-4, reltol = 1e-4)
-
     # Time integrate elastic model
     prob = ODEProblem(calc_dvθ, ics, tspan, (∂t, els, η, dc, blockvelx, blockvely))
-    sol = solve(prob, RK4(), abstol = 1e-4, reltol = 1e-4)
+    println("Integrating")
+    @time sol = solve(prob, RK4(), abstol = 1e-4, reltol = 1e-4)
+    # @time sol = solve(prob, Rosenbrock23(autodiff = false), abstol = 1e-4, reltol = 1e-4)
     
     plottimeseries(sol, nfault, siay)
 end
