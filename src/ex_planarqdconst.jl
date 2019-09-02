@@ -60,18 +60,28 @@ end
 
 # Derivatives to feed to ODE integrator
 function calc_dvθ(vθ, p, t)
+    # Unpack
     ∂t, els, η, dc, blockvelx, blockvely = p
+    vx = vθ[1:3:end]
+    vy = vθ[2:3:end]
     θ = vθ[3:3:end]
+
+    # Solve for fault parallel and perpendicular velocity components
+    vs = zeros(size(vx))
+    vt = zeros(size(vx))
+    for i in 1:els.endidx
+        vs[i], vt[i] = els.rotmat[i, :, :] * [vx[i] ; vy[i]]
+    end
+    
     # vmag = @.sqrt(vθ[1:3:end].^2 + vθ[2:3:end].^2) # TODO: Flat fault only
-    vmag = vθ[1:3:end] # TODO: Flat fault only
-    dt = ∂t * [blockvelx .- vθ[1:3:end] blockvely .- vθ[2:3:end]]'[:] # interleaving!
+    dt = ∂t * [blockvelx .- vx blockvely .- vy'[:] # interleaving!
     dτ = dt[1:2:end]
     dθ = zeros(els.endidx)
     dv = zeros(els.endidx)
     for i in 1:els.endidx
-        dθ[i] = -vmag[i] * θ[i] / dc * log(vmag[i] * θ[i] / dc) # slip law
+        dθ[i] = -vs[i] * θ[i] / dc * log(vs[i] * θ[i] / dc) # slip law
         # dθ[i] = 1 - θ[i] * vmag[i] / dc # Aging law
-        dv[i] = 1 / (η / els.σn[i] + els.a[i] / vmag[i]) * (dτ[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+        dv[i] = 1 / (η / els.σn[i] + els.a[i] / vs[i]) * (dτ[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
     end
     dvθ = zeros(3 * els.endidx)
     dvθ[1:3:end] = dv # TODO: Flat fault only
@@ -90,7 +100,7 @@ function ex_planarqdconst()
 
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 500)
+    tspan = (0, siay * 1)
     abstol = 1e-4
     reltol = 1e-4
     μ = 3e10
@@ -103,7 +113,7 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Elements()
-    nfault = 100
+    nfault = 10
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
@@ -121,7 +131,7 @@ function ex_planarqdconst()
     println("Calculating velocity to traction matrix")
     srcidx = findall(x->x == "fault", els.name)
     obsidx = srcidx
-    @time ∂u, ∂σ, ∂t = ∂constslip(els, srcidx, obsidx, μ, ν)
+    @time ∂u, ∂σ, ∂t = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
 
     # Set initial conditions
     ics = zeros(3 * nnodes)
