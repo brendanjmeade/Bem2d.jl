@@ -39,10 +39,10 @@ function ex_thrusttopo()
     # Partial derivatves
     srcidx = findall(x->x == "fault", els.name)
     obsidx = findall(x->x == "freesurf", els.name)
-    ∂u1, ∂σ1, ∂t1 = ∂constslip(els, srcidx, obsidx, μ, ν)
+    ∂u1, ∂σ1, ∂t1 = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
     srcidx = findall(x->x == "freesurf", els.name)
     obsidx = findall(x->x == "freesurf", els.name)
-    ∂u2, ∂σ2, ∂t2 = ∂constslip(els, srcidx, obsidx, μ, ν)
+    ∂u2, ∂σ2, ∂t2 = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
 
     # Solve the BEM problem for unit slip in the x-direction
     faultslip = zeros(2 * nfault)
@@ -51,12 +51,12 @@ function ex_thrusttopo()
 
     # Fault in full space
     faultidx = findall(x->x == "fault", els.name)
-    ufault, σfault = constslip(xobs, yobs, els, faultidx,
+    ufault, σfault = constuσ(slip2uσ, xobs, yobs, els, faultidx,
         ones(size(faultidx)), zeros(size(faultidx)), μ, ν)    
 
     # Free surface in full space
     freesurfidx = findall(x->x == "faultsurf", els.name)
-    ufreesurf, σfreesurf = constslip(xobs, yobs, els, freesurfidx,
+    ufreesurf, σfreesurf = constuσ(slip2uσ, xobs, yobs, els, freesurfidx,
         ufreesurf[1:2:end], ufreesurf[2:2:end], μ, ν)
 
     # Pretty picture of displacements and stresses

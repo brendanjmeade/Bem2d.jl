@@ -35,10 +35,10 @@ function ex_freesurface()
     # Constant slip fault
     srcidx = findall(x->x == "fault", els.name)
     obsidx = findall(x->x == "freesurf", els.name)
-    ∂u1, ∂σ1, ∂t1 = ∂constslip(els, srcidx, obsidx, μ, ν)
+    ∂u1, ∂σ1, ∂t1 = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
     srcidx = findall(x->x == "freesurf", els.name)
     obsidx = findall(x->x == "freesurf", els.name)
-    ∂u2, ∂σ2, ∂t2 = ∂constslip(els, srcidx, obsidx, μ, ν)
+    ∂u2, ∂σ2, ∂t2 = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
 
     # Constant case: Predict surface displacements from unit strike slip forcing
     faultslip = sqrt(2) / 2 * [1 ; 1]

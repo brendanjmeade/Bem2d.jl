@@ -81,7 +81,6 @@ function calc_dvθ(vθ, p, t)
 end
 
 function ex_planarqdconst()
-    # TODO: contourf plotting?
     # TODO: Quadratic farfield partials
     # TODO: Quadratic coincident partials
     # TODO: Take only fault parallel velocity and traction
@@ -91,7 +90,7 @@ function ex_planarqdconst()
 
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 800)
+    tspan = (0, siay * 500)
     abstol = 1e-4
     reltol = 1e-4
     μ = 3e10
@@ -104,7 +103,7 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Elements()
-    nfault = 200
+    nfault = 100
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)

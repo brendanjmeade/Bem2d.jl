@@ -94,44 +94,19 @@ function discretizedline(xstart, ystart, xend, yend, nelements)
     return x1, y1, x2, y2
 end
 
-# Calculate displacements and stresses for constant slip elements
-export constslip
-function constslip(x, y, els, idx, xcomp, ycomp, μ, ν)
-    u = zeros(length(x), 2)
-    σ = zeros(length(x), 3)
+# Calculate u and σ for constant slip/traction elements
+export constuσ
+function constuσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
+    u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into local coordinate system with *global* slip components
-        _x = zeros(length(x))
-        _y = zeros(length(y))
+        _x, _y = zeros(length(x)), zeros(length(y))
         for i in 1:length(x)
             _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
         end
         _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
         f = constkernel(_x, _y, els.halflength[idx[j]], ν)
-        _u, _σ = slip2uσ(_xcomp, _ycomp, f, _y, μ, ν)
-        _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
-        u += _u
-        σ += _σ
-    end
-    return u, σ
-end
-
-
-# Calculate displacements and stresses for constant traction elements
-export consttrac
-function consttrac(x, y, els, idx, xcomp, ycomp, μ, ν)
-    u = zeros(length(x), 2)
-    σ = zeros(length(x), 3)
-    for j in 1:length(idx)
-        # Rotate and translate into local coordinate system with *global* slip components
-        _x = zeros(length(x))
-        _y = zeros(length(y))
-        for i in 1:length(x)
-            _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
-        end
-        _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
-        f = constkernel(_x, _y, els.halflength[idx[j]], ν)
-        _u, _σ = trac2uσ(_xcomp, _ycomp, f, _y, μ, ν)
+        _u, _σ = fun2uσ(_xcomp, _ycomp, f, _y, μ, ν)
         _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
         u += _u
         σ += _σ
@@ -142,12 +117,10 @@ end
 # Calculate displacements and stresses for constant quadratic elements
 export quadslip
 function quadslip(x, y, els, idx, xcomp, ycomp, μ, ν)
-    u = zeros(length(x), 2)
-    σ = zeros(length(x), 3)
+    u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into local coordinate system with *global* slip components
-        _x = zeros(length(x))
-        _y = zeros(length(y))
+        _x, _y = zeros(length(x)), zeros(length(y))
         for i in 1:length(x)
             _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
         end
@@ -163,29 +136,29 @@ function quadslip(x, y, els, idx, xcomp, ycomp, μ, ν)
     return u, σ
 end
 
-# Calculate displacements and stresses for constant quadratic elements
-export quadtrac
-function quadtrac(x, y, els, idx, xcomp, ycomp, μ, ν)
-    u = zeros(length(x), 2)
-    σ = zeros(length(x), 3)
-    for j in 1:length(idx)
-        # Rotate and translate into local coordinate system with *global* slip components
-        _x = zeros(length(x))
-        _y = zeros(length(y))
-        for i in 1:length(x)
-            _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
-        end
-        f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], ν)
-        for i in 1:3
-            _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
-            _u, _σ = trac2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
-            _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
-            u += _u
-            σ += _σ
-        end
-    end
-    return u, σ
-end
+# # Calculate displacements and stresses for constant quadratic elements
+# export quadtrac
+# function quadtrac(x, y, els, idx, xcomp, ycomp, μ, ν)
+#     u = zeros(length(x), 2)
+#     σ = zeros(length(x), 3)
+#     for j in 1:length(idx)
+#         # Rotate and translate into local coordinate system with *global* slip components
+#         _x = zeros(length(x))
+#         _y = zeros(length(y))
+#         for i in 1:length(x)
+#             _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
+#         end
+#         f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], ν)
+#         for i in 1:3
+#             _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
+#             _u, _σ = trac2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
+#             _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
+#             u += _u
+#             σ += _σ
+#         end
+#     end
+#     return u, σ
+# end
 
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constkernel(x, y, a, ν)
@@ -323,14 +296,11 @@ function quadkernel_farfield(x, y, a, ν)
     return f
 end
 
-
 # Generalization from Starfield and Crouch
 export trac2uσ
 function trac2uσ(xcomp, ycomp, f, y, μ, ν)
-    u = zeros(length(y), 2)
-    σ = zeros(length(y), 3)
-    _xcomp = -xcomp # For Okada consistency
-    _ycomp = -ycomp # For Okada consistency
+    u, σ = zeros(length(y), 2), zeros(length(y), 3)
+    _xcomp, _ycomp = -xcomp, -ycomp # For Okada consistency
     for i in 1:length(y)
         u[i, 1] = _xcomp / (2.0 * μ) * ((3.0 - 4.0 * ν) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * μ) * (-y[i] * f[i, 3])
         u[i, 2] = _xcomp / (2.0 * μ) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * μ) * ((3.0 - 4.0 * ν) * f[i, 1] - y[i] * f[i, 2])
@@ -344,11 +314,8 @@ end
 # Generalization of Starfield and Crouch
 export slip2uσ
 function slip2uσ(xcomp, ycomp, f, y, μ, ν)
-    u = zeros(length(y), 2)
-    σ = zeros(length(y), 3)
-    _xcomp = -xcomp # For Okada consistency
-    _ycomp = -ycomp # For Okada consistency
-
+    u, σ = zeros(length(y), 2), zeros(length(y), 3)
+    _xcomp, _ycomp = -xcomp, -ycomp # For Okada consistency
     for i in 1:length(y)
         u[i, 1] = _xcomp * (2.0 * (1.0 - ν) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-1.0 * (1.0 - 2.0 * ν) * f[i, 3] - y[i] * f[i, 4])
         u[i, 2] = _xcomp * ((1.0 - 2.0 * ν) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - ν) * f[i, 2] - y[i] * -f[i, 5])
@@ -390,8 +357,7 @@ export rotuσ
 function rotuσ(u, σ, rotmat)
     # TODO: If this is slow hand expand the matrix vector μltiplies
     # inplace for speed.  Some benchmarks suggest 50x speedup!
-    _u = zeros(size(u))
-    _σ = zeros(size(σ))
+    _u, _σ = zeros(size(u)), zeros(size(σ))
     for i in 1:size(σ)[1]
         _u[i, 1], _u[i, 2] = rotmat * [u[i, 1] ; u[i, 2]]
         σtensor = [σ[i, 1] σ[i, 3] ; σ[i, 3] σ[i, 2]]
@@ -405,6 +371,7 @@ function plotelements(els)
     for i in 1:els.endidx
         plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 0.5)
     end
+    return nothing
 end
 
 function stylesubplots(xlim, ylim)
@@ -413,6 +380,7 @@ function stylesubplots(xlim, ylim)
     gca().set_ylim([ylim[1], ylim[2]])
     gca().set_xticks([xlim[1], xlim[2]])
     gca().set_yticks([ylim[1], ylim[2]])
+    return nothing
 end
 
 function plotfields_contours(els, xobs, yobs, idx, field, title)
@@ -431,6 +399,7 @@ function plotfields_contours(els, xobs, yobs, idx, field, title)
     PyPlot.title(title)
     stylesubplots(xlim, ylim)
     plotelements(els)
+    return nothing
 end
 
 export plotfields
@@ -449,45 +418,19 @@ function plotfields(els, xobs, yobs, disp, stress, suptitle)
     PyPlot.suptitle(suptitle)
     tight_layout()
     show()
+    return nothing
 end
 
-export ∂constslip
-function ∂constslip(els, srcidx, obsidx, μ, ν)
-    nobs = length(obsidx)
-    nsrc = length(srcidx)
-    ∂u = zeros(2 * nobs, 2 * nsrc)
-    ∂σ = zeros(3 * nobs, 2 * nsrc)
-    ∂t = zeros(2 * nobs, 2 * nsrc)
+export ∂constuσ
+function ∂constuσ(fun2uσ, els, srcidx, obsidx, μ, ν)
+    nobs, nsrc = length(obsidx), length(srcidx)
+    ∂u, ∂σ, ∂t = zeros(2 * nobs, 2 * nsrc), zeros(3 * nobs, 2 * nsrc), zeros(2 * nobs, 2 * nsrc)
     for isrc in 1:nsrc
         for iobs in 1:nobs
             _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-            _∂u[:, 1], _∂σ[:, 1] = constslip(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+            _∂u[:, 1], _∂σ[:, 1] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
                 els, srcidx[isrc], 1, 0, μ, ν)
-            _∂u[:, 2], _∂σ[:, 2] = constslip(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els, srcidx[isrc], 0, 1, μ, ν)
-            _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-            _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-            ∂u[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂u
-            ∂σ[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂σ
-            ∂t[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂t
-        end
-    end
-    return ∂u, ∂σ, ∂t
-end
-
-export ∂consttrac
-function ∂consttrac(els, srcidx, obsidx, μ, ν)
-    nobs = length(obsidx)
-    nsrc = length(srcidx)
-    ∂u = zeros(2 * nobs, 2 * nsrc)
-    ∂σ = zeros(3 * nobs, 2 * nsrc)
-    ∂t = zeros(2 * nobs, 2 * nsrc)
-    for isrc in 1:nsrc
-        for iobs in 1:nobs
-            _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-            _∂u[:, 1], _∂σ[:, 1] = consttrac(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els, srcidx[isrc], 1, 0, μ, ν)
-            _∂u[:, 2], _∂σ[:, 2] = consttrac(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
+            _∂u[:, 2], _∂σ[:, 2] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
                 els, srcidx[isrc], 0, 1, μ, ν)
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
