@@ -61,7 +61,7 @@ end
 # Derivatives to feed to ODE integrator
 function calc_dvθ(vθ, p, t)
     # Unpack
-    ∂t, els, η, dc, blockvelx, blockvely = p
+    ∂t, els, η, dc, blockvx, blockvy = p
     vx = vθ[1:3:end]
     vy = vθ[2:3:end]
     θ = vθ[3:3:end]
@@ -69,12 +69,17 @@ function calc_dvθ(vθ, p, t)
     # Solve for fault parallel and perpendicular velocity components
     vs = zeros(size(vx))
     vt = zeros(size(vx))
+    blockvs = zeros(size(vx))
+    blockvt = zeros(size(vx))
     for i in 1:els.endidx
         vs[i], vt[i] = els.rotmat[i, :, :] * [vx[i] ; vy[i]]
+        blockvs[i], blockvt[i] = els.rotmat[i, :, :] * [blockvx ; blockvy
     end
     
-    # vmag = @.sqrt(vθ[1:3:end].^2 + vθ[2:3:end].^2) # TODO: Flat fault only
-    dt = ∂t * [blockvelx .- vx blockvely .- vy'[:] # interleaving!
+    # Solve for the tractions parallel to the fault surface
+    # dt = ∂t * [blockvx .- vx blockvy .- vy]'[:] # interleaving!
+    dt = ∂t * [blockvx .- vx blockvy .- vy]'[:] # interleaving!
+    
     dτ = dt[1:2:end]
     dθ = zeros(els.endidx)
     dv = zeros(els.endidx)
