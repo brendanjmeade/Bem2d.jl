@@ -115,8 +115,8 @@ function constuσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
 end
 
 # Calculate displacements and stresses for constant quadratic elements
-export quadslip
-function quadslip(x, y, els, idx, xcomp, ycomp, μ, ν)
+export quaduσ
+function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into local coordinate system with *global* slip components
@@ -127,7 +127,7 @@ function quadslip(x, y, els, idx, xcomp, ycomp, μ, ν)
         f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], ν)
         for i in 1:3
             _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
-            _u, _σ = slip2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
+            _u, _σ = fun2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
             _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
             u += _u
             σ += _σ
@@ -135,30 +135,6 @@ function quadslip(x, y, els, idx, xcomp, ycomp, μ, ν)
     end
     return u, σ
 end
-
-# # Calculate displacements and stresses for constant quadratic elements
-# export quadtrac
-# function quadtrac(x, y, els, idx, xcomp, ycomp, μ, ν)
-#     u = zeros(length(x), 2)
-#     σ = zeros(length(x), 3)
-#     for j in 1:length(idx)
-#         # Rotate and translate into local coordinate system with *global* slip components
-#         _x = zeros(length(x))
-#         _y = zeros(length(y))
-#         for i in 1:length(x)
-#             _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
-#         end
-#         f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], ν)
-#         for i in 1:3
-#             _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
-#             _u, _σ = trac2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
-#             _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
-#             u += _u
-#             σ += _σ
-#         end
-#     end
-#     return u, σ
-# end
 
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constkernel(x, y, a, ν)

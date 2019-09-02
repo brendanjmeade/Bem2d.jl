@@ -28,7 +28,7 @@ function ex_constquad()
         uconst, σconst, "constant slip element")
 
     # Constant slip with quadratic elements
-    uquad, σquad = quadslip(xobs, yobs, els, 1, [1 1 1], [0 0 0], μ, ν)
+    uquad, σquad = quaduσ(slip2uσ, xobs, yobs, els, 1, [1 1 1], [0 0 0], μ, ν)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uquad, σquad, "quadratic slip element")
 
