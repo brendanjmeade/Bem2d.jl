@@ -77,8 +77,20 @@ function calc_dvθ(vθ, p, t)
     vxs, vys = multmatvec(els.rotmatinv[1:els.endidx, :, :], vs, zeros(size(vs)))
     vxt, vyt = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vt)), vt)
     
-    dt = ∂t * [blockvx .- vx blockvy .- vy]'[:] # interleaving
-    dτ = dt[1:2:end]
+    # Change in tractions due to strike slip motion only
+    dt = ∂t * [blockvx .- vxs blockvy .- vys]'[:] # interleaving
+
+    # Component of tractions parallel to fault trace
+    ts, tt = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])    
+    
+    # Fault perpendicular component???
+    # Locked, vt = 0
+    # Creep, vt = projected component of block rate (vxt, vyt)?
+    # Viscous, vt ∼ tt (velocity proportional to traction)
+    
+
+    # Frictional slip for fault parallel traction
+    dτ = ts # Shear stress on fault
     dθ = zeros(els.endidx)
     dv = zeros(els.endidx)
     for i in 1:els.endidx
@@ -103,7 +115,7 @@ function ex_planarqdconst()
 
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 1)
+    tspan = (0, siay * 500)
     abstol = 1e-4
     reltol = 1e-4
     μ = 3e10
