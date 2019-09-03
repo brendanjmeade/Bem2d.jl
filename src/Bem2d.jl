@@ -94,6 +94,26 @@ function discretizedline(xstart, ystart, xend, yend, nelements)
     return x1, y1, x2, y2
 end
 
+export multmatvec
+function multmatvec(mats, vec1, vec2)
+    newvec1 = zeros(size(vec1))
+    newvec2 = zeros(size(vec2))
+    for i in 1:length(vec1)
+        newvec1[i], newvec2[i] = mats[i, :, :] * [vec1[i] ; vec2[i]]
+    end
+    return newvec1, newvec2
+end
+
+# export multmatsinglevec
+# function multmatsinglevec(mat, vec1, vec2)
+#     newvec1 = zeros(size(vec1))
+#     newvec2 = zeros(size(vec2))
+#     for i in 1:length(vec1)
+#         newvec1[i], newvec2[i] = mat * [vec1[i] ; vec2[i]]
+#     end
+#     return newvec1, newvec2
+# end
+
 # Calculate u and σ for constant slip/traction elements
 export constuσ
 function constuσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)

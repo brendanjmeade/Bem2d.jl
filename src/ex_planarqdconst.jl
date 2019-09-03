@@ -60,26 +60,24 @@ end
 
 # Derivatives to feed to ODE integrator
 function calc_dvθ(vθ, p, t)
-    # Unpack
     ∂t, els, η, dc, blockvx, blockvy = p
     vx = vθ[1:3:end]
     vy = vθ[2:3:end]
     θ = vθ[3:3:end]
 
-    # Solve for fault parallel and perpendicular velocity components
-    vs = zeros(size(vx))
-    vt = zeros(size(vx))
+    # Fault parallel and perpendicular velocity components
     blockvs = zeros(size(vx))
     blockvt = zeros(size(vx))
     for i in 1:els.endidx
-        vs[i], vt[i] = els.rotmat[i, :, :] * [vx[i] ; vy[i]]
-        blockvs[i], blockvt[i] = els.rotmat[i, :, :] * [blockvx ; blockvy
+        blockvs[i], blockvt[i] = els.rotmat[i, :, :] * [blockvx ; blockvy]
     end
+    vs, vt = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)    
+
+    # Global velocites on fault from fault parallel and perpendicular components
+    vxs, vys = multmatvec(els.rotmatinv[1:els.endidx, :, :], vs, zeros(size(vs)))
+    vxt, vyt = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vt)), vt)
     
-    # Solve for the tractions parallel to the fault surface
-    # dt = ∂t * [blockvx .- vx blockvy .- vy]'[:] # interleaving!
-    dt = ∂t * [blockvx .- vx blockvy .- vy]'[:] # interleaving!
-    
+    dt = ∂t * [blockvx .- vx blockvy .- vy]'[:] # interleaving
     dτ = dt[1:2:end]
     dθ = zeros(els.endidx)
     dv = zeros(els.endidx)
