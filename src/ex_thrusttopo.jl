@@ -9,11 +9,11 @@ function ex_thrusttopo()
     els = Elements()
 
     # Observation points for internal evaluation and visualization
-    npts = 100
+    npts = 300
     xobs, yobs = obsgrid(-10e3, -5e3, 10e3, 5e3, npts)
 
     # Topographic free surface
-    nfreesurf = 20
+    nfreesurf = 200
     x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, nfreesurf)
     y1 = -1e3 * @.atan(x1 / 1e3)
     y2 = -1e3 * @.atan(x2 / 1e3)
@@ -25,7 +25,7 @@ function ex_thrusttopo()
     standardize_elements!(els)
 
     # Curved fault
-    nfault = 10
+    nfault = 100
     x1, y1, x2, y2 = discretizedline(-7e3, 0e3, 0, 0, nfault)
     y1 = 3e3 * @.atan(x1 / 1e3)
     y2 = 3e3 * @.atan(x2 / 1e3)
@@ -75,7 +75,7 @@ function ex_thrusttopo()
     σfield = @.log10(abs(J2))
 
     ncontours = 10
-    figure(figsize = (6, 8))
+    figure(figsize = (8, 8))
     subplot(2, 1, 1)
     contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         reshape(ufield, npts, npts), ncontours, cmap = get_cmap("plasma"))
@@ -89,7 +89,6 @@ function ex_thrusttopo()
     gca().set_aspect("equal")
     xlabel(L"$x$ (m)")
     ylabel(L"$y$ (m)")
-    title("displacement magnitude")
 
     subplot(2, 1, 2)
     contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
@@ -104,7 +103,6 @@ function ex_thrusttopo()
     gca().set_aspect("equal")
     xlabel(L"$x$ (m)")
     ylabel(L"$y$ (m)")
-    title("2nd stress invariant (deviatoric)")
     show()
 end
 ex_thrusttopo()
