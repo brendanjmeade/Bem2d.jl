@@ -75,20 +75,33 @@ function calc_dvθ(vθ, p, t)
     vxpara, vypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], vpara, zeros(size(vperp)))
     vxperp, vyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vpara)), vperp)
     
-    # Change in tractions due to strike slip motion only
-    # I don't think the block part is correct
+    # Change in tractions due to fault parallel motion
     Δvx = blockvxpara - vxpara
     Δvy = blockvypara - vypara
-    dt = ∂t * [Δvx Δvy]'[:]
+    dtpara = ∂t * [Δvx Δvy]'[:]
+    tparapara, tparaperp = multmatvec(els.rotmat[1:els.endidx, :, :], dtpara[1:2:end], dtpara[2:2:end])
 
-    # Component of tractions parallel to fault trace
-    tpara, tperp = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
-    
-    # Fault perpendicular component???
-    # Locked, vt = 0
-    # Creep, vt = projected component of block rate (vxt, vyt)?
-    # Viscous, vt ∼ tt (velocity proportional to traction)
-    
+    # # NO TENSILE SLIP - Change in tractions due to fault perpendicular motion
+    # tperppara, tperpperp = zeros(size(vxperp)), zero(size(vxperp))
+
+    # CREEP - Change in tractions due to fault perpendicular motion
+    Δvx = blockvxperp - vxperp
+    Δvy = blockvyperp - vyperp
+    dtperp = ∂t * [Δvx Δvy]'[:]
+    tperppara, tperpperp = multmatvec(els.rotmat[1:els.endidx, :, :], dtperp[1:2:end], dtperp[2:2:end])
+
+    # # VISCOUS - Change in tractions due to fault perpendicular motion
+    # viscosity = 1e19 # Pa⋅s
+    # fault_width = 1.0 # meter
+    # Δvx = blockvxperp - vxperp
+    # Δvy = blockvyperp - vyperp
+    # dtperp = ∂t * [Δvx Δvy]'[:]
+    # tperppara, tperpperp = multmatvec(els.rotmat[1:els.endidx, :, :], dtperp[1:2:end], dtperp[2:2:end])
+
+    # TOTAL - Change in tractions
+    tpara = tparapara + tperppara
+    tperp = tparaperp + tperpperp
+        
     # Frictional slip for fault parallel traction
     dτ = tpara # Shear stress on fault
     dθ = zeros(els.endidx)
@@ -121,7 +134,7 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Elements(Int(1e5))
-    nfault = 10
+    nfault = 30
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
