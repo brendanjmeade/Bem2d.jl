@@ -65,16 +65,21 @@ function calc_dvθ(vθ, p, t)
     vy = vθ[2:3:end]
     θ = vθ[3:3:end]
 
-    # Fault parallel and perpendicular velocity components
+    # Global block velocities from fault parallel and perpendicular velocity components
     blockvpara, blockvperp = multmatvecsingle(els.rotmat[1:els.endidx, :, :], blockvx, blockvy)
-    vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)    
+    #! blockvxpara, blockvypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], blockvpara, zeros(size(blockvperp)))
+    #! blockvxperp, blockvyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(blockvpara)), blockvperp)
 
-    # Global velocites on fault from fault parallel and perpendicular components
+    # Global fault velocites from fault parallel and perpendicular components
+    vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)
     vxpara, vypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], vpara, zeros(size(vperp)))
     vxperp, vyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vpara)), vperp)
     
     # Change in tractions due to strike slip motion only
-    dt = ∂t * [blockvx .- vxpara blockvy .- vypara]'[:] # I don't think the block part is correct
+    # I don't think the block part is correct
+    Δvx = blockvx .- vxpara
+    Δvy = blockvy .- vypara
+    dt = ∂t * [Δvx Δvy]'[:]
 
     # Component of tractions parallel to fault trace
     tpara, tperp = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
