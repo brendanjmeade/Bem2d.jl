@@ -129,11 +129,8 @@ export constuσ
 function constuσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
-        # Rotate and translate into local coordinate system with *global* slip components
-        _x, _y = zeros(length(x)), zeros(length(y))
-        for i in 1:length(x)
-            _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
-        end
+        # Rotate and translate into SC coordinate system
+        _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
         f = constkernel(_x, _y, els.halflength[idx[j]], ν)
         _u, _σ = fun2uσ(_xcomp, _ycomp, f, _y, μ, ν)
@@ -149,11 +146,8 @@ export quaduσ
 function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
-        # Rotate and translate into local coordinate system with *global* slip components
-        _x, _y = zeros(length(x)), zeros(length(y))
-        for i in 1:length(x)
-            _x[i], _y[i] = els.rotmatinv[idx[j], :, :] * [x[i] - els.xcenter[idx[j]] ; y[i] - els.ycenter[idx[j]]]
-        end
+        # Rotate and translate into SC coordinate system
+        _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], ν)
         for i in 1:3
             _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
@@ -434,10 +428,8 @@ function ∂constuσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     for isrc in 1:nsrc
         for iobs in 1:nobs
             _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-            _∂u[:, 1], _∂σ[:, 1] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els, srcidx[isrc], 1, 0, μ, ν)
-            _∂u[:, 2], _∂σ[:, 2] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]],
-                els, srcidx[isrc], 0, 1, μ, ν)
+            _∂u[:, 1], _∂σ[:, 1] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 1, 0, μ, ν)
+            _∂u[:, 2], _∂σ[:, 2] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 0, 1, μ, ν)
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             ∂u[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂u

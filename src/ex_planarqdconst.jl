@@ -145,7 +145,7 @@ function ex_planarqdconst()
     # Time integrate elastic model
     prob = ODEProblem(calc_dvθ, ics, tspan, (∂t, els, η, dc, blockvelx, blockvely))
     println("Time integrating")
-    @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol)
+    @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
     plottimeseries(sol)
 end
 ex_planarqdconst()
