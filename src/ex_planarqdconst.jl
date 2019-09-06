@@ -66,37 +66,32 @@ function calc_dvθ(vθ, p, t)
     θ = vθ[3:3:end]
 
     # Fault parallel and perpendicular velocity components
-    blockvs = zeros(size(vx))
-    blockvt = zeros(size(vx))
-    for i in 1:els.endidx
-        blockvs[i], blockvt[i] = els.rotmat[i, :, :] * [blockvx ; blockvy]
-    end
-    vs, vt = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)    
+    blockvpara, blockvperp = multmatvecsingle(els.rotmat[1:els.endidx, :, :], blockvx, blockvy)
+    vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)    
 
     # Global velocites on fault from fault parallel and perpendicular components
-    vxs, vys = multmatvec(els.rotmatinv[1:els.endidx, :, :], vs, zeros(size(vs)))
-    vxt, vyt = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vt)), vt)
+    vxpara, vypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], vpara, zeros(size(vperp)))
+    vxperp, vyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vpara)), vperp)
     
     # Change in tractions due to strike slip motion only
-    dt = ∂t * [blockvx .- vxs blockvy .- vys]'[:] # interleaving
+    dt = ∂t * [blockvx .- vxpara blockvy .- vypara]'[:] # I don't think the block part is correct
 
     # Component of tractions parallel to fault trace
-    ts, tt = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])    
+    tpara, tperp = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
     
     # Fault perpendicular component???
     # Locked, vt = 0
     # Creep, vt = projected component of block rate (vxt, vyt)?
     # Viscous, vt ∼ tt (velocity proportional to traction)
     
-
     # Frictional slip for fault parallel traction
-    dτ = ts # Shear stress on fault
+    dτ = tpara # Shear stress on fault
     dθ = zeros(els.endidx)
     dv = zeros(els.endidx)
     for i in 1:els.endidx
-        dθ[i] = -vs[i] * θ[i] / dc * log(vs[i] * θ[i] / dc) # slip law
+        dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
         # dθ[i] = 1 - θ[i] * vmag[i] / dc # Aging law
-        dv[i] = 1 / (η / els.σn[i] + els.a[i] / vs[i]) * (dτ[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+        dv[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dτ[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
     end
     dvθ = zeros(3 * els.endidx)
     dvθ[1:3:end] = dv # TODO: Flat fault only
@@ -106,13 +101,6 @@ function calc_dvθ(vθ, p, t)
 end
 
 function ex_planarqdconst()
-    # TODO: Quadratic farfield partials
-    # TODO: Quadratic coincident partials
-    # TODO: Take only fault parallel velocity and traction
-    # TODO: Option: Creeping tensile
-    # TODO: Option: Tensile-slip rate scales with strike-slip rate
-    # TODO: Option: Tensile slip is viscous, v~σ
-
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
     tspan = (0, siay * 500)

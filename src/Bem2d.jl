@@ -104,15 +104,25 @@ function multmatvec(mats, vec1, vec2)
     return newvec1, newvec2
 end
 
-# export multmatsinglevec
-# function multmatsinglevec(mat, vec1, vec2)
-#     newvec1 = zeros(size(vec1))
-#     newvec2 = zeros(size(vec2))
-#     for i in 1:length(vec1)
-#         newvec1[i], newvec2[i] = mat * [vec1[i] ; vec2[i]]
-#     end
-#     return newvec1, newvec2
-# end
+export multmatsinglevec
+function multmatsinglevec(mat, vec1, vec2)
+    newvec1 = zeros(size(vec1))
+    newvec2 = zeros(size(vec2))
+    for i in 1:length(vec1)
+        newvec1[i], newvec2[i] = mat * [vec1[i] ; vec2[i]]
+    end
+    return newvec1, newvec2
+end
+
+export multmatvecsingle
+function multmatvecsingle(mats, vec1, vec2)
+    newvec1 = zeros(size(mats)[1])
+    newvec2 = zeros(size(mats)[1])
+    for i in 1:length(vec1)
+        newvec1[i], newvec2[i] = mats[i, :, :] * [vec1 ; vec2]
+    end
+    return newvec1, newvec2
+end
 
 # Calculate u and σ for constant slip/traction elements
 export constuσ
