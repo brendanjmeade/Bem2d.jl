@@ -67,8 +67,8 @@ function calc_dvθ(vθ, p, t)
 
     # Global block velocities from fault parallel and perpendicular velocity components
     blockvpara, blockvperp = multmatvecsingle(els.rotmat[1:els.endidx, :, :], blockvx, blockvy)
-    #! blockvxpara, blockvypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], blockvpara, zeros(size(blockvperp)))
-    #! blockvxperp, blockvyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(blockvpara)), blockvperp)
+    blockvxpara, blockvypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], blockvpara, zeros(size(blockvperp)))
+    blockvxperp, blockvyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(blockvpara)), blockvperp)
 
     # Global fault velocites from fault parallel and perpendicular components
     vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)
@@ -77,8 +77,8 @@ function calc_dvθ(vθ, p, t)
     
     # Change in tractions due to strike slip motion only
     # I don't think the block part is correct
-    Δvx = blockvx .- vxpara
-    Δvy = blockvy .- vypara
+    Δvx = blockvxpara - vxpara
+    Δvy = blockvypara - vypara
     dt = ∂t * [Δvx Δvy]'[:]
 
     # Component of tractions parallel to fault trace
@@ -148,7 +148,9 @@ function ex_planarqdconst()
     ics[3:3:end] = 1e8 * ones(nnodes)
 
     # Time integrate elastic model
-    prob = ODEProblem(calc_dvθ, ics, tspan, (∂t, els, η, dc, blockvelx, blockvely))
+    p = (∂t, els, η, dc, blockvelx, blockvely)
+    calc_dvθ(ics, p, 1)
+    prob = ODEProblem(calc_dvθ, ics, tspan, p)
     println("Time integrating")
     @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
     plottimeseries(sol)

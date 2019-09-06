@@ -114,7 +114,7 @@ export multmatvecsingle
 function multmatvecsingle(mats, vec1, vec2)
     newvec1 = zeros(size(mats)[1])
     newvec2 = zeros(size(mats)[1])
-    for i in 1:length(vec1)
+    for i in 1:size(mats)[1]
         newvec1[i], newvec2[i] = mats[i, :, :] * [vec1 ; vec2]
     end
     return newvec1, newvec2
