@@ -6,7 +6,7 @@ using Bem2d
 function ex_thrusttopo()
     μ = 30e9
     ν = 0.25
-    els = Elements()
+    els = Elements(Int(1e5))
 
     # Observation points for internal evaluation and visualization
     npts = 300

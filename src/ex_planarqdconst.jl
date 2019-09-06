@@ -115,7 +115,7 @@ function ex_planarqdconst()
     blockvely = 0.0
 
     # Create fault elements
-    els = Elements()
+    els = Elements(Int(1e5))
     nfault = 10
     nnodes = 1 * nfault
     faultwidth = 10000

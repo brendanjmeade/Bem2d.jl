@@ -7,7 +7,7 @@ function ex_constquad()
     ν = 0.25
 
     # Create a flat fault
-    els = Elements()
+    els = Elements(Int(1e5))
     nfault = 1
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nfault)
     els.x1[els.endidx + 1:els.endidx + nfault] = x1

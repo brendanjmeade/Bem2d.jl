@@ -12,7 +12,7 @@ function ex_freesurface()
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Free surface
-    els = Elements()
+    els = Elements(Int(1e5))
     nfreesurf = 200
     x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
     els.x1[els.endidx + 1:els.endidx + nfreesurf] = x1

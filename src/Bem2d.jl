@@ -20,10 +20,6 @@ function obsgrid(xmin, ymin, xmax, ymax, npts)
     return xobs, yobs
 end
 
-maxidx = Int64(1e5)
-println()
-println("Bem2d.jl: Maxiμm number of elements: maxidx = ", maxidx)
-println()
 export Elements
 mutable struct Elements
     x1::Array{Float64,1}
@@ -50,30 +46,30 @@ mutable struct Elements
     b::Array{Float64,1}
     σn::Array{Float64,1}
     endidx::Int64
-    Elements() = new(fill(NaN, maxidx), # x1
-                fill(NaN, maxidx), # y1
-                fill(NaN, maxidx), # x2
-                fill(NaN, maxidx), # y2
-                fill("", maxidx), # names
-                fill(NaN, maxidx), # uxglobal::Array{Float64, 1}
-                fill(NaN, maxidx), # uyglobal::Array{Float64, 1}
-                fill(NaN, maxidx, 3), # uxglobalquad::Array{Float64, 2}
-                fill(NaN, maxidx, 3), # uyglobalquad::Array{Float64, 2}
-                fill(NaN, maxidx), # angle::Array{Float64, 1}
-                fill(NaN, maxidx), # length::Array{Float64, 1}
-                fill(NaN, maxidx), # halflength::Array{Float64, 1}
-                fill(NaN, maxidx), # xcenter::Array{Float64, 1}
-                fill(NaN, maxidx), # ycenter::Array{Float64, 1}
-                fill(NaN, maxidx, 2, 2), # rotationmatrix::Array{Float64, 3}
-                fill(NaN, maxidx, 2, 2), # rotationmatrixinverse::Array{Float64, 3}
-                fill(NaN, maxidx), # xnormal::Array{Float64, 1}
-                fill(NaN, maxidx), # ynormal::Array{Float64, 1}
-                fill(NaN, maxidx, 3), # xnodes
-                fill(NaN, maxidx, 3), # ynodes
-                fill(NaN, maxidx), # a::Array{Float64, 1}
-                fill(NaN, maxidx), # b::Array{Float64, 1}
-                fill(NaN, maxidx), # sigman::Array{Float64, 1}
-                0) # endidx
+    Elements(maxidx) = new(fill(NaN, maxidx), # x1
+                           fill(NaN, maxidx), # y1
+                           fill(NaN, maxidx), # x2
+                           fill(NaN, maxidx), # y2
+                           fill("", maxidx), # names
+                           fill(NaN, maxidx), # uxglobal::Array{Float64, 1}
+                           fill(NaN, maxidx), # uyglobal::Array{Float64, 1}
+                           fill(NaN, maxidx, 3), # uxglobalquad::Array{Float64, 2}
+                           fill(NaN, maxidx, 3), # uyglobalquad::Array{Float64, 2}
+                           fill(NaN, maxidx), # angle::Array{Float64, 1}
+                           fill(NaN, maxidx), # length::Array{Float64, 1}
+                           fill(NaN, maxidx), # halflength::Array{Float64, 1}
+                           fill(NaN, maxidx), # xcenter::Array{Float64, 1}
+                           fill(NaN, maxidx), # ycenter::Array{Float64, 1}
+                           fill(NaN, maxidx, 2, 2), # rotationmatrix::Array{Float64, 3}
+                           fill(NaN, maxidx, 2, 2), # rotationmatrixinverse::Array{Float64, 3}
+                           fill(NaN, maxidx), # xnormal::Array{Float64, 1}
+                           fill(NaN, maxidx), # ynormal::Array{Float64, 1}
+                           fill(NaN, maxidx, 3), # xnodes
+                           fill(NaN, maxidx, 3), # ynodes
+                           fill(NaN, maxidx), # a::Array{Float64, 1}
+                           fill(NaN, maxidx), # b::Array{Float64, 1}
+                           fill(NaN, maxidx), # sigman::Array{Float64, 1}
+                           0) # endidx
 end
 
 export updateendidx!
