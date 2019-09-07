@@ -82,8 +82,8 @@ function calc_dvθ(vθ, p, t)
     # Frictional slip for fault parallel traction
     dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
     for i in 1:els.endidx
-        # dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
-        dθ[i] = 1 - θ[i] * vpara[i] / dc # Aging law
+        dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
+        # dθ[i] = 1 - θ[i] * vpara[i] / dc # Aging law
         dvpara[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dtpara[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
         dvperp[i] = 0 # fault perpendicular creep
         # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
@@ -100,8 +100,8 @@ function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
     tspan = (0, siay * 1500)
-    abstol = 1e-8
-    reltol = 1e-8
+    abstol = 1e-4
+    reltol = 1e-4
     μ = 3e10
     ν = 0.25
     ρ = 2700.0
@@ -151,12 +151,10 @@ function ex_planarqdconst()
     println("Time integrating")
     # VCABM5
 
-    @time sol = solve(prob, AN5(), abstol = abstol, reltol = reltol, progress = true)
-
-    # Very fast, low memory, @time sol = solve(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
+    # @time sol = solve(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
     # @time sol = solve(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
     # @time sol = solve(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
-    # @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
+    @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
     plottimeseries(sol)
 end
 ex_planarqdconst()
