@@ -128,6 +128,7 @@ function ex_planarqdconst()
     ν = 0.25
     ρ = 2700.0
     η = μ / (2.0 * sqrt(μ / ρ))
+    
     dc = 0.05
     blockvelx = 1e-9
     blockvely = 0.0
