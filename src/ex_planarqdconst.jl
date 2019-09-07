@@ -149,7 +149,14 @@ function ex_planarqdconst()
     calc_dvθ(ics, p, 1)
     prob = ODEProblem(calc_dvθ, ics, tspan, p)
     println("Time integrating")
-    @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
+    # VCABM5
+
+    @time sol = solve(prob, AN5(), abstol = abstol, reltol = reltol, progress = true)
+
+    # Very fast, low memory, @time sol = solve(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
+    # @time sol = solve(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
+    # @time sol = solve(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
+    # @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
     plottimeseries(sol)
 end
 ex_planarqdconst()
