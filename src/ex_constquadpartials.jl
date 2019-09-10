@@ -21,13 +21,24 @@ function ex_constquadpartials()
     srcidx = findall(x->x == "fault", els.name)
     obsidx = findall(x->x == "fault", els.name)
     ∂uconst, ∂σconst, ∂tconst = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
-    # ∂uquad, ∂σquad, ∂tquad = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
+    ∂uquad, ∂σquad, ∂tquad = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
+    close("all")
+    # matshow(∂uconst); title("∂uconst"); colorbar()
+    # matshow(∂σconst); title("∂σconst"); colorbar()
+    # matshow(∂tconst); title("∂tconst"); colorbar()
+    # matshow(∂uquad); title("∂uquad"); colorbar()
+    # matshow(∂σquad); title("∂σquad"); colorbar()
+    # matshow(∂tquad); title("∂tquad"); colorbar()
+    # show()
+    
 
     # Evaluation points and slip
-    # xeval = [x["xnodes"] for x in elements][:]
-    # yeval = [x["ynodes"] for x in elements][:]
-    slipquad = zeros(6 * nels)
+    xcenters = unique(els.xcenter[1:els.endidx])
+    ycenters = unique(els.ycenter[1:els.endidx])
+    xnodes = unique(els.xnodes[1:els.endidx, :])
+    ynodes = unique(els.ynodes[1:els.endidx, :])
     slipconst = zeros(2 * nels)
+    slipquad = zeros(6 * nels)
 
     # Strike-slip
     slipquad[1:2:end] .= 1  # constant x-slip global
@@ -40,97 +51,50 @@ function ex_constquadpartials()
     uconst = ∂uconst * slipconst
     σconst = ∂σconst * slipconst
     tconst = ∂tconst * slipconst
-    # uquad = ∂uquad * slipquad
-    # σquad = ∂σquad * slipquad
-    # tquad = ∂tquad * slipquad
+    uquad = ∂uquad * slipquad
+    σquad = ∂σquad * slipquad
+    tquad = ∂tquad * slipquad
 
-    # # Plot geometry of elements
-    # plt.figure(figsize=(12, 8))
-    # plt.subplot(2, 2, 1)
-    # for element in elements:
-    #     plt.plot(
-    #         [element["x1"], element["x2"]],
-    #         [element["y1"], element["y2"]],
-    #         "-k",
-    #         color="r",
-    #         linewidth=0.5,
-    #     )
-    #     plt.plot(
-    #         [element["x1"], element["x2"]],
-    #         [element["y1"], element["y2"]],
-    #         "r.",
-    #         markersize=1,
-    #         linewidth=0.5,
-    #     )
-    # for i, element in enumerate(elements):
-    #     plt.text(
-    #         element["x_center"],
-    #         element["y_center"],
-    #         str(i),
-    #         horizontalalignment="center",
-    #         verticalalignment="center",
-    #         fontsize=8,
-    #     )
-    # plt.xlabel("x (m)")
-    # plt.ylabel("y (m)")
-    # plt.title("element geometry")
+    # Plot geometry of elements
+    figure(figsize = (15, 10))
+    subplot(2, 3, 1)
+    for i in 1:els.endidx
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-b", color = "b", linewidth = 0.5)
+        plot([els.x1[i] els.x2[i]], [els.y1[i] els.y2[i]], ".r", markersize = 10, linewidth = 0.5)
+        text(els.xcenter[i], els.ycenter[i], string(i), horizontalalignment = "center", verticalalignment = "center", fontsize = 8)
+    end
+    xlabel("x (m)"); ylabel("y (m)"); title("element geometry"); xlim([-10000, 10000])
 
-    # # Plot predicted displacements
-    # plt.subplot(2, 2, 2)
-    # plt.plot(
-    #     x_eval[1::3],
-    #     displacement_quadratic[2::6],
-    #     "+r",
-    #     markeredgewidth=0.5,
-    #     label="u_x quadratic",
-    # )
-    # plt.plot(
-    #     x_eval[1::3],
-    #     displacement_quadratic[3::6],
-    #     "+b",
-    #     markeredgewidth=0.5,
-    #     label="u_y quadratic",
-    # )
-    # plt.plot(
-    #     x_eval[1::3],
-    #     displacement_constant[0::2],
-    #     "or",
-    #     markerfacecolor="none",
-    #     markeredgewidth=0.5,
-    #     label="u_x constant",
-    # )
-    # plt.plot(
-    #     x_eval[1::3],
-    #     displacement_constant[1::2],
-    #     "ob",
-    #     markerfacecolor="none",
-    #     markeredgewidth=0.5,
-    #     label="u_y constant",
-    # )
-    # plt.legend(loc="upper right")
-    # plt.xlabel("x (m)")
-    # plt.ylabel("displacements (m)")
-    # plt.title("displacements")
+    subplot(2, 3, 2)
+    plot(xcenters, uconst[1:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$ constant")
+    plot(xnodes, uquad[1:2:end], "+r", markeredgewidth = 0.5, label = L"$u_x$ quadratic")
+    legend(loc = "upper right"); xlim([-10000, 10000])
+    xlabel("x (m)"); ylabel("displacement (m)"); title(L"$u_x$")
 
-    # plt.subplot(2, 2, 3)
-    # plt.plot(x_eval, slip_quadratic[0::2], "+k", label="quadratic", markeredgewidth=0.5)
-    # plt.plot(
-    #     x_eval[1::3],
-    #     slip_constant[0::2],
-    #     "ok",
-    #     markerfacecolor="none",
-    #     label="constant",
-    #     markeredgewidth=0.5,
-    # )
-    # plt.legend()
-    # plt.xlabel("x (m)")
-    # plt.ylabel("input slip")
-    # plt.title("element slip")
+    subplot(2, 3, 3)
+    plot(xcenters, uconst[2:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$ constant")
+    plot(xnodes, uquad[2:2:end], "+r", markeredgewidth = 0.5, label = L"$u_y$ quadratic")
+    legend(loc = "upper right"); xlim([-10000, 10000])
+    xlabel("x (m)"); ylabel("displacement (m)"); title(L"$u_y$")
 
-    # plt.subplot(2, 2, 4)
-    # plt.plot(
-    #     x_eval, stress_quadratic[0::3], "+r", label="s_xx quadratic", markeredgewidth=0.5
-    # )
+    subplot(2, 3, 4)
+    plot(xcenters, σconst[1:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$ constant")
+    plot(xnodes, σquad[1:3:end], "+r", markeredgewidth = 0.5, label = L"$u_y$ quadratic")
+    legend(loc = "upper right"); xlim([-10000, 10000])
+    xlabel("x (m)"); ylabel("stress (Pa)"); title(L"$σ_{xx}$")
+
+    subplot(2, 3, 5)
+    plot(xcenters, σconst[2:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$ constant")
+    plot(xnodes, σquad[2:3:end], "+r", markeredgewidth = 0.5, label = L"$u_y$ quadratic")
+    legend(loc = "upper right"); xlim([-10000, 10000])
+    xlabel("x (m)"); ylabel("stress (Pa)"); title(L"$σ_{yy}$")
+
+    subplot(2, 3, 6)
+    plot(xcenters, σconst[3:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$ constant")
+    plot(xnodes, σquad[3:3:end], "+r", markeredgewidth = 0.5, label = L"$u_y$ quadratic")
+    legend(loc = "upper right"); xlim([-10000, 10000])
+    xlabel("x (m)"); ylabel("stress (Pa)"); title(L"$σ_{xy}$")
+
     # plt.plot(
     #     x_eval, stress_quadratic[1::3], "+b", label="s_yy quadratic", markeredgewidth=0.5
     # )
@@ -166,6 +130,6 @@ function ex_constquadpartials()
     # plt.xlabel("x (m)")
     # plt.ylabel("stresses (Pa)")
     # plt.title("stresses")
-    # plt.show(block=False)
+    show()
 end
 ex_constquadpartials()

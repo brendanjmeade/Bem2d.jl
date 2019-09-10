@@ -3,6 +3,11 @@ using LaTeXStrings
 using PyCall
 using PyPlot
 
+export interleave
+function interleave(vec1, vec2)
+    return [vec1 vec2]'[:]
+end
+
 # Based on: http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
 export meshgrid
 function meshgrid(xs, ys)
@@ -436,4 +441,63 @@ function ∂constuσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     return ∂u, ∂σ, ∂t
 end
 
+# This is small helper function to return interleaved displacements
+# and stresses rather than the stacked columns
+export quaduσinterleaved
+function quaduσinterleaved(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
+    ustacked, σstacked = quaduσ(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
+    uinterleaved = zeros(2 * length(xobs))
+    uinterleaved[1:2:end] = ustacked[:, 1]
+    uinterleaved[2:2:end] = ustacked[:, 2]
+    σinterleaved = zeros(3 * length(xobs))
+    σinterleaved[1:3:end] = σstacked[:, 1]
+    σinterleaved[2:3:end] = σstacked[:, 2]
+    σinterleaved[3:3:end] = σstacked[:, 3]
+    return uinterleaved, σinterleaved
 end
+
+# TODO.  This is under active development
+# Each 6x6 displacement submatrix is shaped as:
+#
+#       sx(ϕ1) sy(ϕ1) sx(ϕ2) sy(ϕ2) sx(ϕ3) sy(ϕ3)
+# ux(ϕ1)
+# uy(ϕ1)
+# ux(ϕ2)
+# uy(ϕ2)
+# ux(ϕ3)
+# uy(ϕ3)
+#
+export ∂quaduσ
+function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
+    nobs, nsrc = length(obsidx), length(srcidx)
+    ∂u, ∂σ, ∂t = zeros(6 * nobs, 6 * nsrc), zeros(9 * nobs, 6 * nsrc), zeros(6 * nobs, 6 * nsrc)
+
+    # Far-field interactions for all except main diagonal
+    for isrc in 1:nsrc
+        for iobs in 1:nobs
+            _∂u, _∂σ, _∂t = zeros(6, 6), zeros(9, 6), zeros(6, 6)
+            _∂u[:, 1], _∂σ[:, 1] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], μ, ν)
+            _∂u[:, 2], _∂σ[:, 2] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], μ, ν)
+            _∂u[:, 3], _∂σ[:, 3] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], μ, ν)
+            _∂u[:, 4], _∂σ[:, 4] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], μ, ν)
+            _∂u[:, 5], _∂σ[:, 5] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], μ, ν)
+            _∂u[:, 6], _∂σ[:, 6] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
+            # _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # ∂u[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂u
+            # ∂σ[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂σ
+            # ∂t[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂t
+            ∂u[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂u
+            ∂σ[9 * (iobs - 1) + 1:9 * (iobs - 1) + 9, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂σ
+            ∂t[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂t
+        end
+    end
+
+    # Coincident interactions for self interactiosn on main diagonal
+    
+    return ∂u, ∂σ, ∂t
+end
+
+
+end
+x₁₍
