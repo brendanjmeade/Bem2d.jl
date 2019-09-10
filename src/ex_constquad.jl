@@ -18,7 +18,7 @@ function ex_constquad()
     standardize_elements!(els)
 
     # Observation coordinates for far-field calculation
-    npts = 30
+    npts = 200
     obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 

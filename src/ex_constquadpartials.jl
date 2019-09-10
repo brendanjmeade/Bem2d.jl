@@ -7,7 +7,7 @@ function ex_constquadpartials()
     # Material and geometric constants
     μ = 3e10
     ν = 0.25
-    nels = 50
+    nels = 10
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
@@ -45,13 +45,17 @@ function ex_constquadpartials()
     # slipquad[2:2:end] .= 1  # constant x-slip global
     # slipconst[2:2:end] .= 1  # constant x-slip global
 
-    # Predict on fault displacements, stresses, and tractions
+    # Predict on-fault displacements, stresses, and tractions
     uconst = ∂uconst * slipconst
     σconst = ∂σconst * slipconst
     tconst = ∂tconst * slipconst
     uquad = ∂uquad * slipquad
     σquad = ∂σquad * slipquad
     tquad = ∂tquad * slipquad
+
+    # Predict near-fault displacements, stresses, and tractions
+    srcidx = findall(x->x == "fault", els.name)
+    uconstnear, σconstnear = constuσ(slip2uσ, xcenters, ycenters, els, srcidx, ones(size(srcidx)), zeros(size(srcidx)), μ, ν)
 
     # Plot geometry of elements
     figure(figsize = (15, 10))
