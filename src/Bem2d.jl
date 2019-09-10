@@ -142,7 +142,7 @@ function constuσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
     return u, σ
 end
 
-# Calculate displacements and stresses for constant quadratic elements
+# Far-field displacements and stresses for constant quadratic elements
 export quaduσ
 function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
@@ -160,6 +160,26 @@ function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
     end
     return u, σ
 end
+
+# Far-field displacements and stresses for constant quadratic elements
+export quaduσcoincident
+function quaduσcoincident(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
+    u, σ = zeros(length(x), 2), zeros(length(x), 3)
+    for j in 1:length(idx)
+        # Rotate and translate into SC coordinate system
+        _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
+        f = quadkernel_coincident(els.halflength[idx[j]], ν)
+        for i in 1:3
+            _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
+            _u, _σ = fun2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
+            _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
+            u += _u
+            σ += _σ
+        end
+    end
+    return u, σ
+end
+
 
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constkernel(x, y, a, ν)
@@ -252,6 +272,8 @@ function quadkernel_coincident(a, ν)
     f[7, 1, 3] = -9 / 16 / (a^2 * ν - a^2)
     f[7, 2, 3] = 9 / 8 / (a^2 * ν - a^2)
     f[7, 3, 3] = -9 / 16 / (a^2 * ν - a^2)
+
+    f = permutedims(f, [3, 1, 2]) # This is just a hack until I get around to putting in the correct indices above
     return f
 end
 
@@ -456,6 +478,19 @@ function quaduσinterleaved(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
     return uinterleaved, σinterleaved
 end
 
+export quaduσcoincidentinterleaved
+function quaduσcoincidentinterleaved(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
+    ustacked, σstacked = quaduσcoincident(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
+    uinterleaved = zeros(2 * length(xobs))
+    uinterleaved[1:2:end] = ustacked[:, 1]
+    uinterleaved[2:2:end] = ustacked[:, 2]
+    σinterleaved = zeros(3 * length(xobs))
+    σinterleaved[1:3:end] = σstacked[:, 1]
+    σinterleaved[2:3:end] = σstacked[:, 2]
+    σinterleaved[3:3:end] = σstacked[:, 3]
+    return uinterleaved, σinterleaved
+end
+
 # TODO.  This is under active development
 # Each 6x6 displacement submatrix is shaped as:
 #
@@ -466,7 +501,6 @@ end
 # uy(ϕ2)
 # ux(ϕ3)
 # uy(ϕ3)
-#
 export ∂quaduσ
 function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     nobs, nsrc = length(obsidx), length(srcidx)
@@ -475,27 +509,33 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     # Far-field interactions for all except main diagonal
     for isrc in 1:nsrc
         for iobs in 1:nobs
-            if isrc != iobs
-                _∂u, _∂σ, _∂t = zeros(6, 6), zeros(9, 6), zeros(6, 6)
+            _∂u, _∂σ, _∂t = zeros(6, 6), zeros(9, 6), zeros(6, 6)
+            if isrc == iobs
+                # println("coincident integrals")
+                _∂u[:, 1], _∂σ[:, 1] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], μ, ν)
+                _∂u[:, 2], _∂σ[:, 2] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], μ, ν)
+                _∂u[:, 3], _∂σ[:, 3] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], μ, ν)
+                _∂u[:, 4], _∂σ[:, 4] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], μ, ν)
+                _∂u[:, 5], _∂σ[:, 5] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], μ, ν)
+                _∂u[:, 6], _∂σ[:, 6] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
+            else
+                # println("farfield integrals")
                 _∂u[:, 1], _∂σ[:, 1] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], μ, ν)
                 _∂u[:, 2], _∂σ[:, 2] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], μ, ν)
                 _∂u[:, 3], _∂σ[:, 3] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], μ, ν)
                 _∂u[:, 4], _∂σ[:, 4] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], μ, ν)
                 _∂u[:, 5], _∂σ[:, 5] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], μ, ν)
                 _∂u[:, 6], _∂σ[:, 6] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
-                # _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-                # _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-                # ∂u[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂u
-                # ∂σ[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂σ
-                # ∂t[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _∂t
-                ∂u[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂u
-                ∂σ[9 * (iobs - 1) + 1:9 * (iobs - 1) + 9, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂σ
-                ∂t[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂t
             end
+            # _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            ∂u[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂u
+            ∂σ[9 * (iobs - 1) + 1:9 * (iobs - 1) + 9, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂σ
+            ∂t[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂t
         end
     end
 
-    # Coincident interactions for self interactiosn on main diagonal
+    # Coincident interactions for self interactions on main diagonal
 
     return ∂u, ∂σ, ∂t
 end

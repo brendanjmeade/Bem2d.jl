@@ -7,7 +7,7 @@ function ex_constquadpartials()
     # Material and geometric constants
     μ = 3e10
     ν = 0.25
-    nels = 10
+    nels = 50
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
@@ -29,8 +29,6 @@ function ex_constquadpartials()
     # matshow(∂uquad); title("∂uquad"); colorbar()
     # matshow(∂σquad); title("∂σquad"); colorbar()
     # matshow(∂tquad); title("∂tquad"); colorbar()
-    # show()
-    
 
     # Evaluation points and slip
     xcenters = unique(els.xcenter[1:els.endidx])
@@ -68,68 +66,32 @@ function ex_constquadpartials()
     subplot(2, 3, 2)
     plot(xcenters, uconst[1:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$ constant")
     plot(xnodes, uquad[1:2:end], "+r", markeredgewidth = 0.5, label = L"$u_x$ quadratic")
-    legend(loc = "upper right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
+    legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     ylabel("displacement (m)")
 
     subplot(2, 3, 3)
     plot(xcenters, uconst[2:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$ constant")
     plot(xnodes, uquad[2:2:end], "+r", markeredgewidth = 0.5, label = L"$u_y$ quadratic")
-    legend(loc = "upper right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
+    legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     ylabel("displacement (m)")
 
     subplot(2, 3, 4)
     plot(xcenters, σconst[1:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$ constant")
     plot(xnodes, σquad[1:3:end], "+r", markeredgewidth = 0.5, label = L"$σ_{xx}$ quadratic")
-    legend(loc = "upper right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
+    legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel("x (m)"); ylabel("stress (Pa)")
 
     subplot(2, 3, 5)
     plot(xcenters, σconst[2:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{yy}$ constant")
     plot(xnodes, σquad[2:3:end], "+r", markeredgewidth = 0.5, label = L"$σ_{yy}$ quadratic")
-    legend(loc = "upper right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
+    legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel("x (m)"); ylabel("stress (Pa)")
 
     subplot(2, 3, 6)
     plot(xcenters, σconst[3:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$ constant")
     plot(xnodes, σquad[3:3:end], "+r", markeredgewidth = 0.5, label = L"$σ_{xy}$ quadratic")
-    legend(loc = "upper right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
+    legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel("x (m)"); ylabel("stress (Pa)")
-
-    # plt.plot(
-    #     x_eval, stress_quadratic[1::3], "+b", label="s_yy quadratic", markeredgewidth=0.5
-    # )
-    # plt.plot(
-    #     x_eval, stress_quadratic[2::3], "+k", label="s_xy quadratic", markeredgewidth=0.5
-    # )
-
-    # plt.plot(
-    #     x_eval[1::3],
-    #     stress_constant[0::3],
-    #     "or",
-    #     markerfacecolor="none",
-    #     markeredgewidth=0.5,
-    #     label="s_xx constant",
-    # )
-    # plt.plot(
-    #     x_eval[1::3],
-    #     stress_constant[1::3],
-    #     "ob",
-    #     markerfacecolor="none",
-    #     markeredgewidth=0.5,
-    #     label="s_yy constant",
-    # )
-    # plt.plot(
-    #     x_eval[1::3],
-    #     stress_constant[2::3],
-    #     "ok",
-    #     markerfacecolor="none",
-    #     markeredgewidth=0.5,
-    #     label="s_xy constant",
-    # )
-    # plt.legend()
-    # plt.xlabel("x (m)")
-    # plt.ylabel("stresses (Pa)")
-    # plt.title("stresses")
     show()
 end
 ex_constquadpartials()
