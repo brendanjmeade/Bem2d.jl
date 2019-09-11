@@ -27,8 +27,8 @@ function ex_constquadpartials()
     # Evaluation points and slip
     xcenters = els.xcenter[1:els.endidx]
     ycenters = els.ycenter[1:els.endidx]
-    xnodes = els.xnodes[1:els.endidx, :][:]
-    ynodes = els.ynodes[1:els.endidx, :][:]
+    xnodes = sort(els.xnodes[1:els.endidx, :][:])
+    ynodes = sort(els.ynodes[1:els.endidx, :][:])
     slipconst = zeros(2 * nels)
     slipquad = zeros(6 * nels)
 
@@ -72,12 +72,12 @@ function ex_constquadpartials()
     ylabel("displacement (m)")
 
     subplot(2, 3, 3)
-    # plot(xcenters, uconst[2:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, constant")
-    # plot(xcenters, uconstnear[:, 2], ".b", markeredgewidth = 0.5, label = L"$u_y$, constant (near)")
-    plot(uquad[2:2:end], "or", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, quadratic")
-    # plot(xnodes, uquadnear[:, 2], ".r", markeredgewidth = 0.5, label = L"$u_y$, quadratic (near)")
-    # legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
-    # ylabel("displacement (m)")
+    plot(xcenters, uconst[2:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, constant")
+    plot(xcenters, uconstnear[:, 2], ".b", markeredgewidth = 0.5, label = L"$u_y$, constant (near)")
+    plot(xnodes, uquad[2:2:end], "or", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, quadratic")
+    plot(xnodes, uquadnear[:, 2], ".r", markeredgewidth = 0.5, label = L"$u_y$, quadratic (near)")
+    legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
+    ylabel("displacement (m)")
 
     subplot(2, 3, 4)
     plot(xcenters, σconst[1:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xx}$, constant")
