@@ -7,7 +7,7 @@ function ex_constquadpartials()
     # Material and geometric constants
     μ = 3e10
     ν = 0.25
-    nels = 3
+    nels = 10
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
@@ -21,28 +21,20 @@ function ex_constquadpartials()
     srcidx = findall(x->x == "fault", els.name)
     obsidx = findall(x->x == "fault", els.name)
     ∂uconst, ∂σconst, ∂tconst = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
-    ∂uquad, ∂σquad, ∂tquad = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
-    close("all")
-    # matshow(∂uconst); title("∂uconst"); colorbar()
-    # matshow(∂σconst); title("∂σconst"); colorbar()
-    # matshow(∂tconst); title("∂tconst"); colorbar()
-    matshow(∂uquad); title("∂uquad"); colorbar()
-    matshow(∂σquad); title("∂σquad"); colorbar()
-    matshow(∂tquad); title("∂tquad"); colorbar()
-    display(∂uquad)
+    @time ∂uquad, ∂σquad, ∂tquad = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
+    println("hi")
 
     # Evaluation points and slip
-    xcenters = unique(els.xcenter[1:els.endidx])
-    ycenters = unique(els.ycenter[1:els.endidx])
-    xnodes = unique(els.xnodes[1:els.endidx, :])
-    ynodes = unique(els.ynodes[1:els.endidx, :])
+    xcenters = els.xcenter[1:els.endidx]
+    ycenters = els.ycenter[1:els.endidx]
+    xnodes = els.xnodes[1:els.endidx, :][:]
+    ynodes = els.ynodes[1:els.endidx, :][:]
     slipconst = zeros(2 * nels)
     slipquad = zeros(6 * nels)
 
     # Strike-slip
     slipconst[1:2:end] .= 1  # constant x-slip global
     slipquad[1:2:end] .= 1  # constant x-slip global
-    display(slipquad)
     # Tensile-slip
     # slipquad[2:2:end] .= 1  # constant x-slip global
     # slipconst[2:2:end] .= 1  # constant x-slip global
@@ -54,18 +46,14 @@ function ex_constquadpartials()
     uquad = ∂uquad * slipquad
     σquad = ∂σquad * slipquad
     tquad = ∂tquad * slipquad
-    println(uquad[2:2:end])
-    print(xnodes)
 
     # Predict near-fault displacements, stresses, and tractions
     srcidx = findall(x->x == "fault", els.name)
     uconstnear, σconstnear = constuσ(slip2uσ, xcenters, 1 .+ zeros(length(xcenters)), els, srcidx, ones(length(srcidx)), zeros(length(srcidx)), μ, ν)
-
-    # Why does this work?  I'm not passing enough slips???
-    uquadnear, σquadnear = quaduσ(slip2uσ, xnodes, 1 .+ zeros(length(xnodes)), els, srcidx, ones(length(srcidx)), zeros(length(srcidx)), μ, ν)
     uquadnear, σquadnear = quaduσ(slip2uσ, xnodes, 1 .+ zeros(length(xnodes)), els, srcidx, ones(length(srcidx), 3), zeros(length(srcidx), 3), μ, ν)
 
     # Plot geometry of elements
+    close("all")
     figure(figsize = (15, 10))
     subplot(2, 3, 1)
     for i in 1:els.endidx
