@@ -511,7 +511,6 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
         for iobs in 1:nobs
             _∂u, _∂σ, _∂t = zeros(6, 6), zeros(9, 6), zeros(6, 6)
             if isrc == iobs
-                # println("coincident integrals")
                 _∂u[:, 1], _∂σ[:, 1] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], μ, ν)
                 _∂u[:, 2], _∂σ[:, 2] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], μ, ν)
                 _∂u[:, 3], _∂σ[:, 3] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], μ, ν)
@@ -519,7 +518,6 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
                 _∂u[:, 5], _∂σ[:, 5] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], μ, ν)
                 _∂u[:, 6], _∂σ[:, 6] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
             else
-                # println("farfield integrals")
                 _∂u[:, 1], _∂σ[:, 1] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], μ, ν)
                 _∂u[:, 2], _∂σ[:, 2] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], μ, ν)
                 _∂u[:, 3], _∂σ[:, 3] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], μ, ν)
@@ -534,9 +532,6 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
             ∂t[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂t
         end
     end
-
-    # Coincident interactions for self interactions on main diagonal
-
     return ∂u, ∂σ, ∂t
 end
 
