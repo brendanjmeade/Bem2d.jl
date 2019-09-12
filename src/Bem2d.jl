@@ -151,6 +151,10 @@ function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
         _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], ν)
         for i in 1:3
+            # Convert slip to to ϕ coefficients
+            # slip2coef(_x, slip, a)
+
+            # The folliwng line isn't correct.  We need more dimensions
             _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
             _u, _σ = fun2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
             _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
@@ -535,6 +539,24 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     return ∂u, ∂σ, ∂t
 end
 
+# Go from fault slip at 3 nodes to 3 quadratic shape function coefficients
+function slip2coef(x, slip, a)
+    ∂ = zeros(length(x), 3)
+    ∂[:, 1] = (x / a) * (9 * (x / a) / 8 - 3 / 4)
+    ∂[:, 2] = (1 - 3 * (x / a) / 2) * (1 + 3 * (x / a) / 2)
+    ∂[:, 3] = (x / a) * (9 * (x / a) / 8 + 3 / 4)
+    coef = inv(∂) * slip
+    return coef
+end
+
+# Go from quadratic coefficients to slip.  Check for correctness
+function coef2slip(x, coef, a)
+    ∂ = zeros(length(x), 3)
+    ∂[:, 1] = (x / a) * (9 * (x / a) / 8 - 3 / 4)
+    ∂[:, 2] = (1 - 3 * (x / a) / 2) * (1 + 3 * (x / a) / 2)
+    ∂[:, 3] = (x / a) * (9 * (x / a) / 8 + 3 / 4)
+    slip = ∂ * coef
+    return slip
+end
 
 end
-x₁₍

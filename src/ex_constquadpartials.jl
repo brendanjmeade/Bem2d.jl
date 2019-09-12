@@ -21,8 +21,7 @@ function ex_constquadpartials()
     srcidx = findall(x->x == "fault", els.name)
     obsidx = findall(x->x == "fault", els.name)
     ∂uconst, ∂σconst, ∂tconst = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
-    @time ∂uquad, ∂σquad, ∂tquad = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
-    println("hi")
+    ∂uquad, ∂σquad, ∂tquad = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
 
     # Evaluation points and slip
     xcenters = els.xcenter[1:els.endidx]
@@ -32,12 +31,17 @@ function ex_constquadpartials()
     slipconst = zeros(2 * nels)
     slipquad = zeros(6 * nels)
 
-    # Strike-slip
-    slipconst[1:2:end] .= 1  # constant x-slip global
-    slipquad[1:2:end] .= 1  # constant x-slip global
+    # Uniform strike-slip
+    # slipconst[1:2:end] .= 1
+    # slipquad[1:2:end] .= 1
+    
+    # Linear strike-slip
+    slipconst[1:2:end] = 0.001 * xcenters
+    slipquad[1:2:end] = 0.001 * xnodes
+
     # Tensile-slip
-    # slipquad[2:2:end] .= 1  # constant x-slip global
-    # slipconst[2:2:end] .= 1  # constant x-slip global
+    # slipquad[2:2:end] .= 1
+    # slipconst[2:2:end] .= 1
 
     # Predict on-fault displacements, stresses, and tractions
     uconst = ∂uconst * slipconst
@@ -52,6 +56,13 @@ function ex_constquadpartials()
     uconstnear, σconstnear = constuσ(slip2uσ, xcenters, 1 .+ zeros(length(xcenters)), els, srcidx, ones(length(srcidx)), zeros(length(srcidx)), μ, ν)
     uquadnear, σquadnear = quaduσ(slip2uσ, xnodes, 1 .+ zeros(length(xnodes)), els, srcidx, ones(length(srcidx), 3), zeros(length(srcidx), 3), μ, ν)
 
+    # Linear slip2uσ
+    uconstnear, σconstnear = constuσ(slip2uσ, xcenters, 1 .+ zeros(length(xcenters)), els, srcidx, 0.001 .* xcenters, zeros(length(srcidx)), μ, ν)
+    uquadnear, σquadnear = quaduσ(slip2uσ, xnodes, 1 .+ zeros(length(xnodes)), els, srcidx, repeat(0.001 .* xcenters, 1, 3), zeros(length(srcidx), 3), μ, ν)
+ 
+    # display(repeat(0.001 .* xcenters, 1, 3))
+    # repeat(0.001 .* xcenters, 1, 3)
+
     # Plot geometry of elements
     close("all")
     figure(figsize = (15, 10))
@@ -65,17 +76,17 @@ function ex_constquadpartials()
 
     subplot(2, 3, 2)
     plot(xcenters, uconst[1:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$, constant")
-    plot(xcenters, uconstnear[:, 1], ".b", markeredgewidth = 0.5, label = L"$u_x$, constant (near)")
-    plot(xnodes, uquad[1:2:end], "or", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$, quadratic")
-    plot(xnodes, uquadnear[:, 1], ".r", markeredgewidth = 0.5, label = L"$u_x$, quadratic (near)")
+    # plot(xcenters, uconstnear[:, 1], ".b", markeredgewidth = 0.5, label = L"$u_x$, constant (near)")
+    plot(xnodes, uquad[1:2:end], ".r", markeredgewidth = 0.5, label = L"$u_x$, quadratic")
+    # plot(xnodes, uquadnear[:, 1], ".r", markeredgewidth = 0.5, label = L"$u_x$, quadratic (near)")
     legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     ylabel("displacement (m)")
 
     subplot(2, 3, 3)
     plot(xcenters, uconst[2:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, constant")
-    plot(xcenters, uconstnear[:, 2], ".b", markeredgewidth = 0.5, label = L"$u_y$, constant (near)")
-    plot(xnodes, uquad[2:2:end], "or", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, quadratic")
-    plot(xnodes, uquadnear[:, 2], ".r", markeredgewidth = 0.5, label = L"$u_y$, quadratic (near)")
+    # plot(xcenters, uconstnear[:, 2], ".b", markeredgewidth = 0.5, label = L"$u_y$, constant (near)")
+    plot(xnodes, uquad[2:2:end], ".r", markeredgewidth = 0.5, label = L"$u_y$, quadratic")
+    # plot(xnodes, uquadnear[:, 2], ".r", markeredgewidth = 0.5, label = L"$u_y$, quadratic (near)")
     legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     ylabel("displacement (m)")
 
@@ -89,17 +100,17 @@ function ex_constquadpartials()
 
     subplot(2, 3, 5)
     plot(xcenters, σconst[2:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{yy}$, constant")
-    plot(xcenters, σconstnear[:, 2], ".b", markeredgewidth = 0.5, label = L"$σ_{yy}$, constant (near)")
-    plot(xnodes, σquad[2:3:end], "or", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{yy}$, quadratic")
-    plot(xnodes, σquadnear[:, 2], ".r", markeredgewidth = 0.5, label = L"$σ_{yy}$, quadratic (near)")
+    # plot(xcenters, σconstnear[:, 2], ".b", markeredgewidth = 0.5, label = L"$σ_{yy}$, constant (near)")
+    plot(xnodes, σquad[2:3:end], ".r", markeredgewidth = 0.5, label = L"$σ_{yy}$, quadratic")
+    # plot(xnodes, σquadnear[:, 2], ".r", markeredgewidth = 0.5, label = L"$σ_{yy}$, quadratic (near)")
     legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel("x (m)"); ylabel("stress (Pa)")
 
     subplot(2, 3, 6)
     plot(xcenters, σconst[3:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$, constant")
-    plot(xcenters, σconstnear[:, 3], ".b", markeredgewidth = 0.5, label = L"$σ_{xy}$, constant (near)")
-    plot(xnodes, σquad[3:3:end], "or", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$, quadratic")
-    plot(xnodes, σquadnear[:, 3], ".r", markeredgewidth = 0.5, label = L"$σ_{xy}$, quadratic (near)")
+    # plot(xcenters, σconstnear[:, 3], ".b", markeredgewidth = 0.5, label = L"$σ_{xy}$, constant (near)")
+    plot(xnodes, σquad[3:3:end], ".r", markeredgewidth = 0.5, label = L"$σ_{xy}$, quadratic")
+    # plot(xnodes, σquadnear[:, 3], ".r", markeredgewidth = 0.5, label = L"$σ_{xy}$, quadratic (near)")
     legend(loc = "lower right"); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel("x (m)"); ylabel("stress (Pa)")
     tight_layout(); show()
