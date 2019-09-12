@@ -148,25 +148,26 @@ function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
     println("Entered quaduσ")
     display(xcomp)
     display(ycomp)
-    
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
         _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], ν)
+        _xcomp, _ycomp = multmatsinglevec(els.rotmatinv[idx[j], :, :], xcomp[j, :], ycomp[j, :])
+
+        # TODO: I think I need to get xnodes is local coordinate system
+        ϕx = slip2coef(els.xnodes[idx[j], :], _xcomp, els.halflength[idx[j]])
+        ϕy = slip2coef(els.xnodes[idx[j], :], _ycomp, els.halflength[idx[j]])
         for i in 1:3
+            println("In node loop")
             # Convert slip to to ϕ coefficients
             # slip2coef(_x, slip, a)
+            display(xcomp[j, i])
+            display(_xcomp[i])
+            display(ϕx[i])
+            display(ϕy[i])
 
-            # The folliwng line isn't correct.  We need more dimensions
-            _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
-
-            println("In node loop")
-            # display(xcomp[])
-            # display(_ycomp)
-            
-
-            _u, _σ = fun2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
+            _u, _σ = fun2uσ(_xcomp[i], _ycomp[i], f[:, :, i], _y, μ, ν)
             _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
             u += _u
             σ += _σ
@@ -550,21 +551,21 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
 end
 
 # Go from fault slip at 3 nodes to 3 quadratic shape function coefficients
-function slip2coef(x, slip, a)
-    ∂ = zeros(length(x), 3)
-    ∂[:, 1] = (x / a) * (9 * (x / a) / 8 - 3 / 4)
-    ∂[:, 2] = (1 - 3 * (x / a) / 2) * (1 + 3 * (x / a) / 2)
-    ∂[:, 3] = (x / a) * (9 * (x / a) / 8 + 3 / 4)
+function slip2coef(xnodes, slip, a)
+    ∂ = zeros(3, 3)
+    ∂[:, 1] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .- 3 ./ 4)
+    ∂[:, 2] = (1 .- 3 .* (xnodes ./ a) ./ 2) .* (1 .+ 3 .* (xnodes ./ a) ./ 2)
+    ∂[:, 3] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .+ 3 ./ 4)
     coef = inv(∂) * slip
     return coef
 end
 
 # Go from quadratic coefficients to slip.  Check for correctness
-function coef2slip(x, coef, a)
-    ∂ = zeros(length(x), 3)
-    ∂[:, 1] = (x / a) * (9 * (x / a) / 8 - 3 / 4)
-    ∂[:, 2] = (1 - 3 * (x / a) / 2) * (1 + 3 * (x / a) / 2)
-    ∂[:, 3] = (x / a) * (9 * (x / a) / 8 + 3 / 4)
+function coef2slip(xnodes, coef, a)
+    ∂ = zeros(3, 3)
+    ∂[:, 1] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .- 3 ./ 4)
+    ∂[:, 2] = (1 .- 3 .* (xnodes ./ a) ./ 2) .* (1 .+ 3 * (xnodes ./ a) ./ 2)
+    ∂[:, 3] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .+ 3 ./ 4)
     slip = ∂ * coef
     return slip
 end
