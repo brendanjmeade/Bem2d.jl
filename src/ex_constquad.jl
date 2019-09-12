@@ -32,23 +32,24 @@ function ex_constquad()
     slope = 0.001
     constxslip = slope .* xcenters
     constyslip = zeros(nels)
-    quadxslip = slope .* xnodes
-    quadyslip = repeat(constyslip, 1, 3)
-
+    quadxslip = transpose(reshape(slope .* xnodes, 3, nels))
+    quadyslip = zeros(size(quadxslip))
 
     # Observation coordinates for far-field calculation
     npts = 50; obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
-    # Constant slip with constant element
+    # Displacements and stresses
     uconst, σconst = constuσ(slip2uσ, xobs, yobs, els, srcidx, constxslip, constyslip, μ, ν)
+    uquad, σquad = quaduσ(slip2uσ, xobs, yobs, els, srcidx, quadxslip, quadyslip, μ, ν)
+
+    # Plot
+    close("all")
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uconst, σconst, "constant slip - constant slip element")
-
-    # Constant slip with quadratic elements
-    uquad, σquad = quaduσ(slip2uσ, xobs, yobs, els, srcidx, quadxslip, quadyslip, μ, ν)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uquad, σquad, "constant slip - quadratic slip element")
+    show()
 
     return nothing
 end

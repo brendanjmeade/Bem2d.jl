@@ -145,6 +145,10 @@ end
 # Far-field displacements and stresses for constant quadratic elements
 export quaduσ
 function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
+    println("Entered quaduσ")
+    display(xcomp)
+    display(ycomp)
+    
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
@@ -156,6 +160,12 @@ function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
 
             # The folliwng line isn't correct.  We need more dimensions
             _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
+
+            println("In node loop")
+            # display(xcomp[])
+            # display(_ycomp)
+            
+
             _u, _σ = fun2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
             _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
             u += _u
