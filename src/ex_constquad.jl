@@ -6,7 +6,7 @@ function ex_constquad()
 
     # Create a flat fault
     els = Elements(Int(1e5))
-    nels = 1
+    nels = 2
     x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, nels)
     els.x1[els.endidx + 1:els.endidx + nels] = x1
     els.y1[els.endidx + 1:els.endidx + nels] = y1
@@ -15,17 +15,38 @@ function ex_constquad()
     els.name[els.endidx + 1:els.endidx + nels] .= "fault"
     standardize_elements!(els)
 
+    # Set fault slip
+    xcenters = els.xcenter[1:els.endidx]
+    ycenters = els.ycenter[1:els.endidx]
+    xnodes = sort(els.xnodes[1:els.endidx, :][:])
+    ynodes = sort(els.ynodes[1:els.endidx, :][:])
+    srcidx = findall(x->x == "fault", els.name)
+
+    # # Constant x-slip only
+    # constxslip = ones(nels)
+    # constyslip = zeros(nels)
+    # quadxslip = repeat(constxslip, 1, 3)
+    # quadyslip = repeat(constyslip, 1, 3)
+
+    # Linear x-slip only
+    slope = 0.001
+    constxslip = slope .* xcenters
+    constyslip = zeros(nels)
+    quadxslip = slope .* xnodes
+    quadyslip = repeat(constyslip, 1, 3)
+
+
     # Observation coordinates for far-field calculation
     npts = 50; obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Constant slip with constant element
-    uconst, σconst = constuσ(slip2uσ, xobs, yobs, els, 1, 1, 0, μ, ν)
+    uconst, σconst = constuσ(slip2uσ, xobs, yobs, els, srcidx, constxslip, constyslip, μ, ν)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uconst, σconst, "constant slip - constant slip element")
 
     # Constant slip with quadratic elements
-    uquad, σquad = quaduσ(slip2uσ, xobs, yobs, els, 1, [1 1 1], [0 0 0], μ, ν)
+    uquad, σquad = quaduσ(slip2uσ, xobs, yobs, els, srcidx, quadxslip, quadyslip, μ, ν)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uquad, σquad, "constant slip - quadratic slip element")
 
