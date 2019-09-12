@@ -156,6 +156,7 @@ function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
         _xcomp, _ycomp = multmatsinglevec(els.rotmatinv[idx[j], :, :], xcomp[j, :], ycomp[j, :])
 
         # TODO: I think I need to get xnodes is local coordinate system
+        # This should be a translate and a rotate
         ϕx = slip2coef(els.xnodes[idx[j], :], _xcomp, els.halflength[idx[j]])
         ϕy = slip2coef(els.xnodes[idx[j], :], _ycomp, els.halflength[idx[j]])
         for i in 1:3
