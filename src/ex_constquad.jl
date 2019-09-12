@@ -6,7 +6,7 @@ function ex_constquad()
 
     # Create a flat fault
     els = Elements(Int(1e5))
-    nels = 2
+    nels = 20
     x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, nels)
     els.x1[els.endidx + 1:els.endidx + nels] = x1
     els.y1[els.endidx + 1:els.endidx + nels] = y1
@@ -49,6 +49,8 @@ function ex_constquad()
         uconst, σconst, "constant slip - constant slip element")
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         uquad, σquad, "constant slip - quadratic slip element")
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+        uconst - uquad, σconst - σquad, "residuals")
     show()
 
     return nothing

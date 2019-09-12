@@ -145,9 +145,9 @@ end
 # Far-field displacements and stresses for constant quadratic elements
 export quaduσ
 function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
-    println("Entered quaduσ")
-    display(xcomp)
-    display(ycomp)
+    # println("Entered quaduσ")
+    # display(xcomp)
+    # display(ycomp)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
@@ -157,18 +157,15 @@ function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
 
         # TODO: I think I need to get xnodes is local coordinate system
         # This should be a translate and a rotate
-        ϕx = slip2coef(els.xnodes[idx[j], :], _xcomp, els.halflength[idx[j]])
-        ϕy = slip2coef(els.xnodes[idx[j], :], _ycomp, els.halflength[idx[j]])
+        # Should these matrices be moved to standardize_elements?
+        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :], 
+            els.xnodes[idx[j], :] .- els.xcenter[idx[j]],
+            els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
+        ϕx = slip2coef(xnodes, _xcomp, els.halflength[idx[j]])
+        ϕy = slip2coef(xnodes, _ycomp, els.halflength[idx[j]])
         for i in 1:3
-            println("In node loop")
-            # Convert slip to to ϕ coefficients
-            # slip2coef(_x, slip, a)
-            display(xcomp[j, i])
-            display(_xcomp[i])
-            display(ϕx[i])
-            display(ϕy[i])
-
-            _u, _σ = fun2uσ(_xcomp[i], _ycomp[i], f[:, :, i], _y, μ, ν)
+            # _u, _σ = fun2uσ(_xcomp[i], _ycomp[i], f[:, :, i], _y, μ, ν)
+            _u, _σ = fun2uσ(ϕx[i], ϕy[i], f[:, :, i], _y, μ, ν)
             _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
             u += _u
             σ += _σ
@@ -185,9 +182,15 @@ function quaduσcoincident(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
         # Rotate and translate into SC coordinate system
         _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         f = quadkernel_coincident(els.halflength[idx[j]], ν)
+        _xcomp, _ycomp = multmatsinglevec(els.rotmatinv[idx[j], :, :], xcomp[j, :], ycomp[j, :])
+        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :], 
+            els.xnodes[idx[j], :] .- els.xcenter[idx[j]],
+            els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
+        ϕx = slip2coef(xnodes, _xcomp, els.halflength[idx[j]])
+        ϕy = slip2coef(xnodes, _ycomp, els.halflength[idx[j]])
         for i in 1:3
-            _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[i] ; ycomp[i]]
-            _u, _σ = fun2uσ(_xcomp, _ycomp, f[:, :, i], _y, μ, ν)
+            # _u, _σ = fun2uσ(_xcomp[i], _ycomp[i], f[:, :, i], _y, μ, ν)
+            _u, _σ = fun2uσ(ϕx[i], ϕy[i], f[:, :, i], _y, μ, ν)
             _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
             u += _u
             σ += _σ
