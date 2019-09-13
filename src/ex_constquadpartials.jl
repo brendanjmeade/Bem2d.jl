@@ -81,7 +81,7 @@ function ex_constquadpartials()
     ax[:tick_params]("both", labelsize = fontsize)
 
     ax = subplot(2, 3, 2)
-    plot(xcenters, uconst[1:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$, constant")
+    plot(xcenters, uconst[1:2:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$, constant")
     plot(xnodes, uquad[1:2:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$, quadratic")
     if nearfield
         plot(xcenters, uconstnear[:, 1], ".b", markeredgewidth = 0.5, label = L"$u_x$, constant (near)")
@@ -92,9 +92,8 @@ function ex_constquadpartials()
     ax[:tick_params]("both", labelsize = fontsize)
     ylim([-0.6, 0.6])
 
-
     ax = subplot(2, 3, 3)
-    plot(xcenters, uconst[2:2:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, constant")
+    plot(xcenters, uconst[2:2:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, constant")
     plot(xnodes, uquad[2:2:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, quadratic")
     if nearfield
         plot(xcenters, uconstnear[:, 2], ".b", markeredgewidth = 0.5, label = L"$u_y$, constant (near)")
@@ -106,7 +105,7 @@ function ex_constquadpartials()
     ylim([-0.6, 0.6])
 
     ax = subplot(2, 3, 4)
-    plot(xcenters, σconst[1:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xx}$, constant")
+    plot(xcenters, σconst[1:3:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xx}$, constant")
     plot(xnodes, σquad[1:3:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xx}$, quadratic")
     if nearfield
         plot(xcenters, σconstnear[:, 1], ".b", markeredgewidth = 0.5, label = L"$σ_{xx}$, constant (near)")
@@ -118,7 +117,7 @@ function ex_constquadpartials()
     ylim([-1e7, 1e7])
 
     ax = subplot(2, 3, 5)
-    plot(xcenters, σconst[2:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{yy}$, constant")
+    plot(xcenters, σconst[2:3:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{yy}$, constant")
     plot(xnodes, σquad[2:3:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{yy}$, quadratic")
     if nearfield
         plot(xcenters, σconstnear[:, 2], ".b", markeredgewidth = 0.5, label = L"$σ_{yy}$, constant (near)")
@@ -130,7 +129,7 @@ function ex_constquadpartials()
     ylim([-1e7, 1e7])
 
     ax = subplot(2, 3, 6)
-    plot(xcenters, σconst[3:3:end], "ob", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$, constant")
+    plot(xcenters, σconst[3:3:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$, constant")
     plot(xnodes, σquad[3:3:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$, quadratic")
     if nearfield
         plot(xcenters, σconstnear[:, 3], ".b", markeredgewidth = 0.5, label = L"$σ_{xy}$, constant (near)")
