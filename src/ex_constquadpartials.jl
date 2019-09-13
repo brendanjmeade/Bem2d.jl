@@ -82,32 +82,39 @@ function ex_constquadpartials()
     ycenters = els.ycenter[1:els.endidx]
     xnodes = sort(els.xnodes[1:els.endidx, :][:])
     ynodes = sort(els.ynodes[1:els.endidx, :][:])
-    slipconst = zeros(2 * nels)
-    slipquad = zeros(6 * nels)
 
-    # Uniform strike-slip
-    # slipconst[1:2:end] .= 1
-    # slipquad[1:2:end] .= 1
+    # Parameters for the test cases
+    slipconst = zeros(4, 2 * nels)
+    slipquad = zeros(4, 6 * nels)
+
+    # Constant strike-slip
+    slipconst[1, 1:2:end] .= 1
+    slipquad[1, 1:2:end] .= 1
+
+    # Constant tensile-slip
+    slipquad[2, 2:2:end] .= 1
+    slipconst[2, 2:2:end] .= 1
     
     # Linear strike-slip
     slope = 0.0001
-    slipconst[1:2:end] = slope * xcenters
-    slipquad[1:2:end] = slope * xnodes
+    slipconst[3, 1:2:end] = slope * xcenters
+    slipquad[3, 1:2:end] = slope * xnodes
 
-    # Tensile-slip
-    # slipquad[2:2:end] .= 1
-    # slipconst[2:2:end] .= 1
+    # Linear tensile-slip
+    slope = 0.0001
+    slipconst[4, 2:2:end] = slope * xcenters
+    slipquad[4, 2:2:end] = slope * xnodes
 
     # Predict on-fault displacements, stresses, and tractions
-    uconst = ∂uconst * slipconst
-    σconst = ∂σconst * slipconst
-    tconst = ∂tconst * slipconst
-    uquad = ∂uquad * slipquad
-    σquad = ∂σquad * slipquad
-    tquad = ∂tquad * slipquad
-
     close("all")
-    plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad)
-
+    for i in 1:size(slipconst)[1]
+        uconst = ∂uconst * slipconst[i, :]
+        σconst = ∂σconst * slipconst[i, :]
+        tconst = ∂tconst * slipconst[i, :]
+        uquad = ∂uquad * slipquad[i, :]
+        σquad = ∂σquad * slipquad[i, :]
+        tquad = ∂tquad * slipquad[i, :]
+        plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad)
+    end
 end
 ex_constquadpartials()
