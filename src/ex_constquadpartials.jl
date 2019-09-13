@@ -69,7 +69,6 @@ function ex_constquadpartials()
     close("all")
     nearfield = false
     fontsize = 6
-    println("hi")
     figure(figsize = (12, 8))
     ax = subplot(2, 3, 1)
     for i in 1:els.endidx
