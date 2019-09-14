@@ -92,7 +92,7 @@ function discretizedline(xstart, ystart, xend, yend, nelements)
     y1 = y[1:1:end - 1]
     x2 = x[2:1:end]
     y2 = y[2:1:end]
-    return x1, y1, x2, y2
+    return collect(x1), collect(y1), collect(x2), collect(y2)
 end
 
 export multmatvec

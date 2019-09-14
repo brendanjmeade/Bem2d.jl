@@ -10,8 +10,9 @@ function plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     for i in 1:els.endidx
         plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-b", color = "b", linewidth = 0.5)
         plot([els.x1[i] els.x2[i]], [els.y1[i] els.y2[i]], ".r", markersize = 10, linewidth = 0.5)
-        text(els.xcenter[i], els.ycenter[i], string(i), horizontalalignment = "center", verticalalignment = "center", fontsize = fontsize)
+        # text(els.xcenter[i], els.ycenter[i], string(i), horizontalalignment = "center", verticalalignment = "center", fontsize = fontsize)
     end
+    axis("off")
     ylabel("y (m)", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     ax[:tick_params]("both", labelsize = fontsize)
 
@@ -65,6 +66,15 @@ function ex_constquadpartials()
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
+    deleteat!(x1, 1)
+    deleteat!(y1, 1)
+    deleteat!(x2, 1)
+    deleteat!(y2, 1)
+    x1[1] = -L
+
+    println(x1)
+    nels = 4
+    
     els.x1[els.endidx + 1:els.endidx + nels] = x1
     els.y1[els.endidx + 1:els.endidx + nels] = y1
     els.x2[els.endidx + 1:els.endidx + nels] = x2
@@ -84,30 +94,21 @@ function ex_constquadpartials()
     ynodes = sort(els.ynodes[1:els.endidx, :][:])
 
     # Parameters for the test cases
-    slipconst = zeros(4, 2 * nels)
-    slipquad = zeros(4, 6 * nels)
+    slipconst = zeros(2, 2 * nels)
+    slipquad = zeros(2, 6 * nels)
 
     # Constant strike-slip
     slipconst[1, 1:2:end] .= 1
     slipquad[1, 1:2:end] .= 1
 
-    # Constant tensile-slip
-    slipquad[2, 2:2:end] .= 1
-    slipconst[2, 2:2:end] .= 1
-    
     # Linear strike-slip
     slope = 0.0001
-    slipconst[3, 1:2:end] = slope * xcenters
-    slipquad[3, 1:2:end] = slope * xnodes
-
-    # Linear tensile-slip
-    slope = 0.0001
-    slipconst[4, 2:2:end] = slope * xcenters
-    slipquad[4, 2:2:end] = slope * xnodes
+    slipconst[2, 1:2:end] = slope * xcenters
+    slipquad[2, 1:2:end] = slope * xnodes
 
     # Predict on-fault displacements, stresses, and tractions
     close("all")
-    for i in 1:1#size(slipconst)[1]
+    for i in 1:size(slipconst)[1]
         uconst = ∂uconst * slipconst[i, :]
         σconst = ∂σconst * slipconst[i, :]
         tconst = ∂tconst * slipconst[i, :]
