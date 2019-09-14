@@ -16,44 +16,44 @@ function plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     ax[:tick_params]("both", labelsize = fontsize)
 
     ax = subplot(2, 3, 2)
-    plot(xcenters, uconst[1:2:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$, constant")
-    plot(xnodes, uquad[1:2:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_x$, quadratic")
+    plot(xcenters, uconst[1:2:end], ".b",  markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$u_x$ constant", zorder = 2)
+    plot(xnodes, uquad[1:2:end], "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$u_x$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
-    ylabel("displacement (m)", fontsize = fontsize)
+    ylabel(L"$u$ (m)", fontsize = fontsize)
     ax[:tick_params]("both", labelsize = fontsize)
     ylim([-0.6, 0.6])
 
     ax = subplot(2, 3, 3)
-    plot(xcenters, uconst[2:2:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, constant")
-    plot(xnodes, uquad[2:2:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$u_y$, quadratic")
+    plot(xcenters, uconst[2:2:end], ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$u_y$ constant", zorder = 2)
+    plot(xnodes, uquad[2:2:end], "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$u_y$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
-    ylabel("displacement (m)", fontsize = fontsize)
+    ylabel(L"$u$ (m)", fontsize = fontsize)
     ax[:tick_params]("both", labelsize = fontsize)
     ylim([-0.6, 0.6])
 
     ax = subplot(2, 3, 4)
-    plot(xcenters, σconst[1:3:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xx}$, constant")
-    plot(xnodes, σquad[1:3:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xx}$, quadratic")
+    plot(xcenters, σconst[1:3:end] ./ 1e3, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{xx}$ constant", zorder = 2)
+    plot(xnodes, σquad[1:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xx}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
-    xlabel("x (m)", fontsize = fontsize); ylabel("stress (Pa)", fontsize = fontsize)
+    xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax[:tick_params]("both", labelsize = fontsize)
-    ylim([-1e7, 1e7])
+    ylim([-1e7 / 1e3, 1e7 / 1e3])
 
     ax = subplot(2, 3, 5)
-    plot(xcenters, σconst[2:3:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{yy}$, constant")
-    plot(xnodes, σquad[2:3:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{yy}$, quadratic")
+    plot(xcenters, σconst[2:3:end] ./ 1e3, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{yy}$ constant", zorder = 2)
+    plot(xnodes, σquad[2:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{yy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
-    xlabel("x (m)", fontsize = fontsize); ylabel("stress (Pa)", fontsize = fontsize)
+    xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax[:tick_params]("both", labelsize = fontsize)
-    ylim([-1e7, 1e7])
+    ylim([-1e7 / 1e3, 1e7 / 1e3])
 
     ax = subplot(2, 3, 6)
-    plot(xcenters, σconst[3:3:end], "xb", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$, constant")
-    plot(xnodes, σquad[3:3:end], "sr", markerfacecolor = "none", markeredgewidth = 0.5, label = L"$σ_{xy}$, quadratic")
+    plot(xcenters, σconst[3:3:end] ./ 1e3, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{xy}$ constant", zorder = 2)
+    plot(xnodes, σquad[3:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
-    xlabel("x (m)", fontsize = fontsize); ylabel("stress (Pa)", fontsize = fontsize)
+    xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax[:tick_params]("both", labelsize = fontsize)
-    ylim([-1e7, 1e7])
+    ylim([-1e7 / 1e3, 1e7 / 1e3])
     tight_layout(); show()
 end
 
@@ -61,7 +61,7 @@ function ex_constquadpartials()
     # Material and geometric constants
     μ = 3e10
     ν = 0.25
-    nels = 10
+    nels = 5
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
@@ -107,7 +107,7 @@ function ex_constquadpartials()
 
     # Predict on-fault displacements, stresses, and tractions
     close("all")
-    for i in 1:size(slipconst)[1]
+    for i in 1:1#size(slipconst)[1]
         uconst = ∂uconst * slipconst[i, :]
         σconst = ∂σconst * slipconst[i, :]
         tconst = ∂tconst * slipconst[i, :]
