@@ -36,7 +36,7 @@ function ex_constquad()
     quadyslip = zeros(size(quadxslip))
 
     # Observation coordinates for far-field calculation
-    npts = 50; obswidth = 20e3
+    npts = 100; obswidth = 3e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Displacements and stresses

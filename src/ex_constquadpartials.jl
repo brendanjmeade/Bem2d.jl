@@ -10,7 +10,7 @@ function plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     for i in 1:els.endidx
         plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-b", color = "b", linewidth = 0.5)
         plot([els.x1[i] els.x2[i]], [els.y1[i] els.y2[i]], ".r", markersize = 10, linewidth = 0.5)
-        # text(els.xcenter[i], els.ycenter[i], string(i), horizontalalignment = "center", verticalalignment = "center", fontsize = fontsize)
+        # teAxt(els.xcenter[i], els.ycenter[i], string(i), horizontalalignment = "center", verticalalignment = "center", fontsize = fontsize)
     end
     axis("off")
     ylabel("y (m)", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
