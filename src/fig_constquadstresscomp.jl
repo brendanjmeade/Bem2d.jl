@@ -5,6 +5,7 @@ using ColorSchemes
 using Bem2d
 
 function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad, xobs, yobs, uconstfarfield, σconstfarfield)
+    scalestress = 1e6
     cmap = ColorScheme([Colors.RGB(255.0 / 255.0, 20.0 / 255.0, 40.0 / 255.0),
                         Colors.RGB(255.0 / 255.0, 47.0 / 255.0, 146.0 / 255.0),
                         Colors.RGB(255.0 / 255.0, 138.0 / 255.0, 216.0 / 255.0),
@@ -24,13 +25,13 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     ylimit = [minimum(yobs) maximum(yobs)]
     scale = 5e-1
     ncontours = 50
-    field = σconstfarfield[:, 1]
-    fieldmax = maximum(@.abs(field))
-    contourf(xobs, yobs, reshape(field, size(xobs)), ncontours, vmin = -scale * fieldmax, vmax = scale * fieldmax, cmap = ColorMap(cmap.colors))
-    clim(-scale * fieldmax, scale * fieldmax)
+    # field = σconstfarfield[:, 1]
+    # fieldmax = maximum(@.abs(field))
+    contourf(xobs, yobs, reshape(σconstfarfield[:, 1], size(xobs)), ncontours, vmin = -scale * fieldmax, vmax = scale * fieldmax, cmap = ColorMap(cmap.colors))
+    # clim(-scale * fieldmax, scale * fieldmax)
     cbar = colorbar(fraction = 0.020, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize) 
-    contour(xobs, yobs, reshape(field, size(xobs)), ncontours, vmin = -scale * fieldmax, vmax = scale * fieldmax, linewidths = 0.25, colors = "w", linestyles = "-")
+    contour(xobs, yobs, reshape(σconstfarfield[:, 1], size(xobs)), ncontours, vmin = -scale * fieldmax, vmax = scale * fieldmax, linewidths = 0.25, colors = "w", linestyles = "-")
     gca().set_aspect("equal")
     # for i in 1:els.endidx
     #     plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-b", color = "b", linewidth = 0.5)
@@ -55,28 +56,28 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     # ylim([-0.6, 0.6])
 
     ax = subplot(3, 3, 7)
-    plot(xcenters, σconst[1:3:end] ./ 1e3, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{xx}$ constant", zorder = 2)
-    plot(xnodes, σquad[1:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xx}$ quadratic", zorder = 1)
+    plot(xcenters, σconst[1:3:end] ./ scalestress, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{xx}$ constant", zorder = 2)
+    plot(xnodes, σquad[1:3:end] ./ scalestress, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xx}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax.tick_params(labelsize = fontsize)
-    ylim([-1e7 / 1e3, 1e7 / 1e3])
+    ylim([-1e7 / scalestress, 1e7 / scalestress])
 
     ax = subplot(3, 3, 8)
-    plot(xcenters, σconst[2:3:end] ./ 1e3, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{yy}$ constant", zorder = 2)
-    plot(xnodes, σquad[2:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{yy}$ quadratic", zorder = 1)
+    plot(xcenters, σconst[2:3:end] ./ scalestress, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{yy}$ constant", zorder = 2)
+    plot(xnodes, σquad[2:3:end] ./ scalestress, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{yy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax.tick_params(labelsize = fontsize)
-    ylim([-1e7 / 1e3, 1e7 / 1e3])
+    ylim([-1e7 / scalestress, 1e7 / scalestress])
 
     ax = subplot(3, 3, 9)
-    plot(xcenters, σconst[3:3:end] ./ 1e3, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{xy}$ constant", zorder = 2)
-    plot(xnodes, σquad[3:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xy}$ quadratic", zorder = 1)
+    plot(xcenters, σconst[3:3:end] ./ scalestress, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{xy}$ constant", zorder = 2)
+    plot(xnodes, σquad[3:3:end] ./ scalestress, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax.tick_params(labelsize = fontsize)
-    ylim([-1e7 / 1e3, 1e7 / 1e3])
+    ylim([-1e7 / scalestress, 1e7 / scalestress])
     tight_layout(); show()
 end
 
@@ -102,7 +103,7 @@ function fig_constquadstresscomp()
 
     # Observation coordinates for plotting
     npts = 100; obswidth = 20e3
-    xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
+    xobs, yobs = obsgrid(-obswidth, 0, obswidth, obswidth, npts)
     constxslip = zeros(2, nels)
     constyslip = zeros(2, nels)
     constxslip[1, :] .= 1.0
