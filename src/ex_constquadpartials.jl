@@ -66,15 +66,6 @@ function ex_constquadpartials()
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
-    deleteat!(x1, 1)
-    deleteat!(y1, 1)
-    deleteat!(x2, 1)
-    deleteat!(y2, 1)
-    x1[1] = -L
-
-    println(x1)
-    nels = 4
-    
     els.x1[els.endidx + 1:els.endidx + nels] = x1
     els.y1[els.endidx + 1:els.endidx + nels] = y1
     els.x2[els.endidx + 1:els.endidx + nels] = x2

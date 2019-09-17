@@ -35,6 +35,10 @@ function ex_constquad()
     quadxslip = transpose(reshape(slope .* xnodes, 3, nels))
     quadyslip = zeros(size(quadxslip))
 
+    println(size(quadxslip))
+    println(size(quadyslip))
+    
+
     # Observation coordinates for far-field calculation
     npts = 100; obswidth = 3e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
