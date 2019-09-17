@@ -3,7 +3,7 @@ using PyCall
 using PyPlot
 using Bem2d
 
-function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad, xobs, yobs, uconstfarfield, σconstfarfield)
+function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad, xobs, yobs, uconstfarfield, σconstfarfield, uquadfarfield, σquadfarfield)
     scalestress = 1e6
     ncontours = 30
     fontsize = 6
@@ -12,7 +12,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     cmap = rycroftcmap()
     
     figure(figsize = (10, 6))
-    ax = subplot(2, 3, 1)
+    ax = subplot(3, 3, 1)
     contourf(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize) 
@@ -22,7 +22,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     yticks([-2500, 0, 2500]);
     ax.tick_params(labelsize = fontsize)
 
-    ax = subplot(2, 3, 2)
+    ax = subplot(3, 3, 2)
     contourf(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize) 
@@ -31,7 +31,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     xlim([xmin, xmax]); xticks([]); yticks([])
     ax.tick_params(labelsize = fontsize)
 
-    ax = subplot(2, 3, 3)
+    ax = subplot(3, 3, 3)
     contourf(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize) 
@@ -40,7 +40,37 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     xlim([xmin, xmax]); xticks([]); yticks([])
     ax.tick_params(labelsize = fontsize)
 
-    ax = subplot(2, 3, 4)
+    ax = subplot(3, 3, 4)
+    contourf(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
+    cbar.ax.tick_params(labelsize = fontsize) 
+    contour(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
+    gca().set_aspect("equal")
+    ylabel(L"$y$ (m)", fontsize = fontsize); xlim([xmin, xmax]); xticks([])
+    yticks([-2500, 0, 2500]);
+    ax.tick_params(labelsize = fontsize)
+
+    ax = subplot(3, 3, 5)
+    contourf(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
+    cbar.ax.tick_params(labelsize = fontsize) 
+    contour(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
+    gca().set_aspect("equal")
+    xlim([xmin, xmax]); xticks([]); yticks([])
+    ax.tick_params(labelsize = fontsize)
+
+    ax = subplot(3, 3, 6)
+    contourf(xobs, yobs, reshape(σquadfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
+    cbar.ax.tick_params(labelsize = fontsize) 
+    contour(xobs, yobs, reshape(σquadfarfield[:, 3] ./ scalestress, size(xobs)), ncontours,  linewidths = 0.25, colors = "k", linestyles = "-")
+    gca().set_aspect("equal")
+    xlim([xmin, xmax]); xticks([]); yticks([])
+    ax.tick_params(labelsize = fontsize)
+
+
+
+    ax = subplot(3, 3, 7)
     plot(xcenters, σconst[1:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{xx}$ constant", zorder = 2)
     plot(xnodes, σquad[1:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{xx}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
@@ -49,7 +79,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     yticks([-10, 0, 10]);
     ylim([-1e7 / scalestress, 1e7 / scalestress])
 
-    ax = subplot(2, 3, 5)
+    ax = subplot(3, 3, 8)
     plot(xcenters, σconst[2:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{yy}$ constant", zorder = 2)
     plot(xnodes, σquad[2:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{yy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
@@ -57,7 +87,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     ax.tick_params(labelsize = fontsize)
     ylim([-1e7 / scalestress, 1e7 / scalestress]); yticks([])
 
-    ax = subplot(2, 3, 6)
+    ax = subplot(3, 3, 9)
     plot(xcenters, σconst[3:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{xy}$ constant", zorder = 2)
     plot(xnodes, σquad[3:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{xy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
@@ -103,27 +133,12 @@ function fig_constquadstresscomp()
     constyslip = zeros(2, nels)
     constxslip[1, :] .= 1.0
     constxslip[2, :] = slope .* xcenters
+    quadxslip = zeros(2, nels, 3)
+    quadyslip = zeros(2, nels, 3)
+    quadxslip[1, :, :] .= 1
+    quadxslip[2, :, :] = transpose(reshape(slope .* xnodes, 3, nels))
 
-    # # Linear x-slip only
-    # slope = 0.001
-    # constxslip = slope .* xcenters
-    # constyslip = zeros(nels)
-    # quadxslip = transpose(reshape(slope .* xnodes, 3, nels))
-    # quadyslip = zeros(size(quadxslip))
-
-
-    # quadxslip = zeros(2, nels, 3)
-    # quadyslip = zeros(2, nels, 3)
-    # quadxslip = repeat(constxslip, 1, 3)
-    # quadyslip = repeat(constyslip, 1, 3)
-
-    # Evaluation points and slip
-    xcenters = els.xcenter[1:els.endidx]
-    ycenters = els.ycenter[1:els.endidx]
-    xnodes = sort(els.xnodes[1:els.endidx, :][:])
-    ynodes = sort(els.ynodes[1:els.endidx, :][:])
-
-    # Parameters for the test cases
+    # Slip for partials
     slipconst = zeros(2, 2 * nels)
     slipquad = zeros(2, 6 * nels)
 
@@ -149,9 +164,10 @@ function fig_constquadstresscomp()
 
         # Far-field evaluation
         uconstfarfield, σconstfarfield = constuσ(slip2uσ, xobs, yobs, els, srcidx, constxslip[i, :], constyslip[i, :], μ, ν)
-        # uquadfarfield, σquadfarfield = quaduσ(slip2uσ, xobs, yobs, els, srcidx, quadxslip[i, :], quadyslip[i, :], μ, ν)
-    
-        plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad, reshape(xobs, npts, npts), reshape(yobs, npts, npts), uconstfarfield, σconstfarfield)
+        uquadfarfield, σquadfarfield = quaduσ(slip2uσ, xobs, yobs, els, srcidx, quadxslip[i, :, :], quadyslip[i, :, :], μ, ν)
+
+        # Plot 9 panel results
+        plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad, reshape(xobs, npts, npts), reshape(yobs, npts, npts), uconstfarfield, σconstfarfield, uquadfarfield, σquadfarfield)
     end
 
 end

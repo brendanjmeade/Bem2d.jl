@@ -37,7 +37,10 @@ function ex_constquad()
 
     println(size(quadxslip))
     println(size(quadyslip))
-    
+
+    display(quadxslip)
+    display(quadyslip)
+
 
     # Observation coordinates for far-field calculation
     npts = 100; obswidth = 3e3
