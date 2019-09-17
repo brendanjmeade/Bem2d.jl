@@ -1,5 +1,7 @@
 module Bem2d
 using LaTeXStrings
+using Colors
+using ColorSchemes
 using PyCall
 using PyPlot
 
@@ -461,6 +463,20 @@ function plotfields(els, xobs, yobs, disp, stress, suptitle)
     tight_layout()
     show()
     return nothing
+end
+
+export rycroftcmap
+function rycroftcmap()
+    cmap = ColorScheme([Colors.RGB(255.0 / 255.0, 20.0 / 255.0, 40.0 / 255.0),
+    Colors.RGB(255.0 / 255.0, 47.0 / 255.0, 146.0 / 255.0),
+    Colors.RGB(255.0 / 255.0, 138.0 / 255.0, 216.0 / 255.0),
+    Colors.RGB(55.0 / 255.0, 145.0 / 255.0, 230.0 / 255.0),
+    Colors.RGB(150.0 / 255.0, 230.0 / 255.0, 80.0 / 255.0),
+    Colors.RGB(255.0 / 255.0, 251.0 / 255.0, 0.0 / 255.0),
+    Colors.RGB(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0)],
+    "rycroft", "psychedelic")
+    cmap = ColorMap(ColorScheme([get(cmap, i) for i in 0.0:0.001:1.0]).colors)
+    return cmap
 end
 
 export ∂constuσ

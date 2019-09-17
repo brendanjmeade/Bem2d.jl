@@ -1,78 +1,65 @@
 using Revise
 using PyCall
 using PyPlot
-using ColorSchemes
 using Bem2d
 
 function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad, xobs, yobs, uconstfarfield, σconstfarfield)
-    cmap = ColorScheme([Colors.RGB(255.0 / 255.0, 20.0 / 255.0, 40.0 / 255.0),
-                        Colors.RGB(255.0 / 255.0, 47.0 / 255.0, 146.0 / 255.0),
-                        Colors.RGB(255.0 / 255.0, 138.0 / 255.0, 216.0 / 255.0),
-                        Colors.RGB(55.0 / 255.0, 145.0 / 255.0, 230.0 / 255.0),
-                        Colors.RGB(150.0 / 255.0, 230.0 / 255.0, 80.0 / 255.0),
-                        Colors.RGB(255.0 / 255.0, 251.0 / 255.0, 0.0 / 255.0),
-                        Colors.RGB(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0)],
-                        "rycroft", "psychedelic")
-    cmap = ColorScheme([get(cmap, i) for i in 0.0:0.001:1.0])
-
     scalestress = 1e6
-    vmin = -1e6 / scalestress
-    vmax = 1e6 / scalestress
-    ncontours = 50
+    ncontours = 30
     fontsize = 6
     xmin = -5e3
     xmax = 5e3
-
+    cmap = rycroftcmap()
+    
     figure(figsize = (10, 6))
     ax = subplot(2, 3, 1)
-    contourf(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, vmin = vmin, vmax = vmax, cmap = ColorMap(cmap.colors))
-    clim(vmin, vmax)
+    contourf(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize) 
-    contour(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, vmin = vmin, vmax = vmax,  linewidths = 0.25, colors = "k", linestyles = "-")
+    contour(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     ylabel(L"$y$ (m)", fontsize = fontsize); xlim([xmin, xmax]); xticks([])
+    yticks([-2500, 0, 2500]);
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(2, 3, 2)
-    contourf(xobs, yobs, reshape(σconstfarfield[:, 2] ./ scalestress, size(xobs)), ncontours, vmin = vmin, vmax = vmax, cmap = ColorMap(cmap.colors))
-    clim(vmin, vmax)
+    contourf(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize) 
-    contour(xobs, yobs, reshape(σconstfarfield[:, 2] ./ scalestress, size(xobs)), ncontours, vmin = vmin, vmax = vmax,  linewidths = 0.25, colors = "k", linestyles = "-")
+    contour(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     xlim([xmin, xmax]); xticks([]); yticks([])
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(2, 3, 3)
-    contourf(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, vmin = vmin, vmax = vmax, cmap = ColorMap(cmap.colors))
-    clim(vmin, vmax)
+    contourf(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.020, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize) 
-    contour(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, vmin = vmin, vmax = vmax,  linewidths = 0.25, colors = "k", linestyles = "-")
+    contour(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours,  linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     xlim([xmin, xmax]); xticks([]); yticks([])
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(2, 3, 4)
-    plot(xcenters, σconst[1:3:end] ./ scalestress, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{xx}$ constant", zorder = 2)
-    plot(xnodes, σquad[1:3:end] ./ scalestress, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xx}$ quadratic", zorder = 1)
+    plot(xcenters, σconst[1:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{xx}$ constant", zorder = 2)
+    plot(xnodes, σquad[1:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{xx}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
     xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax.tick_params(labelsize = fontsize)
+    yticks([-10, 0, 10]);
     ylim([-1e7 / scalestress, 1e7 / scalestress])
 
     ax = subplot(2, 3, 5)
-    plot(xcenters, σconst[2:3:end] ./ scalestress, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{yy}$ constant", zorder = 2)
-    plot(xnodes, σquad[2:3:end] ./ scalestress, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{yy}$ quadratic", zorder = 1)
+    plot(xcenters, σconst[2:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{yy}$ constant", zorder = 2)
+    plot(xnodes, σquad[2:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{yy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
     xlabel(L"$x$ (m)", fontsize = fontsize);
     ax.tick_params(labelsize = fontsize)
     ylim([-1e7 / scalestress, 1e7 / scalestress]); yticks([])
 
     ax = subplot(2, 3, 6)
-    plot(xcenters, σconst[3:3:end] ./ scalestress, ".b", markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$σ_{xy}$ constant", zorder = 2)
-    plot(xnodes, σquad[3:3:end] ./ scalestress, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xy}$ quadratic", zorder = 1)
+    plot(xcenters, σconst[3:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{xy}$ constant", zorder = 2)
+    plot(xnodes, σquad[3:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{xy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
     xlabel(L"$x$ (m)", fontsize = fontsize);    # ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax.tick_params(labelsize = fontsize)
@@ -84,7 +71,7 @@ function fig_constquadstresscomp()
     # Material and geometric constants
     μ = 3e10
     ν = 0.25
-    nels = 20
+    nels = 10
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
@@ -102,7 +89,7 @@ function fig_constquadstresscomp()
 
     # Observation coordinates for plotting
     npts = 100; obswidth = 5e3
-    xobs, yobs = obsgrid(-obswidth, 0, obswidth, 5e3, npts)
+    xobs, yobs = obsgrid(-obswidth, -2.5e3, obswidth, 2.5e3, npts)
 
     # Evaluation points
     xcenters = els.xcenter[1:els.endidx]
