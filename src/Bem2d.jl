@@ -160,7 +160,7 @@ function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
         # TODO: I think I need to get xnodes is local coordinate system
         # This should be a translate and a rotate
         # Should these matrices be moved to standardize_elements?
-        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :], 
+        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :],
             els.xnodes[idx[j], :] .- els.xcenter[idx[j]],
             els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
         ϕx = slip2coef(xnodes, _xcomp, els.halflength[idx[j]])
@@ -185,7 +185,7 @@ function quaduσcoincident(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
         _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         f = quadkernel_coincident(els.halflength[idx[j]], ν)
         _xcomp, _ycomp = multmatsinglevec(els.rotmatinv[idx[j], :, :], xcomp[j, :], ycomp[j, :])
-        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :], 
+        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :],
             els.xnodes[idx[j], :] .- els.xcenter[idx[j]],
             els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
         ϕx = slip2coef(xnodes, _xcomp, els.halflength[idx[j]])
@@ -308,7 +308,7 @@ function quadkernel_farfield(x, y, a, ν)
         # term2 = atan((a + x[i]) / y[i])
         term1 = π / 2 * sign(y[i] / (a - x[i])) - atan(y[i] / (a - x[i]))
         term2 = π / 2 * sign(y[i] / (a + x[i])) - atan(y[i] / (a + x[i]))
-        
+
         f[i, 1, 1] = -1 / 64 * ( 6 * y[i]^3 * (term2 + term1) - 6 * a^3 * log(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2) - 8 * a^3 - 12 * a^2 * x[i] + 12 * a * x[i]^2 - 12 * a * y[i]^2 + 6 * ( (2 * a * x[i] - 3 * x[i]^2) * term2 + (2 * a * x[i] - 3 * x[i]^2) * term1 ) * y[i] + 3 * (a * x[i]^2 - x[i]^3 - (a - 3 * x[i]) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - 3 * (a * x[i]^2 - x[i]^3 - (a - 3 * x[i]) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2)) ) / (π * a^2 * ν - π * a^2)
         f[i, 1, 2] = 1 / 32 * (6 * y[i]^3 * (term2 + term1) + a^3 * log(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2) + a^3 * log(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2) - 8 * a^3 + 12 * a * x[i]^2 - 12 * a * y[i]^2 + 2 * ((4 * a^2 - 9 * x[i]^2) * term2 + (4 * a^2 - 9 * x[i]^2) * term1) * y[i] + (4 * a^2 * x[i] - 3 * x[i]^3 + 9 * x[i] * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) - (4 * a^2 * x[i] - 3 * x[i]^3 + 9 * x[i] * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^2 * ν - π * a^2)
         f[i, 1, 3] = -1 / 64 * (6 * y[i]^3 * (term2 + term1) - 6 * a^3 * log(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2) - 8 * a^3 + 12 * a^2 * x[i] + 12 * a * x[i]^2 - 12 * a * y[i]^2 - 6 * ((2 * a * x[i] + 3 * x[i]^2) * term2 + (2 * a * x[i] + 3 * x[i]^2) * term1) * y[i] - 3 * (a * x[i]^2 + x[i]^3 - (a + 3 * x[i]) * y[i]^2) * log(abs(a^2 + 2 * a * x[i] + x[i]^2 + y[i]^2)) + 3 * (a * x[i]^2 + x[i]^3 - (a + 3 * x[i]) * y[i]^2) * log(abs(a^2 - 2 * a * x[i] + x[i]^2 + y[i]^2))) / (π * a^2 * ν - π * a^2)
@@ -468,13 +468,13 @@ end
 export rycroftcmap
 function rycroftcmap()
     cmap = ColorScheme([Colors.RGB(255.0 / 255.0, 20.0 / 255.0, 40.0 / 255.0),
-    Colors.RGB(255.0 / 255.0, 47.0 / 255.0, 146.0 / 255.0),
-    Colors.RGB(255.0 / 255.0, 138.0 / 255.0, 216.0 / 255.0),
-    Colors.RGB(55.0 / 255.0, 145.0 / 255.0, 230.0 / 255.0),
-    Colors.RGB(150.0 / 255.0, 230.0 / 255.0, 80.0 / 255.0),
-    Colors.RGB(255.0 / 255.0, 251.0 / 255.0, 0.0 / 255.0),
-    Colors.RGB(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0)],
-    "rycroft", "psychedelic")
+                        Colors.RGB(255.0 / 255.0, 47.0 / 255.0, 146.0 / 255.0),
+                        Colors.RGB(255.0 / 255.0, 138.0 / 255.0, 216.0 / 255.0),
+                        Colors.RGB(55.0 / 255.0, 145.0 / 255.0, 230.0 / 255.0),
+                        Colors.RGB(150.0 / 255.0, 230.0 / 255.0, 80.0 / 255.0),
+                        Colors.RGB(255.0 / 255.0, 251.0 / 255.0, 0.0 / 255.0),
+                        Colors.RGB(255.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0)],
+                        "rycroft", "psychedelic")
     cmap = ColorMap(ColorScheme([get(cmap, i) for i in 0.0:0.001:1.0]).colors)
     return cmap
 end
