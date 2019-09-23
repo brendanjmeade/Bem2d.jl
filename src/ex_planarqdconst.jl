@@ -99,7 +99,7 @@ end
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 100)
+    tspan = (0, siay * 2000)
     abstol = 1e-4
     reltol = 1e-4
     μ = 3e10
@@ -112,7 +112,7 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Elements(Int(1e5))
-    nfault = 10
+    nfault = 100
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
@@ -121,7 +121,6 @@ function ex_planarqdconst()
     amplitude = 1000.0
     # y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
     # y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
-
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2
@@ -155,15 +154,24 @@ function ex_planarqdconst()
     # @time sol = solve(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
     # @time sol = solve(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
     @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
-    # plottimeseries(sol)
-    nsoltsteps = length(sol.t)
 
     # Try one step at a time
+    nsoltsteps = length(sol.t)
     println("One step at a time")
+    t = zeros(nsoltsteps)
+    θ = zeros(nsoltsteps, nfault)
+    vx = zeros(nsoltsteps, nfault)
+    vy = zeros(nsoltsteps, nfault)
+    u = zeros(nsoltsteps, nfault)
     integrator = init(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
     @time for i in 1:nsoltsteps
         step!(integrator)
+        t[i] = integrator.t
+        θ[i, :] = integrator.u[1:3:end]
+        vx[i, :] = integrator.u[2:3:end]
+        vy[i, :] = integrator.u[3:3:end]
     end
 
+    plottimeseries(sol)
 end
 ex_planarqdconst()
