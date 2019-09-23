@@ -16,12 +16,25 @@ using Makie
 # end
 
 
-x = collect(LinRange(0, 1, 100))
-scene = lines(x, rand(length(x)), color = :blue)
+# x = collect(LinRange(0, 1, 100))
+# scene = lines(x, rand(length(x)), color = :blue)
+# display(scene)
+#
+# for i in 1:10
+#     lines!(scene, x, rand(length(x)), color = :red)
+#     display(scene)
+#     # AbstractPlotting.update!(scene)
+# end
+
+
+a = Node(rand(10))
+scene = plot(a)
 display(scene)
 
-for i in 1:10
-    lines!(scene, x, rand(length(x)), color = :red)
-    display(scene)
-    # AbstractPlotting.update!(scene)
+function update(a)
+    for i=1:100
+        a[] = rand(10)
+        sleep(1/60)
+    end
 end
+update(a)

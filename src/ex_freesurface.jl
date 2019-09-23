@@ -45,7 +45,7 @@ function ex_freesurface()
     ufullspace = ∂u1 * faultslip
     ufreesurface = inv(∂t2) * (∂t1 * faultslip)
     xplotconst = els.xcenter[findall(x->x == "freesurf", els.name)]
-  
+
     close("all")
     figure(figsize = (8, 10))
     subplot(3, 1, 1)
@@ -55,10 +55,10 @@ function ex_freesurface()
     gca().set_aspect("equal")
     ylabel("y (m)")
     title("geometry")
-  
+
     subplot(3, 1, 2)
     plot(xplotconst, ufullspace[1:2:end], "r-", label = "full space")
-    plot(xplotconst, ufreesurface[1:2:end], "b-", label = "half space")    
+    plot(xplotconst, ufreesurface[1:2:end], "b-", label = "half space")
     gca().set_xlim([-5, 5])
     gca().set_ylim([-0.6, 0.6])
     gca().set_xticks([-5, 0, 5])
@@ -69,7 +69,7 @@ function ex_freesurface()
 
     subplot(3, 1, 3)
     plot(xplotconst, ufullspace[2:2:end], "r-", label = "full space")
-    plot(xplotconst, ufreesurface[2:2:end], "b-", label = "half space")    
+    plot(xplotconst, ufreesurface[2:2:end], "b-", label = "half space")
     gca().set_xlim([-5, 5])
     gca().set_ylim([-0.6, 0.6])
     gca().set_xticks([-5, 0, 5])
@@ -79,5 +79,8 @@ function ex_freesurface()
     ylabel("u (m)")
     title("y displacements")
     show()
+
+    # TODO: Quadratic element version
+
 end
 ex_freesurface()
