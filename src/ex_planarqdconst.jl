@@ -74,11 +74,11 @@ function calc_dvθ(vθ, p, t)
     vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)
     # vxpara, vypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], vpara, zeros(size(vperp)))
     # vxperp, vyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vpara)), vperp)
-    
+
     # Change in tractions (global then local)
     dt = ∂t * [blockvx .- vx blockvy .- vy]'[:]
     dtpara, dtperp = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
-        
+
     # Frictional slip for fault parallel traction
     dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
     for i in 1:els.endidx
@@ -99,7 +99,7 @@ end
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 1500)
+    tspan = (0, siay * 100)
     abstol = 1e-4
     reltol = 1e-4
     μ = 3e10
@@ -112,15 +112,15 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Elements(Int(1e5))
-    nfault = 100
+    nfault = 10
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
 
     # Modify y1, and y2 for a sinusoidal fault
     amplitude = 1000.0
-    y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
-    y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
+    # y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
+    # y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
 
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
@@ -155,6 +155,15 @@ function ex_planarqdconst()
     # @time sol = solve(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
     # @time sol = solve(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
     @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
-    plottimeseries(sol)
+    # plottimeseries(sol)
+    nsoltsteps = length(sol.t)
+
+    # Try one step at a time
+    println("One step at a time")
+    integrator = init(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
+    @time for i in 1:nsoltsteps
+        step!(integrator)
+    end
+
 end
 ex_planarqdconst()
