@@ -115,7 +115,7 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Elements(Int(1e5))
-    nfault = 100
+    nfault = 50
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
@@ -167,10 +167,25 @@ function ex_planarqdconst()
     xplot = collect(1:1:nfault)
     yupdate = Node(1e-14 .* ones(nfault))
     scene = Makie.plot(xplot, yupdate, limits=limits, color = :red)
+
+    # pos = lift(pixelarea(scene)) do area
+    #     x = widths(area)[1] ./ 2
+    #     Vec2f0(x, 10) # offset 10px, to give it some space
+    # end
+    # @show pos
+    #
+    # title = Makie.text(
+    #     "my random numbers", align = (:center, :bottom),
+    #     position = pos, camera = campixel!, raw = true, textsize = 40, # in pixel,
+    # )
+    # hbox(scene, title)
+
+    axis = scene[Axis] # get the axis object from the scene
+    axis[:names][:axisnames] = ("element index", "log v")
     display(scene)
 
     # nsteps = length(sol.t)
-    nsteps = 10000
+    nsteps = 3000
     t = zeros(nsteps)
     vx = zeros(nsteps, nfault)
     vy = zeros(nsteps, nfault)
