@@ -2,6 +2,9 @@ using Revise
 using DifferentialEquations
 using PyCall
 using PyPlot
+using AbstractPlotting
+using Makie
+
 using Bem2d
 
 function plottimeseries(sol)
@@ -99,7 +102,7 @@ end
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 2000)
+    tspan = (0, siay * 1000)
     abstol = 1e-4
     reltol = 1e-4
     μ = 3e10
@@ -140,38 +143,49 @@ function ex_planarqdconst()
     # Set initial conditions
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
-    ics[2:3:end] = 1e-3 * blockvely * ones(nnodes)
+    ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
 
-    # Time integrate elastic model
+    # (Bulk) Time integrate elastic model
     p = (∂t, els, η, dc, blockvelx, blockvely)
     calc_dvθ(ics, p, 1)
     prob = ODEProblem(calc_dvθ, ics, tspan, p)
-    println("Time integrating")
-    # VCABM5
-
+    println("Bulk integrating")
+    # @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
+    # plottimeseries(sol)
+#
+    # TODO: These don't seem to work for non-planar faults
+    # TODO: Try continuity to see if that makes a difference
     # @time sol = solve(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
     # @time sol = solve(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
     # @time sol = solve(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
-    @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
 
-    # Try one step at a time
-    nsoltsteps = length(sol.t)
-    println("One step at a time")
-    t = zeros(nsoltsteps)
-    θ = zeros(nsoltsteps, nfault)
-    vx = zeros(nsoltsteps, nfault)
-    vy = zeros(nsoltsteps, nfault)
-    u = zeros(nsoltsteps, nfault)
+    # (Step) Time integrate elastic model
+    println("Step integrating")
+    # Set up Makie plot for realtime visualization
+    limits = FRect(0, -14, nfault, 20)
+    xplot = collect(1:1:nfault)
+    yupdate = Node(1e-14 .* ones(nfault))
+    scene = Makie.plot(xplot, yupdate, limits=limits, color = :red)
+    display(scene)
+
+    # nsteps = length(sol.t)
+    nsteps = 10000
+    t = zeros(nsteps)
+    vx = zeros(nsteps, nfault)
+    vy = zeros(nsteps, nfault)
+    θ = zeros(nsteps, nfault)
     integrator = init(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
-    @time for i in 1:nsoltsteps
+
+    @time for i in 1:nsteps
         step!(integrator)
         t[i] = integrator.t
-        θ[i, :] = integrator.u[1:3:end]
-        vx[i, :] = integrator.u[2:3:end]
-        vy[i, :] = integrator.u[3:3:end]
+        vx[i, :] = integrator.u[1:3:end]
+        vy[i, :] = integrator.u[2:3:end]
+        θ[i, :] = integrator.u[3:3:end]
+        yupdate[] = log10.(abs.(vx[i, :]))
+        println(i)
     end
 
-    plottimeseries(sol)
 end
 ex_planarqdconst()
