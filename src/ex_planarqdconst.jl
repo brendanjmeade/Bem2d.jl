@@ -64,14 +64,9 @@ end
 # Derivatives to feed to ODE integrator
 function calc_dvθ(vθ, p, t)
     ∂t, els, η, dc, blockvx, blockvy = p
-
     vx = vθ[1:3:end]
     vy = vθ[2:3:end]
     θ = vθ[3:3:end]
-
-    println("In derivative calcuation")
-    @show vx
-
 
     # # Global block velocities from fault parallel and perpendicular velocity components
     # blockvpara, blockvperp = multmatvecsingle(els.rotmat[1:els.endidx, :, :], blockvx, blockvy)
@@ -89,9 +84,6 @@ function calc_dvθ(vθ, p, t)
 
     # Frictional slip for fault parallel traction
     dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
-    # @show vpara
-    # @show vx
-    # @show θ
 
     for i in 1:els.endidx
         dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
@@ -102,9 +94,9 @@ function calc_dvθ(vθ, p, t)
     end
     dvx, dvy = multmatvec(els.rotmatinv[1:els.endidx, :, :], dvpara, dvperp)
     dvθ = zeros(3 * els.endidx)
-    dvθ[1:3:end] = dvx # TODO: These absolute values are for debugging only
-    dvθ[2:3:end] = dvy # TODO: These absolute values are for debugging only
-    dvθ[3:3:end] = dθ # TODO: These absolute values are for debugging only
+    dvθ[1:3:end] = dvx
+    dvθ[2:3:end] = dvy
+    dvθ[3:3:end] = dθ
     return dvθ
 end
 
@@ -202,13 +194,9 @@ function ex_planarqdconst()
     vy = zeros(nsteps, nfault)
     θ = zeros(nsteps, nfault)
     integrator = init(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
-    integrator = init(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
 
     @time for i in 1:nsteps
-        @show i
-        println("In for loop before integrator step")
-        @show integrator.u[1:3:end]
-        step!(integrator)
+        DifferentialEquations.step!(integrator)
         # t[i] = integrator.t
         # vx[i, :] = integrator.u[1:3:end]
         # vy[i, :] = integrator.u[2:3:end]

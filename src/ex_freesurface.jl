@@ -13,7 +13,7 @@ function ex_freesurface()
 
     # Free surface
     els = Elements(Int(1e5))
-    nfreesurf = 200
+    nfreesurf = 20
     x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
     els.x1[els.endidx + 1:els.endidx + nfreesurf] = x1
     els.y1[els.endidx + 1:els.endidx + nfreesurf] = y1
@@ -47,7 +47,7 @@ function ex_freesurface()
     xplotconst = els.xcenter[findall(x->x == "freesurf", els.name)]
 
     close("all")
-    figure(figsize = (8, 10))
+    figure(figsize = (3, 5))
     subplot(3, 1, 1)
     plotelements(els)
     gca().set_xlim([-5, 5])
@@ -80,7 +80,21 @@ function ex_freesurface()
     title("y displacements")
     show()
 
-    # TODO: Quadratic element version
+    # Quadratic slip fault
+    srcidx = findall(x->x == "fault", els.name)
+    obsidx = findall(x->x == "freesurf", els.name)
+    ∂u1, ∂σ1, ∂t1 = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
+    srcidx = findall(x->x == "freesurf", els.name)
+    obsidx = findall(x->x == "freesurf", els.name)
+    ∂u2, ∂σ2, ∂t2 = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
+
+    # Constant case: Predict surface displacements from unit strike slip forcing
+    faultslip = sqrt(2) ./ 2 * ones(6)
+    ufullspace = ∂u1 * faultslip
+    # TODO: Need to implement quadratic tractions first!
+    # ufreesurface = inv(∂t2) * (∂t1 * faultslip)
+    # xplotconst = els.xcenter[findall(x->x == "freesurf", els.name)]
+
 
 end
 ex_freesurface()
