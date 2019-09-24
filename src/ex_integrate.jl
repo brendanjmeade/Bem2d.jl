@@ -1,87 +1,20 @@
 using Revise
 using DifferentialEquations
-using PyCall
-using PyPlot
 using AbstractPlotting
 using Makie
-
 using Bem2d
-
-function plottimeseries(sol)
-    siay = 365.25 * 24 * 60 * 60
-    nfault = Int(size(sol)[1] / 3)
-    t = [x / siay for x in sol.t]
-    θ = zeros(length(t), nfault)
-    vx = zeros(length(t), nfault)
-    vy = zeros(length(t), nfault)
-    for i in 1:length(t)
-        vx[i, :] = sol.u[i][1:3:end]
-        vy[i, :] = sol.u[i][2:3:end]
-        θ[i, :] = sol.u[i][3:3:end]
-    end
-
-    close("all")
-    figure(figsize = (15, 8))
-
-    subplot(3, 2, 1)
-    plot(t, vx, "-", linewidth = 0.5)
-    yscale("log")
-    ylabel(L"v_x")
-    subplot(3, 2, 3)
-    plot(t, vy, "-", linewidth = 0.5)
-    yscale("log")
-    ylabel(L"v_y")
-    subplot(3, 2, 5)
-    plot(t, θ, "-", linewidth = 0.5)
-    yscale("log")
-    xlabel("t (years)")
-    ylabel(L"\theta")
-
-    subplot(3, 2, 2)
-    plot(1:1:length(t), vx, "-", linewidth = 0.5)
-    yscale("log")
-    ylabel(L"v_x")
-    subplot(3, 2, 4)
-    plot(1:1:length(t), vy, "-", linewidth = 0.5)
-    yscale("log")
-    ylabel(L"v_y")
-    subplot(3, 2, 6)
-    plot(1:1:length(t), θ, "-", linewidth = 0.5)
-    yscale("log")
-    xlabel("time step #")
-    ylabel(L"\theta")
-
-    figure(figsize = (15, 5))
-    plotme = @.log10(vx')
-    contourf(plotme, 20, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
-    contour(plotme, 20, linewidths = 0.5, linestyles = "solid", colors = "k")
-    xlabel("time step")
-    ylabel("element index")
-    show()
-end
 
 # Derivatives to feed to ODE integrator
 function calc_dvθ(vθ, p, t)
     ∂t, els, η, dc, blockvx, blockvy = p
-
     vx = vθ[1:3:end]
     vy = vθ[2:3:end]
     θ = vθ[3:3:end]
-
     println("In derivative calcuation")
     @show vx
 
-
-    # # Global block velocities from fault parallel and perpendicular velocity components
-    # blockvpara, blockvperp = multmatvecsingle(els.rotmat[1:els.endidx, :, :], blockvx, blockvy)
-    # blockvxpara, blockvypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], blockvpara, zeros(size(blockvperp)))
-    # blockvxperp, blockvyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(blockvpara)), blockvperp)
-
     # Global fault velocites from fault parallel and perpendicular components
     vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)
-    # vxpara, vypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], vpara, zeros(size(vperp)))
-    # vxperp, vyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vpara)), vperp)
 
     # Change in tractions (global then local)
     dt = ∂t * [blockvx .- vx blockvy .- vy]'[:]
@@ -89,22 +22,17 @@ function calc_dvθ(vθ, p, t)
 
     # Frictional slip for fault parallel traction
     dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
-    # @show vpara
-    # @show vx
-    # @show θ
 
     for i in 1:els.endidx
         dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
-        # dθ[i] = 1 - θ[i] * vpara[i] / dc # Aging law
         dvpara[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dtpara[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
         dvperp[i] = 0 # fault perpendicular creep
-        # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
     end
     dvx, dvy = multmatvec(els.rotmatinv[1:els.endidx, :, :], dvpara, dvperp)
     dvθ = zeros(3 * els.endidx)
-    dvθ[1:3:end] = dvx # TODO: These absolute values are for debugging only
-    dvθ[2:3:end] = dvy # TODO: These absolute values are for debugging only
-    dvθ[3:3:end] = dθ # TODO: These absolute values are for debugging only
+    dvθ[1:3:end] = dvx
+    dvθ[2:3:end] = dvy
+    dvθ[3:3:end] = dθ
     return dvθ
 end
 
@@ -128,11 +56,6 @@ function ex_planarqdconst()
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
-
-    # Modify y1, and y2 for a sinusoidal fault
-    amplitude = 1000.0
-    # y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
-    # y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2
@@ -157,20 +80,11 @@ function ex_planarqdconst()
 
     # (Bulk) Time integrate elastic model
     p = (∂t, els, η, dc, blockvelx, blockvely)
-    calc_dvθ(ics, p, 1)
     prob = ODEProblem(calc_dvθ, ics, tspan, p)
-    println("Bulk integrating")
-    # @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
-    # plottimeseries(sol)
-
-    # TODO: These don't seem to work for non-planar faults and/or the slip law
-    # TODO: Try continuity to see if that makes a difference?
-    # @time sol = solve(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
-    # @time sol = solve(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
-    # @time sol = solve(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
 
     # (Step) Time integrate elastic model
     println("Step integrating")
+
     # Set up Makie plot for realtime visualization
     limits = FRect(0, -14, nfault, 20)
     xplot = collect(1:1:nfault)
@@ -196,23 +110,26 @@ function ex_planarqdconst()
     axis[:names][:axisnames] = ("element index", "log v")
     display(scene)
 
-    nsteps = 1000
-    t = zeros(nsteps)
-    vx = zeros(nsteps, nfault)
-    vy = zeros(nsteps, nfault)
-    θ = zeros(nsteps, nfault)
+    ###
+    ### The RK4 integrator works well
+    ### DP8 and a bunch of others fail while iterating in the derivatives
+    ### function.  They fail because they produce an intermediate velocity
+    ### that is negative.  This is a problem because the derivatives require
+    ### the log of this value.
+    ###
+    ### Help!
+    ###
     integrator = init(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
-    integrator = init(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
+    # integrator = init(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
+    # integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
+    # integrator = init(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
+    nsteps = 1000
 
     @time for i in 1:nsteps
-        @show i
         println("In for loop before integrator step")
+        @show i
         @show integrator.u[1:3:end]
-        step!(integrator)
-        # t[i] = integrator.t
-        # vx[i, :] = integrator.u[1:3:end]
-        # vy[i, :] = integrator.u[2:3:end]
-        # θ[i, :] = integrator.u[3:3:end]
+        DifferentialEquations.step!(integrator)
 
         # Update Makie plot
         vxupdate[] = log10.(abs.(integrator.u[1:3:end]))
