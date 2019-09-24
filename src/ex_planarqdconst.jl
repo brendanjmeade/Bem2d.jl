@@ -115,7 +115,7 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Elements(Int(1e5))
-    nfault = 50
+    nfault = 100
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
@@ -153,9 +153,9 @@ function ex_planarqdconst()
     println("Bulk integrating")
     # @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
     # plottimeseries(sol)
-#
-    # TODO: These don't seem to work for non-planar faults
-    # TODO: Try continuity to see if that makes a difference
+
+    # TODO: These don't seem to work for non-planar faults and/or the slip law
+    # TODO: Try continuity to see if that makes a difference?
     # @time sol = solve(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
     # @time sol = solve(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
     # @time sol = solve(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
@@ -165,41 +165,54 @@ function ex_planarqdconst()
     # Set up Makie plot for realtime visualization
     limits = FRect(0, -14, nfault, 20)
     xplot = collect(1:1:nfault)
-    yupdate = Node(1e-14 .* ones(nfault))
-    scene = Makie.plot(xplot, yupdate, limits=limits, color = :red)
-
-    # pos = lift(pixelarea(scene)) do area
-    #     x = widths(area)[1] ./ 2
-    #     Vec2f0(x, 10) # offset 10px, to give it some space
-    # end
-    # @show pos
-    #
-    # title = Makie.text(
-    #     "my random numbers", align = (:center, :bottom),
-    #     position = pos, camera = campixel!, raw = true, textsize = 40, # in pixel,
-    # )
-    # hbox(scene, title)
-
+    vxupdate = Node(1e-14 .* ones(nfault))
+    currenttimestep = Node(string(0))
+    currenttime = Node(string(0))
+    currentminvx = Node(string(0))
+    currentmaxvx = Node(string(0))
+    currentminvy = Node(string(0))
+    currentmaxvy = Node(string(0))
+    currentminθ = Node(string(0))
+    currentmaxθ = Node(string(0))
+    scene = Makie.plot(xplot, vxupdate, limits=limits, color = :red)
+    Makie.text!(currenttime, position = (0, 6), align = (:left,  :center), textsize = 2, limits=limits)
+    Makie.text!(currenttimestep, position = (0, 5), align = (:left,  :center), textsize = 2, limits=limits)
+    Makie.text!(currentminvx, position = (nfault, 6), align = (:right,  :center), textsize = 2, limits=limits)
+    Makie.text!(currentmaxvx, position = (nfault, 5), align = (:right,  :center), textsize = 2, limits=limits)
+    Makie.text!(currentminvy, position = (nfault, 4), align = (:right,  :center), textsize = 2, limits=limits)
+    Makie.text!(currentmaxvy, position = (nfault, 3), align = (:right,  :center), textsize = 2, limits=limits)
+    Makie.text!(currentminθ, position = (nfault, 2), align = (:right,  :center), textsize = 2, limits=limits)
+    Makie.text!(currentmaxθ, position = (nfault, 1), align = (:right,  :center), textsize = 2, limits=limits)
     axis = scene[Axis] # get the axis object from the scene
     axis[:names][:axisnames] = ("element index", "log v")
     display(scene)
 
-    # nsteps = length(sol.t)
-    nsteps = 3000
+    nsteps = 1000
     t = zeros(nsteps)
     vx = zeros(nsteps, nfault)
     vy = zeros(nsteps, nfault)
     θ = zeros(nsteps, nfault)
     integrator = init(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
+    # integrator = init(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
 
     @time for i in 1:nsteps
         step!(integrator)
-        t[i] = integrator.t
-        vx[i, :] = integrator.u[1:3:end]
-        vy[i, :] = integrator.u[2:3:end]
-        θ[i, :] = integrator.u[3:3:end]
-        yupdate[] = log10.(abs.(vx[i, :]))
-        println(i)
+        # t[i] = integrator.t
+        # vx[i, :] = integrator.u[1:3:end]
+        # vy[i, :] = integrator.u[2:3:end]
+        # θ[i, :] = integrator.u[3:3:end]
+
+        # Update Makie plot
+        vxupdate[] = log10.(abs.(integrator.u[1:3:end]))
+        currenttime[] = string(integrator.t / siay)
+        currenttimestep[] = string(i)
+        currentminvx[] = string(minimum(integrator.u[1:3:end]))
+        currentmaxvx[] = string(maximum(integrator.u[1:3:end]))
+        currentminvy[] = string(minimum(integrator.u[2:3:end]))
+        currentmaxvy[] = string(maximum(integrator.u[2:3:end]))
+        currentminθ[] = string(minimum(integrator.u[3:3:end]))
+        currentmaxθ[] = string(maximum(integrator.u[3:3:end]))
+        sleep(1e-10)
     end
 
 end
