@@ -103,7 +103,7 @@ end
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 1000)
+    tspan = (0, siay * 10000)
     abstol = 1e-6
     reltol = 1e-6
     μ = 3e10
@@ -188,7 +188,7 @@ function ex_planarqdconst()
     axis[:names][:axisnames] = ("element index", "log v")
     display(scene)
 
-    nsteps = 1000
+    nsteps = 10000
     t = zeros(nsteps)
     vx = zeros(nsteps, nfault)
     vy = zeros(nsteps, nfault)

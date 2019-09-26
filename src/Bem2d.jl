@@ -560,10 +560,25 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
                 _∂u[:, 5], _∂σ[:, 5] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], μ, ν)
                 _∂u[:, 6], _∂σ[:, 6] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
             end
-            
+
             # TODO: Generalize these tractions for quadratic case (Just a loop?)
             # _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             # _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # @show _∂t
+            # @show _∂t[:, 1]
+            # display(σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]]))
+            for i in 1:6
+                _∂t[1:2, i] = σ2t(_∂σ[1:3, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+                _∂t[3:4, i] = σ2t(_∂σ[4:6, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+                _∂t[5:6, i] = σ2t(_∂σ[7:9, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            end
+
+            # _∂t[:, 2] = σ2t(_∂σ[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # _∂t[:, 3] = σ2t(_∂σ[:, 3], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # _∂t[:, 4] = σ2t(_∂σ[:, 4], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # _∂t[:, 5] = σ2t(_∂σ[:, 5], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # _∂t[:, 6] = σ2t(_∂σ[:, 6], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+
             ∂u[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂u
             ∂σ[9 * (iobs - 1) + 1:9 * (iobs - 1) + 9, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂σ
             ∂t[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂t
