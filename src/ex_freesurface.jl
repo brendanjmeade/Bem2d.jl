@@ -13,7 +13,7 @@ function ex_freesurface()
 
     # Free surface
     els = Elements(Int(1e5))
-    nfreesurf = 100
+    nfreesurf = 20
     x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
     els.x1[els.endidx + 1:els.endidx + nfreesurf] = x1
     els.y1[els.endidx + 1:els.endidx + nfreesurf] = y1
@@ -56,34 +56,31 @@ function ex_freesurface()
     ufreesurfacequad = inv(∂t2) * (∂t1 * faultslipquad)
     xplotquad = sort(els.xnodes[obsidx, :][:])
 
+    fontsize = 6
+    markersize = 4
+    linewidth = 0.5
     close("all")
     figure(figsize = (5, 5))
-    subplot(3, 1, 1)
-    plotelements(els)
-    gca().set_xlim([-5, 5]); gca().set_xticks([-5, 0, 5])
-    gca().set_aspect("equal")
-    ylabel("y (m)")
-    title("geometry")
 
-    subplot(3, 1, 2)
-    plot(xplotconst, ufullspaceconst[1:2:end], "r-", linewidth=0.5, label = "full space")
-    plot(xplotconst, ufreesurfaceconst[1:2:end], "b-", linewidth=0.5, label = "half space")
-    plot(xplotquad, ufreesurfacequad[1:2:end], "g.", linewidth=0.5, label = "half space")
-    gca().set_xlim([-5, 5]); gca().set_ylim([-0.6, 0.6])
-    gca().set_xticks([-5, 0, 5]); gca().set_yticks([-0.5, 0.0, 0.5])
-    # legend()
-    ylabel("u (m)")
-    title("x displacements")
+    subplot(2, 1, 1)
+    plot(xplotconst, ufullspaceconst[1:2:end], "b.", markeredgewidth=linewidth, markersize=markersize, label = "const fullspace")
+    plot(xplotconst, ufreesurfaceconst[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
+    plot(xplotquad, ufullspacequad[1:2:end], "r.", markeredgewidth=linewidth, markersize=markersize, label = "quad fullspace")
+    plot(xplotquad, ufreesurfacequad[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
+    # gca().set_xlim([-5, 5]); gca().set_ylim([-0.6, 0.6])
+    # gca().set_xticks([-5, 0, 5]); gca().set_yticks([-0.5, 0.0, 0.5])
+    legend(fontsize=fontsize)
+    ylabel(L"$u_x$ (m)", fontsize=fontsize)
 
-    subplot(3, 1, 3)
-    plot(xplotconst, ufullspaceconst[2:2:end], "r-", linewidth=0.5, label = "full space")
-    plot(xplotconst, ufreesurfaceconst[2:2:end], "b-", linewidth=0.5, label = "half space")
-    plot(xplotquad, ufreesurfacequad[2:2:end], "g.", linewidth=0.5, label = "half space")
-    gca().set_xlim([-5, 5]); gca().set_ylim([-0.6, 0.6])
-    gca().set_xticks([-5, 0, 5]); gca().set_yticks([-0.5, 0.0, 0.5])
-    # legend()
-    xlabel("x (m)"); ylabel("u (m)")
-    title("y displacements")
+    subplot(2, 1, 2)
+    plot(xplotconst, ufullspaceconst[2:2:end], "b.", markeredgewidth=linewidth, markersize=markersize, label = "const fullspace")
+    plot(xplotconst, ufreesurfaceconst[2:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
+    plot(xplotquad, ufullspacequad[2:2:end], "r.", markeredgewidth=linewidth, markersize=markersize, label = "quad fullspace")
+    plot(xplotquad, ufreesurfacequad[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
+    # gca().set_xlim([-5, 5]); gca().set_ylim([-0.6, 0.6])
+    # gca().set_xticks([-5, 0, 5]); gca().set_yticks([-0.5, 0.0, 0.5])
+    legend(fontsize=fontsize)
+    xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
     show()
 
 end
