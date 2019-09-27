@@ -14,14 +14,14 @@ function plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     end
     axis("off")
     ylabel("y (m)", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
-    ax[:tick_params]("both", labelsize = fontsize)
+    ax.tick_params("both", labelsize = fontsize)
 
     ax = subplot(2, 3, 2)
     plot(xcenters, uconst[1:2:end], ".b",  markerfacecolor = "navy", markeredgewidth = 0.0, label = L"$u_x$ constant", zorder = 2)
     plot(xnodes, uquad[1:2:end], "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$u_x$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     ylabel(L"$u$ (m)", fontsize = fontsize)
-    ax[:tick_params]("both", labelsize = fontsize)
+    ax.tick_params("both", labelsize = fontsize)
     ylim([-0.6, 0.6])
 
     ax = subplot(2, 3, 3)
@@ -29,7 +29,7 @@ function plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     plot(xnodes, uquad[2:2:end], "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$u_y$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     ylabel(L"$u$ (m)", fontsize = fontsize)
-    ax[:tick_params]("both", labelsize = fontsize)
+    ax.tick_params("both", labelsize = fontsize)
     ylim([-0.6, 0.6])
 
     ax = subplot(2, 3, 4)
@@ -37,7 +37,7 @@ function plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     plot(xnodes, σquad[1:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xx}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
-    ax[:tick_params]("both", labelsize = fontsize)
+    ax.tick_params("both", labelsize = fontsize)
     ylim([-1e7 / 1e3, 1e7 / 1e3])
 
     ax = subplot(2, 3, 5)
@@ -45,7 +45,7 @@ function plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     plot(xnodes, σquad[2:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{yy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
-    ax[:tick_params]("both", labelsize = fontsize)
+    ax.tick_params.("both", labelsize = fontsize)
     ylim([-1e7 / 1e3, 1e7 / 1e3])
 
     ax = subplot(2, 3, 6)
@@ -53,7 +53,7 @@ function plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     plot(xnodes, σquad[3:3:end] ./ 1e3, "or", markerfacecolor = "coral", markeredgewidth = 0.0, label = L"$σ_{xy}$ quadratic", zorder = 1)
     legend(loc = "lower right", fontsize = fontsize); xlim([-10000, 10000]); xticks([-10000, 0, 10000])
     xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
-    ax[:tick_params]("both", labelsize = fontsize)
+    ax.tick_params("both", labelsize = fontsize)
     ylim([-1e7 / 1e3, 1e7 / 1e3])
     tight_layout(); show()
 end
@@ -64,7 +64,7 @@ function ex_constquadpartials()
     ν = 0.25
     nels = 5
     els = Elements(Int(1e5))
-    L = 10000
+    L = 5000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
     els.x1[els.endidx + 1:els.endidx + nels] = x1
     els.y1[els.endidx + 1:els.endidx + nels] = y1
