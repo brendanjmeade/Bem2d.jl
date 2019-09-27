@@ -23,8 +23,8 @@ function ex_freesurface()
 
     # Free surface
     els = Elements(Int(1e5))
-    nfreesurf = 20
-    x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
+    nfreesurf = 200
+    x1, y1, x2, y2 = discretizedline(-50, 0, 50, 0, nfreesurf)
     els.x1[els.endidx + 1:els.endidx + nfreesurf] = x1
     els.y1[els.endidx + 1:els.endidx + nfreesurf] = y1
     els.x2[els.endidx + 1:els.endidx + nfreesurf] = x2
