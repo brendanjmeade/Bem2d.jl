@@ -541,7 +541,7 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     nobs, nsrc = length(obsidx), length(srcidx)
     ∂u, ∂σ, ∂t = zeros(6 * nobs, 6 * nsrc), zeros(9 * nobs, 6 * nsrc), zeros(6 * nobs, 6 * nsrc)
 
-    # Far-field interactions for all except main diagonal
+    # Far-field interactions for all except main (block) diagonal
     for isrc in 1:nsrc
         for iobs in 1:nobs
             _∂u, _∂σ, _∂t = zeros(6, 6), zeros(9, 6), zeros(6, 6)
@@ -561,13 +561,11 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
                 _∂u[:, 5], _∂σ[:, 5] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], μ, ν)
                 _∂u[:, 6], _∂σ[:, 6] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
             end
-
             for i in 1:6
                 _∂t[1:2, i] = σ2t(_∂σ[1:3, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
                 _∂t[3:4, i] = σ2t(_∂σ[4:6, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
                 _∂t[5:6, i] = σ2t(_∂σ[7:9, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             end
-
             ∂u[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂u
             ∂σ[9 * (iobs - 1) + 1:9 * (iobs - 1) + 9, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂σ
             ∂t[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂t
