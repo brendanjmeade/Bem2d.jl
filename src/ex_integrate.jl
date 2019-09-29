@@ -1,7 +1,5 @@
 using Revise
 using DifferentialEquations
-using AbstractPlotting
-using Makie
 using Bem2d
 
 # Derivatives to feed to ODE integrator
@@ -78,39 +76,12 @@ function ex_planarqdconst()
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
 
-    # (Bulk) Time integrate elastic model
+    # Time integrate elastic model
+    println("Step integrating")
     p = (∂t, els, η, dc, blockvelx, blockvely)
     prob = ODEProblem(calc_dvθ, ics, tspan, p)
+    nsteps = 1000
 
-    # (Step) Time integrate elastic model
-    println("Step integrating")
-
-    # Set up Makie plot for realtime visualization
-    limits = FRect(0, -14, nfault, 20)
-    xplot = collect(1:1:nfault)
-    vxupdate = Node(1e-14 .* ones(nfault))
-    currenttimestep = Node(string(0))
-    currenttime = Node(string(0))
-    currentminvx = Node(string(0))
-    currentmaxvx = Node(string(0))
-    currentminvy = Node(string(0))
-    currentmaxvy = Node(string(0))
-    currentminθ = Node(string(0))
-    currentmaxθ = Node(string(0))
-    scene = Makie.plot(xplot, vxupdate, limits=limits, color = :red)
-    Makie.text!(currenttime, position = (0, 6), align = (:left,  :center), textsize = 2, limits=limits)
-    Makie.text!(currenttimestep, position = (0, 5), align = (:left,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentminvx, position = (nfault, 6), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentmaxvx, position = (nfault, 5), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentminvy, position = (nfault, 4), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentmaxvy, position = (nfault, 3), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentminθ, position = (nfault, 2), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentmaxθ, position = (nfault, 1), align = (:right,  :center), textsize = 2, limits=limits)
-    axis = scene[Axis] # get the axis object from the scene
-    axis[:names][:axisnames] = ("element index", "log v")
-    display(scene)
-
-    ###
     ### The RK4 integrator works well
     ### DP8 and a bunch of others fail while iterating in the derivatives
     ### function.  They fail because they produce an intermediate velocity
@@ -118,31 +89,19 @@ function ex_planarqdconst()
     ### the log of this value.
     ###
     ### Help!
-    ###
+
+    println("RK4.  Will work :)")
     integrator = init(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
-    # integrator = init(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
-    # integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
-    # integrator = init(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
-    nsteps = 1000
-
     @time for i in 1:nsteps
-        println("In for loop before integrator step")
-        @show i
-        @show integrator.u[1:3:end]
         DifferentialEquations.step!(integrator)
-
-        # Update Makie plot
-        vxupdate[] = log10.(abs.(integrator.u[1:3:end]))
-        currenttime[] = string(integrator.t / siay)
-        currenttimestep[] = string(i)
-        currentminvx[] = string(minimum(integrator.u[1:3:end]))
-        currentmaxvx[] = string(maximum(integrator.u[1:3:end]))
-        currentminvy[] = string(minimum(integrator.u[2:3:end]))
-        currentmaxvy[] = string(maximum(integrator.u[2:3:end]))
-        currentminθ[] = string(minimum(integrator.u[3:3:end]))
-        currentmaxθ[] = string(maximum(integrator.u[3:3:end]))
-        sleep(1e-10)
     end
+
+    println("DP8.  Will fail :(")
+    integrator = init(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
+    @time for i in 1:nsteps
+        DifferentialEquations.step!(integrator)
+    end
+
 
 end
 ex_planarqdconst()
