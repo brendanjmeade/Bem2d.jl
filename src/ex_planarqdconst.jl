@@ -4,6 +4,8 @@ using PyCall
 using PyPlot
 using AbstractPlotting
 using Makie
+using Colors
+using ColorSchemes
 
 using Bem2d
 
@@ -188,7 +190,7 @@ function ex_planarqdconst()
     axis[:names][:axisnames] = ("element index", "log v")
     display(scene)
 
-    nsteps = 10000
+    nsteps = 1000
     t = zeros(nsteps)
     vx = zeros(nsteps, nfault)
     vy = zeros(nsteps, nfault)
