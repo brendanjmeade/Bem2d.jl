@@ -10,8 +10,8 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     xmin = -5e3
     xmax = 5e3
     cmap = rycroftcmap()
-    
-    figure(figsize = (6, 6))
+
+    figure(figsize = (6, 5), dpi=300)
     ax = subplot(3, 3, 1)
     contourf(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
@@ -26,7 +26,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     ax = subplot(3, 3, 2)
     contourf(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
-    cbar.ax.tick_params(labelsize = fontsize) 
+    cbar.ax.tick_params(labelsize = fontsize)
     cbar.set_label(label = L"$\sigma_{yy}$ CS (MPa)", fontsize = fontsize)
     contour(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
@@ -36,7 +36,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     ax = subplot(3, 3, 3)
     contourf(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
-    cbar.ax.tick_params(labelsize = fontsize) 
+    cbar.ax.tick_params(labelsize = fontsize)
     cbar.set_label(label = L"$\sigma_{xy}$ CS (MPa)", fontsize = fontsize)
     contour(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours,  linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
@@ -46,7 +46,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     ax = subplot(3, 3, 4)
     contourf(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
-    cbar.ax.tick_params(labelsize = fontsize) 
+    cbar.ax.tick_params(labelsize = fontsize)
     cbar.set_label(label = L"$\sigma_{xx}$ 3NQ (MPa)", fontsize = fontsize)
     contour(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
@@ -57,7 +57,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     ax = subplot(3, 3, 5)
     contourf(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
-    cbar.ax.tick_params(labelsize = fontsize) 
+    cbar.ax.tick_params(labelsize = fontsize)
     cbar.set_label(label = L"$\sigma_{xy}$ 3NQ (MPa)", fontsize = fontsize)
     contour(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
@@ -67,7 +67,7 @@ function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, 
     ax = subplot(3, 3, 6)
     contourf(xobs, yobs, reshape(σquadfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
-    cbar.ax.tick_params(labelsize = fontsize) 
+    cbar.ax.tick_params(labelsize = fontsize)
     cbar.set_label(label = L"$\sigma_{yy}$ 3NQ (MPa)", fontsize = fontsize)
     contour(xobs, yobs, reshape(σquadfarfield[:, 3] ./ scalestress, size(xobs)), ncontours,  linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
@@ -106,10 +106,13 @@ function fig_constquadstresscomp()
     # Material and geometric constants
     μ = 3e10
     ν = 0.25
-    nels = 10
+    nels = 20
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
+    x2[11] = 500.0
+    x1[12] = 500.0
+
     els.x1[els.endidx + 1:els.endidx + nels] = x1
     els.y1[els.endidx + 1:els.endidx + nels] = y1
     els.x2[els.endidx + 1:els.endidx + nels] = x2

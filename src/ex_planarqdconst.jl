@@ -190,7 +190,7 @@ function ex_planarqdconst()
     axis[:names][:axisnames] = ("element index", "log v")
     display(scene)
 
-    nsteps = 1000
+    nsteps = 10000
     t = zeros(nsteps)
     vx = zeros(nsteps, nfault)
     vy = zeros(nsteps, nfault)
