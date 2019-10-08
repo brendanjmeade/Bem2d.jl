@@ -22,45 +22,44 @@ function plottimeseries(sol)
         θ[i, :] = sol.u[i][3:3:end]
     end
 
-    close("all")
-    figure(figsize = (15, 8))
+    PyPlot.figure(figsize = (15, 8))
 
-    subplot(3, 2, 1)
-    plot(t, vx, "-", linewidth = 0.5)
-    yscale("log")
-    ylabel(L"v_x")
-    subplot(3, 2, 3)
-    plot(t, vy, "-", linewidth = 0.5)
-    yscale("log")
-    ylabel(L"v_y")
-    subplot(3, 2, 5)
-    plot(t, θ, "-", linewidth = 0.5)
-    yscale("log")
-    xlabel("t (years)")
-    ylabel(L"\theta")
+    PyPlot.subplot(3, 2, 1)
+    PyPlot.plot(t, vx, "-", linewidth = 0.5)
+    PyPlot.yscale("log")
+    PyPlot.ylabel(L"v_x")
+    PyPlot.subplot(3, 2, 3)
+    PyPlot.plot(t, vy, "-", linewidth = 0.5)
+    PyPlot.yscale("log")
+    PyPlot.ylabel(L"v_y")
+    PyPlot.subplot(3, 2, 5)
+    PyPlot.plot(t, θ, "-", linewidth = 0.5)
+    PyPlot.yscale("log")
+    PyPlot.xlabel("t (years)")
+    PyPlot.ylabel(L"\theta")
 
-    subplot(3, 2, 2)
-    plot(1:1:length(t), vx, "-", linewidth = 0.5)
-    yscale("log")
-    ylabel(L"v_x")
-    subplot(3, 2, 4)
-    plot(1:1:length(t), vy, "-", linewidth = 0.5)
-    yscale("log")
-    ylabel(L"v_y")
-    subplot(3, 2, 6)
-    plot(1:1:length(t), θ, "-", linewidth = 0.5)
-    yscale("log")
-    xlabel("time step #")
-    ylabel(L"\theta")
+    PyPlot.subplot(3, 2, 2)
+    PyPlot.plot(1:1:length(t), vx, "-", linewidth = 0.5)
+    PyPlot.yscale("log")
+    PyPlot.ylabel(L"v_x")
+    PyPlot.subplot(3, 2, 4)
+    PyPlot.plot(1:1:length(t), vy, "-", linewidth = 0.5)
+    PyPlot.yscale("log")
+    PyPlot.ylabel(L"v_y")
+    PyPlot.subplot(3, 2, 6)
+    PyPlot.plot(1:1:length(t), θ, "-", linewidth = 0.5)
+    PyPlot.yscale("log")
+    PyPlot.xlabel("time step #")
+    PyPlot.ylabel(L"\theta")
 
-    figure(figsize = (15, 5))
-    plotme = @.log10(vx')
-    contourf(plotme, 20, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
-    contour(plotme, 20, linewidths = 0.5, linestyles = "solid", colors = "k")
-    xlabel("time step")
-    ylabel("element index")
-    show()
+    PyPlot.figure(figsize = (15, 5))
+    plotme = log10.(vx')
+    PyPlot.contourf(plotme, 20, cmap = get_cmap("plasma"))
+    PyPlot.colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
+    PyPlot.contour(plotme, 20, linewidths = 0.5, linestyles = "solid", colors = "k")
+    PyPlot.xlabel("time step")
+    PyPlot.ylabel("element index")
+    PyPlot.show()
 end
 
 # Derivatives to feed to ODE integrator
@@ -88,6 +87,8 @@ function calc_dvθ(vθ, p, t)
     dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
 
     for i in 1:els.endidx
+        vpara = abs.(vpara) # Chris R. suggestion
+        θ = abs.(θ)
         dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
         # dθ[i] = 1 - θ[i] * vpara[i] / dc # Aging law
         dvpara[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dtpara[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
@@ -105,7 +106,7 @@ end
 function ex_planarqdconst()
     # Constants and model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 10000)
+    tspan = (0, siay * 100)
     abstol = 1e-6
     reltol = 1e-6
     μ = 3e10
@@ -152,31 +153,28 @@ function ex_planarqdconst()
     # (Bulk) Time integrate elastic model
     p = (∂t, els, η, dc, blockvelx, blockvely)
     calc_dvθ(ics, p, 1)
-    prob = ODEProblem(calc_dvθ, ics, tspan, p)
+    prob = DifferentialEquations.ODEProblem(calc_dvθ, ics, tspan, p)
     println("Bulk integrating")
+
     # @time sol = solve(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
     # plottimeseries(sol)
-
-    # TODO: These don't seem to work for non-planar faults and/or the slip law
-    # TODO: Try continuity to see if that makes a difference?
-    # @time sol = solve(prob, VCABM5(), abstol = abstol, reltol = reltol, progress = true)
-    # @time sol = solve(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
+    #
     # @time sol = solve(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
+    # plottimeseries(sol)
 
     # (Step) Time integrate elastic model
     println("Step integrating")
-    # Set up Makie plot for realtime visualization
-    limits = FRect(0, -14, nfault, 20)
+    limits = Makie.FRect(0, -14, nfault, 20)
     xplot = collect(1:1:nfault)
-    vxupdate = Node(1e-14 .* ones(nfault))
-    currenttimestep = Node(string(0))
-    currenttime = Node(string(0))
-    currentminvx = Node(string(0))
-    currentmaxvx = Node(string(0))
-    currentminvy = Node(string(0))
-    currentmaxvy = Node(string(0))
-    currentminθ = Node(string(0))
-    currentmaxθ = Node(string(0))
+    vxupdate = Makie.Node(1e-14 .* ones(nfault))
+    currenttimestep = Makie.Node(string(0))
+    currenttime = Makie.Node(string(0))
+    currentminvx = Makie.Node(string(0))
+    currentmaxvx = Makie.Node(string(0))
+    currentminvy = Makie.Node(string(0))
+    currentmaxvy = Makie.Node(string(0))
+    currentminθ = Makie.Node(string(0))
+    currentmaxθ = Makie.Node(string(0))
     scene = Makie.plot(xplot, vxupdate, limits=limits, color = :red)
     Makie.text!(currenttime, position = (0, 6), align = (:left,  :center), textsize = 2, limits=limits)
     Makie.text!(currenttimestep, position = (0, 5), align = (:left,  :center), textsize = 2, limits=limits)
@@ -188,14 +186,14 @@ function ex_planarqdconst()
     Makie.text!(currentmaxθ, position = (nfault, 1), align = (:right,  :center), textsize = 2, limits=limits)
     axis = scene[Axis] # get the axis object from the scene
     axis[:names][:axisnames] = ("element index", "log v")
-    display(scene)
+    Makie.display(scene)
 
     nsteps = 10000
     t = zeros(nsteps)
     vx = zeros(nsteps, nfault)
     vy = zeros(nsteps, nfault)
     θ = zeros(nsteps, nfault)
-    integrator = init(prob, RK4(), abstol = abstol, reltol = reltol, progress = true)
+    integrator = init(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
 
     @time for i in 1:nsteps
         DifferentialEquations.step!(integrator)
