@@ -6,6 +6,7 @@ using AbstractPlotting
 using Makie
 using Colors
 using ColorSchemes
+using JLD2
 using Bem2d
 
 function plottimeseries(sol)
@@ -118,7 +119,7 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Bem2d.Elements(Int(1e5))
-    nfault = 300
+    nfault = 30
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = Bem2d.discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
@@ -155,62 +156,66 @@ function ex_planarqdconst()
     # println("Bulk integrating")
     # @time sol = solve(prob, DifferentialEquations.RK4(), abstol = abstol, reltol = reltol, progress = true)
     # plottimeseries(sol)
-    # @time sol = solve(prob, DifferentialEquations.DP5(), abstol = abstol, reltol = reltol, progress = true)
-    # plottimeseries(sol)
+    @time sol = solve(prob, DifferentialEquations.DP5(), abstol = abstol, reltol = reltol, progress = true)
+    plottimeseries(sol)
+    @time @save "out.jld2" sol
 
-    # (Step) Time integrate elastic model
-    println("Step integrating")
-    limits = Makie.FRect(0, -14, nfault, 20)
-    xplot = collect(1:1:nfault)
-    vxupdate = Makie.Node(1e-14 .* ones(nfault))
-    currenttimestep = Makie.Node(string(0))
-    currenttime = Makie.Node(string(0))
-    currentminvx = Makie.Node(string(0))
-    currentmaxvx = Makie.Node(string(0))
-    currentminvy = Makie.Node(string(0))
-    currentmaxvy = Makie.Node(string(0))
-    currentminθ = Makie.Node(string(0))
-    currentmaxθ = Makie.Node(string(0))
-    scene = Makie.plot(xplot, vxupdate, limits=limits, color = :red)
-    Makie.text!(currenttime, position = (0, 6), align = (:left,  :center), textsize = 2, limits=limits)
-    Makie.text!(currenttimestep, position = (0, 5), align = (:left,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentminvx, position = (nfault, 6), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentmaxvx, position = (nfault, 5), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentminvy, position = (nfault, 4), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentmaxvy, position = (nfault, 3), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentminθ, position = (nfault, 2), align = (:right,  :center), textsize = 2, limits=limits)
-    Makie.text!(currentmaxθ, position = (nfault, 1), align = (:right,  :center), textsize = 2, limits=limits)
-    axis = scene[Axis] # get the axis object from the scene
-    axis[:names][:axisnames] = ("element index", "log v")
-    Makie.display(scene)
+    # df = DataFrame(sol')
+    # CSV.write("out.csv", DataFrame(sol'))
 
-    nsteps = 10000
-    t = zeros(nsteps)
-    vx = zeros(nsteps, nfault)
-    vy = zeros(nsteps, nfault)
-    θ = zeros(nsteps, nfault)
-    integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
-
-    @time for i in 1:nsteps
-        # TODO: Put a lower limit on velocity (e.g., 1e-15 m/s)
-        DifferentialEquations.step!(integrator)
-        # t[i] = integrator.t
-        # vx[i, :] = integrator.u[1:3:end]
-        # vy[i, :] = integrator.u[2:3:end]
-        # θ[i, :] = integrator.u[3:3:end]
-
-        # Update Makie plot
-        vxupdate[] = log10.(abs.(integrator.u[1:3:end]))
-        currenttime[] = string(integrator.t / siay)
-        currenttimestep[] = string(i)
-        currentminvx[] = string(minimum(integrator.u[1:3:end]))
-        currentmaxvx[] = string(maximum(integrator.u[1:3:end]))
-        currentminvy[] = string(minimum(integrator.u[2:3:end]))
-        currentmaxvy[] = string(maximum(integrator.u[2:3:end]))
-        currentminθ[] = string(minimum(integrator.u[3:3:end]))
-        currentmaxθ[] = string(maximum(integrator.u[3:3:end]))
-        sleep(1e-10)
-    end
+    # # (Step) Time integrate elastic model
+    # println("Step integrating")
+    # limits = Makie.FRect(0, -14, nfault, 20)
+    # xplot = collect(1:1:nfault)
+    # vxupdate = Makie.Node(1e-14 .* ones(nfault))
+    # currenttimestep = Makie.Node(string(0))
+    # currenttime = Makie.Node(string(0))
+    # currentminvx = Makie.Node(string(0))
+    # currentmaxvx = Makie.Node(string(0))
+    # currentminvy = Makie.Node(string(0))
+    # currentmaxvy = Makie.Node(string(0))
+    # currentminθ = Makie.Node(string(0))
+    # currentmaxθ = Makie.Node(string(0))
+    # scene = Makie.plot(xplot, vxupdate, limits=limits, color = :red)
+    # Makie.text!(currenttime, position = (0, 6), align = (:left,  :center), textsize = 2, limits=limits)
+    # Makie.text!(currenttimestep, position = (0, 5), align = (:left,  :center), textsize = 2, limits=limits)
+    # Makie.text!(currentminvx, position = (nfault, 6), align = (:right,  :center), textsize = 2, limits=limits)
+    # Makie.text!(currentmaxvx, position = (nfault, 5), align = (:right,  :center), textsize = 2, limits=limits)
+    # Makie.text!(currentminvy, position = (nfault, 4), align = (:right,  :center), textsize = 2, limits=limits)
+    # Makie.text!(currentmaxvy, position = (nfault, 3), align = (:right,  :center), textsize = 2, limits=limits)
+    # Makie.text!(currentminθ, position = (nfault, 2), align = (:right,  :center), textsize = 2, limits=limits)
+    # Makie.text!(currentmaxθ, position = (nfault, 1), align = (:right,  :center), textsize = 2, limits=limits)
+    # axis = scene[Axis] # get the axis object from the scene
+    # axis[:names][:axisnames] = ("element index", "log v")
+    # Makie.display(scene)
+    #
+    # nsteps = 10000
+    # t = zeros(nsteps)
+    # vx = zeros(nsteps, nfault)
+    # vy = zeros(nsteps, nfault)
+    # θ = zeros(nsteps, nfault)
+    # integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
+    #
+    # @time for i in 1:nsteps
+    #     # TODO: Put a lower limit on velocity (e.g., 1e-15 m/s)
+    #     DifferentialEquations.step!(integrator)
+    #     # t[i] = integrator.t
+    #     # vx[i, :] = integrator.u[1:3:end]
+    #     # vy[i, :] = integrator.u[2:3:end]
+    #     # θ[i, :] = integrator.u[3:3:end]
+    #
+    #     # Update Makie plot
+    #     vxupdate[] = log10.(abs.(integrator.u[1:3:end]))
+    #     currenttime[] = string(integrator.t / siay)
+    #     currenttimestep[] = string(i)
+    #     currentminvx[] = string(minimum(integrator.u[1:3:end]))
+    #     currentmaxvx[] = string(maximum(integrator.u[1:3:end]))
+    #     currentminvy[] = string(minimum(integrator.u[2:3:end]))
+    #     currentmaxvy[] = string(maximum(integrator.u[2:3:end]))
+    #     currentminθ[] = string(minimum(integrator.u[3:3:end]))
+    #     currentmaxθ[] = string(maximum(integrator.u[3:3:end]))
+    #     sleep(1e-10)
+    # end
 
 end
 ex_planarqdconst()

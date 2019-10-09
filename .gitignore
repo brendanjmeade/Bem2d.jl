@@ -1,3 +1,8 @@
 .DS_Store
 /Manifest.toml
 /dev/
+*.jld2
+*.h5
+*.hdf
+*.hdf5
+*.csv
