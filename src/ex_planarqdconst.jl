@@ -118,15 +118,15 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Bem2d.Elements(Int(1e5))
-    nfault = 100
+    nfault = 300
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = Bem2d.discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
 
     # Modify y1, and y2 for a sinusoidal fault
     amplitude = 1000.0
-    # y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
-    # y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
+    y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
+    y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2
@@ -152,13 +152,11 @@ function ex_planarqdconst()
     # (Bulk) Time integrate elastic model
     p = (∂t, els, η, dc, blockvelx, blockvely)
     prob = DifferentialEquations.ODEProblem(calc_dvθ, ics, tspan, p)
-    println("Bulk integrating")
-
-    @time sol = solve(prob, DifferentialEquations.RK4(), abstol = abstol, reltol = reltol, progress = true)
-    plottimeseries(sol)
-
-    @time sol = solve(prob, DifferentialEquations.DP5(), abstol = abstol, reltol = reltol, progress = true)
-    plottimeseries(sol)
+    # println("Bulk integrating")
+    # @time sol = solve(prob, DifferentialEquations.RK4(), abstol = abstol, reltol = reltol, progress = true)
+    # plottimeseries(sol)
+    # @time sol = solve(prob, DifferentialEquations.DP5(), abstol = abstol, reltol = reltol, progress = true)
+    # plottimeseries(sol)
 
     # (Step) Time integrate elastic model
     println("Step integrating")
@@ -186,14 +184,15 @@ function ex_planarqdconst()
     axis[:names][:axisnames] = ("element index", "log v")
     Makie.display(scene)
 
-    nsteps = 100
+    nsteps = 10000
     t = zeros(nsteps)
     vx = zeros(nsteps, nfault)
     vy = zeros(nsteps, nfault)
     θ = zeros(nsteps, nfault)
-    integrator = init(prob, DP8(), abstol = abstol, reltol = reltol, progress = true)
+    integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
 
     @time for i in 1:nsteps
+        # TODO: Put a lower limit on velocity (e.g., 1e-15 m/s)
         DifferentialEquations.step!(integrator)
         # t[i] = integrator.t
         # vx[i, :] = integrator.u[1:3:end]
