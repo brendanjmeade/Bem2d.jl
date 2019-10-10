@@ -96,7 +96,6 @@ function ex_qdmakie()
     vyupdatemax = Makie.Node(0.0 .* ones(nfault))
     vyupdatemaxvals = 0.0 .* ones(nfault)
 
-
     currenttime = Makie.Node(string(0))
     currentvx = Makie.Node(string(0))
     currentvy = Makie.Node(string(0))
@@ -131,17 +130,9 @@ function ex_qdmakie()
 
         # Update text
         currenttime[] = Printf.@sprintf("t = %012.6f, n = %d", integrator.t / siay, i)
-        currentvx[] = Printf.@sprintf("max(vx) = %01.5f, min(vx) = %01.5f",
-            maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]))
-        currentvy[] = Printf.@sprintf("max(vy) = %01.5f, min(vy) = %01.5f",
-            maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
+        currentvx[] = Printf.@sprintf("max(vx) = %01.5f, min(vx) = %01.5f", maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]))
+        currentvy[] = Printf.@sprintf("max(vy) = %01.5f, min(vy) = %01.5f", maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
 
-        # currentminvx[] = string(minimum(integrator.u[1:3:end]))
-        # currentmaxvx[] = string(maximum(integrator.u[1:3:end]))
-        # currentminvy[] = string(minimum(integrator.u[2:3:end]))
-        # currentmaxvy[] = string(maximum(integrator.u[2:3:end]))
-        # currentminθ[] = string(minimum(integrator.u[3:3:end]))
-        # currentmaxθ[] = string(maximum(integrator.u[3:3:end]))
         sleep(1e-10)
     end
 end
