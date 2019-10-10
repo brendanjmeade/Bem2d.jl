@@ -2,6 +2,7 @@ using Revise
 using DifferentialEquations
 using AbstractPlotting
 using Makie
+using Printf
 using Bem2d
 
 function calc_dvθ(vθ, p, t)
@@ -9,17 +10,10 @@ function calc_dvθ(vθ, p, t)
     vx = vθ[1:3:end]
     vy = vθ[2:3:end]
     θ = vθ[3:3:end]
-
-    # Global fault velocites from fault parallel and perpendicular components
     vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)
-
-    # Change in tractions (global then local)
     dt = ∂t * [blockvx .- vx blockvy .- vy]'[:]
     dtpara, dtperp = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
-
-    # Frictional slip for fault parallel traction
     dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
-
     for i in 1:els.endidx
         vpara = abs.(vpara) # Chris R. suggestion
         θ = abs.(θ)
@@ -39,9 +33,9 @@ end
 
 function ex_qdmakie()
     # Fun things to play with
-    nsteps = 10000
+    nsteps = 1000
     amplitude = 0.0
-    nfault = 200
+    nfault = 100
 
     # Constants
     siay = 365.25 * 24 * 60 * 60
@@ -91,44 +85,57 @@ function ex_qdmakie()
     integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
 
     println("Step integrating")
-    limits = Makie.FRect(0, -1.1, nfault, 2.2)
     xplot = collect(1:1:nfault)
-    vxupdate = Makie.Node(0 .* ones(nfault))
+    textsize = 2
+    vispower = 1.0/10.0
+    limits = Makie.FRect(0, -2.0, nfault, 4.0)
+    vxupdate = Makie.Node(0.0 .* ones(nfault))
+    vxupdatemax = Makie.Node(0.0 .* ones(nfault))
+    vxupdatemaxvals = 0.0 .* ones(nfault)
     vyupdate = Makie.Node(0 .* ones(nfault))
-    currenttimestep = Makie.Node(string(0))
+    vyupdatemax = Makie.Node(0.0 .* ones(nfault))
+    vyupdatemaxvals = 0.0 .* ones(nfault)
+
+
     currenttime = Makie.Node(string(0))
-    currentminvx = Makie.Node(string(0))
-    currentmaxvx = Makie.Node(string(0))
-    currentminvy = Makie.Node(string(0))
-    currentmaxvy = Makie.Node(string(0))
-    currentminθ = Makie.Node(string(0))
-    currentmaxθ = Makie.Node(string(0))
-    scene = Makie.plot(xplot, vxupdate, limits=limits, color = :red)
+    currentvx = Makie.Node(string(0))
+    currentvy = Makie.Node(string(0))
+    currentθ = Makie.Node(string(0))
+    scene = Scene(resolution=(2000, 1000))
+    Makie.plot!(xplot, vxupdate, limits=limits, color = :red)
+    Makie.plot!(xplot, vxupdatemax, limits=limits, color = :red, linestyle=:dot)
     Makie.plot!(xplot, vyupdate, limits=limits, color = :blue)
-    # Makie.text!(currenttime, position = (0, 6), align = (:left,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currenttimestep, position = (0, 5), align = (:left,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentminvx, position = (nfault, 6), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentmaxvx, position = (nfault, 5), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentminvy, position = (nfault, 4), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentmaxvy, position = (nfault, 3), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentminθ, position = (nfault, 2), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentmaxθ, position = (nfault, 1), align = (:right,  :center), textsize = 2, limits=limits)
+    Makie.plot!(xplot, vyupdatemax, limits=limits, color = :blue, linestyle=:dot)
+
+    Makie.text!(currenttime, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=limits)
+    Makie.text!(currentvx, position = (0.0, 1.8), align = (:left,  :center), textsize = textsize, limits=limits)
+    Makie.text!(currentvy, position = (0.0, 1.6), align = (:left,  :center), textsize = 2, limits=limits)
     axis = scene[Axis] # get the axis object from the scene
-    axis[:names][:axisnames] = ("element index", "pow(v)")
+    axis[:names][:axisnames] = ("element index", "v^p")
     Makie.display(scene)
 
     @time for i in 1:nsteps
         DifferentialEquations.step!(integrator)
-        # vxupdate[] = log10.(abs.(integrator.u[1:3:end]))
-        # vyupdate[] = log10.(abs.(integrator.u[2:3:end]))
 
-        vxupdate[] = sign.(integrator.u[1:3:end]) .* (abs.(integrator.u[1:3:end])).^(1/10)
-        vyupdate[] = sign.(integrator.u[2:3:end]) .* (abs.(integrator.u[2:3:end])).^(1/10)
+        # Current velocities
+        vxupdate[] = sign.(integrator.u[1:3:end]) .* (abs.(integrator.u[1:3:end])).^(vispower)
+        vyupdate[] = sign.(integrator.u[2:3:end]) .* (abs.(integrator.u[2:3:end])).^(vispower)
 
-        # TODO: Add dashed line showing maximum value over all time intervals
+        # Update maximum velocities
+        vxupdatemaxvals = findmax([integrator.u[1:3:end] vxupdatemaxvals], dims=2)[1]
+        vxupdatemaxvals = dropdims(vxupdatemaxvals, dims=2)
+        vxupdatemax[] = sign.(vxupdatemaxvals) .* (abs.(vxupdatemaxvals)).^(vispower)
+        vyupdatemaxvals = findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1]
+        vyupdatemaxvals = dropdims(vyupdatemaxvals, dims=2)
+        vyupdatemax[] = sign.(vyupdatemaxvals) .* (abs.(vyupdatemaxvals)).^(vispower)
 
-        # currenttime[] = string(integrator.t / siay)
-        # currenttimestep[] = string(i)
+        # Update text
+        currenttime[] = Printf.@sprintf("t = %012.6f, n = %d", integrator.t / siay, i)
+        currentvx[] = Printf.@sprintf("max(vx) = %01.5f, min(vx) = %01.5f",
+            maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]))
+        currentvy[] = Printf.@sprintf("max(vy) = %01.5f, min(vy) = %01.5f",
+            maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
+
         # currentminvx[] = string(minimum(integrator.u[1:3:end]))
         # currentmaxvx[] = string(maximum(integrator.u[1:3:end]))
         # currentminvy[] = string(minimum(integrator.u[2:3:end]))
