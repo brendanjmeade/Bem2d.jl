@@ -18,17 +18,17 @@ function calc_dvθ(vθ, p, t)
     vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
     dt = ∂t * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
     dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
-    dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
+    dθ, dvx, dvy = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
     for i in 1:els.endidx
         vpara = abs.(vpara) # Chris R. suggestion
         θ = abs.(θ)
         dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
         # dθ[i] = 1 - θ[i] * vpara[i] / dc # Aging law
-        dvpara[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dtx[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
-        dvperp[i] = 0 # fault perpendicular creep
+        dvx[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dtx[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+        dvy[i] = 0 # fault perpendicular creep
         # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
     end
-    dvxglobal, dvyglobal = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvpara, dvperp)
+    dvxglobal, dvyglobal = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvx, dvy)
     dvθ = zeros(3 * els.endidx)
     dvθ[1:3:end] = dvxglobal
     dvθ[2:3:end] = dvyglobal
