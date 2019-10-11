@@ -50,9 +50,9 @@ end
 
 function ex_qdmakie()
     # Fun things to play with
-    nsteps = 500
+    nsteps = 5
     amplitude = 0.0
-    nfault = 100
+    nfault = 30
 
     # Constants
     siay = 365.25 * 24 * 60 * 60
@@ -130,7 +130,6 @@ function ex_qdmakie()
     plotelementsmakie(els, subscene1)
     subscene1[Axis][:names][:axisnames] = ("x (m)", "y (m)")
 
-
     Makie.plot!(subscene2, xplot, vxupdate, limits=vgloballimits, color = :red)
     Makie.plot!(subscene2, xplot, vxupdatemax, limits=vgloballimits, color = :green, linestyle=:dot)
     Makie.plot!(subscene2, xplot, vyupdate, limits=vgloballimits, color = :blue)
@@ -153,6 +152,13 @@ function ex_qdmakie()
         vyupdate[] = vplot(integrator.u[2:3:end])
         vxupdatemaxvals = dropdims(findmax([integrator.u[1:3:end] vxupdatemaxvals], dims=2)[1], dims=2)
         vxupdatemax[] = vplot(vxupdatemaxvals)
+
+        @show b1 = [vplot(vxupdatemaxvals)]
+        @show b2 = [collect(vxupdatemax[])]
+        @show b1-b2
+        # vxupdatemax[] = vplot(vxupdatemaxvals)
+
+
         vyupdatemaxvals = dropdims(findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1], dims=2)
         vyupdatemax[] = vplot(vyupdatemaxvals)
         currentv[] = Printf.@sprintf("t = %012.6f, n = %07d, max(vx) = %01.5f, min(vx) = %01.5f, max(vy) = %01.5f, min(vy) = %01.5f", integrator.t / siay, i, maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]), maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
