@@ -33,7 +33,7 @@ end
 
 function ex_qdmakie()
     # Fun things to play with
-    nsteps = 1000
+    nsteps = 500
     amplitude = 0.0
     nfault = 100
 
@@ -82,79 +82,91 @@ function ex_qdmakie()
     ics[3:3:end] = 1e8 * ones(nnodes)
     p = (∂t, els, η, dc, blockvelx, blockvely)
     prob = DifferentialEquations.ODEProblem(calc_dvθ, ics, tspan, p)
-    integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
+    # integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
+    integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol, progress = true)
 
     println("Step integrating")
     xplot = collect(1:1:nfault)
-    textsize = 2
+    textsize = 2.0
     vispower = 1.0/10.0
-    limits = Makie.FRect(0, -2.0, nfault, 4.0)
+    vgloballimits = Makie.FRect(0, -2.0, nfault, 4.0)
+    θlimits = Makie.FRect(0, -2.0, nfault, 10.0)
+
     vxupdate = Makie.Node(0.0 .* ones(nfault))
     vxupdatemax = Makie.Node(0.0 .* ones(nfault))
     vxupdatemaxvals = 0.0 .* ones(nfault)
-    vyupdate = Makie.Node(0 .* ones(nfault))
+    vyupdate = Makie.Node(0.0 .* ones(nfault))
     vyupdatemax = Makie.Node(0.0 .* ones(nfault))
     vyupdatemaxvals = 0.0 .* ones(nfault)
+
+    θupdate = Makie.Node(0.0 .* ones(nfault))
+    θupdatemax = Makie.Node(0.0 .* ones(nfault))
+    θupdatemaxvals = log10.(1e-1 .* ones(nfault))
+
+
 
     currenttime = Makie.Node(string(0))
     currentvx = Makie.Node(string(0))
     currentvy = Makie.Node(string(0))
     currentθ = Makie.Node(string(0))
 
-    # scene = Makie.Scene(resolution=(2000, 1000))
+    scene = Makie.Scene(resolution=(2000, 2000))
+    subscene1 = Makie.Scene(scene, Makie.IRect(0, 0, 500, 400))
+    subscene2 = Makie.Scene(scene, Makie.IRect(500, 0, 500, 400))
 
-    # data = rand(50, 100)
-    # p1 = heatmap(data, interpolate = true)
-    # p2 = heatmap(data, interpolate = false)
-    # s = vbox(
-    #     title(p1, "interpolate = true";  textsize = 15),
-    #     title(p2, "interpolate = false"; textsize = 15),
-    # )
-
-    p1 = Makie.plot(xplot, vxupdate, limits=limits, color = :red)
-    # Makie.plot!(p1, xplot, vxupdatemax, limits=limits, color = :red, linestyle=:dot)
-    # Makie.plot!(p1, xplot, vyupdate, limits=limits, color = :blue)
-    # Makie.plot!(p1, xplot, vyupdatemax, limits=limits, color = :blue, linestyle=:dot)
-    # Makie.text!(p1, currenttime, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=limits)
-    # Makie.text!(p1, currentvx, position = (0.0, 1.8), align = (:left,  :center), textsize = textsize, limits=limits)
-    # Makie.text!(p1, currentvy, position = (0.0, 1.6), align = (:left,  :center), textsize = 2, limits=limits)
+    Makie.plot!(subscene1, xplot, vxupdate, limits=vgloballimits, color = :red)
+    Makie.plot!(subscene1, xplot, vxupdatemax, limits=vgloballimits, color = :red, linestyle=:dot)
+    Makie.plot!(subscene1, xplot, vyupdate, limits=vgloballimits, color = :blue)
+    Makie.plot!(subscene1, xplot, vyupdatemax, limits=vgloballimits, color = :blue, linestyle=:dot)
+    Makie.text!(subscene1, currenttime, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=vgloballimits)
+    Makie.text!(subscene1, currentvx, position = (0.0, 1.8), align = (:left,  :center), textsize = textsize, limits=vgloballimits)
+    Makie.text!(subscene1, currentvy, position = (0.0, 1.6), align = (:left,  :center), textsize = 2, limits=vgloballimits)
     # # axis = scene[Axis] # get the axis object from the scene
     # # axis[:names][:axisnames] = ("element index", "pow(v global)")
     # #
-    p2 = Makie.plot(xplot, rand(length(nfault)), limits=limits, color = :green)
+    Makie.plot!(subscene2, xplot, θupdate, limits=θlimits, color = :green)
     # # Makie.plot!(p1, xplot, vxupdatemax, limits=limits, color = :red, linestyle=:dot)
     # # Makie.plot!(p1, xplot, vyupdate, limits=limits, color = :blue)
     # # Makie.plot!(p1, xplot, vyupdatemax, limits=limits, color = :blue, linestyle=:dot)
-    # # Makie.text!(p1, currenttime, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=limits)
-    # # Makie.text!(p1, currentvx, position = (0.0, 1.8), align = (:left,  :center), textsize = textsize, limits=limits)
+
+    Makie.text!(subscene2, currenttime, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=θlimits)
+    # Makie.text!(p1, currentvx, position = (0.0, 1.8), align = (:left,  :center), textsize = textsize, limits=limits)
     # # Makie.text!(p1, currentvy, position = (0.0, 1.6), align = (:left,  :center), textsize = 2, limits=limits)
     # # axis = scene[Axis] # get the axis object from the scene
     # # axis[:names][:axisnames] = ("element index", "pow(v local)")
-    scene = Makie.hbox(p1, p2, resolution=(4000, 1000))
+    # scene = Makie.hbox(p1, p2, resolution=(4000, 1000))
     Makie.display(scene)
-    #
-    # @time for i in 1:nsteps
-    #     DifferentialEquations.step!(integrator)
-    #
-    #     # Current velocities
-    #     vxupdate[] = sign.(integrator.u[1:3:end]) .* (abs.(integrator.u[1:3:end])).^(vispower)
-    #     vyupdate[] = sign.(integrator.u[2:3:end]) .* (abs.(integrator.u[2:3:end])).^(vispower)
-    #
-    #     # Update maximum velocities
-    #     vxupdatemaxvals = findmax([integrator.u[1:3:end] vxupdatemaxvals], dims=2)[1]
-    #     vxupdatemaxvals = dropdims(vxupdatemaxvals, dims=2)
-    #     vxupdatemax[] = sign.(vxupdatemaxvals) .* (abs.(vxupdatemaxvals)).^(vispower)
-    #     vyupdatemaxvals = findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1]
-    #     vyupdatemaxvals = dropdims(vyupdatemaxvals, dims=2)
-    #     vyupdatemax[] = sign.(vyupdatemaxvals) .* (abs.(vyupdatemaxvals)).^(vispower)
-    #
-    #     # Update text
-    #     currenttime[] = Printf.@sprintf("t = %012.6f, n = %d", integrator.t / siay, i)
-    #     currentvx[] = Printf.@sprintf("max(vx) = %01.5f, min(vx) = %01.5f", maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]))
-    #     currentvy[] = Printf.@sprintf("max(vy) = %01.5f, min(vy) = %01.5f", maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
-    #
-    #     sleep(1e-10)
-    # end
 
+    @time for i in 1:nsteps
+        DifferentialEquations.step!(integrator)
+
+        # Global velocities
+        vxupdate[] = sign.(integrator.u[1:3:end]) .* (abs.(integrator.u[1:3:end])).^(vispower)
+        vyupdate[] = sign.(integrator.u[2:3:end]) .* (abs.(integrator.u[2:3:end])).^(vispower)
+        vxupdatemaxvals = findmax([integrator.u[1:3:end] vxupdatemaxvals], dims=2)[1]
+        vxupdatemaxvals = dropdims(vxupdatemaxvals, dims=2)
+        vxupdatemax[] = sign.(vxupdatemaxvals) .* (abs.(vxupdatemaxvals)).^(vispower)
+        vyupdatemaxvals = findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1]
+        vyupdatemaxvals = dropdims(vyupdatemaxvals, dims=2)
+        vyupdatemax[] = sign.(vyupdatemaxvals) .* (abs.(vyupdatemaxvals)).^(vispower)
+        currenttime[] = Printf.@sprintf("t = %012.6f, n = %d", integrator.t / siay, i)
+        currentvx[] = Printf.@sprintf("max(vx) = %01.5f, min(vx) = %01.5f", maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]))
+        currentvy[] = Printf.@sprintf("max(vy) = %01.5f, min(vy) = %01.5f", maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
+
+        # State
+        θupdate[] = log10.(integrator.u[3:3:end])
+        # vyupdate[] = sign.(integrator.u[2:3:end]) .* (abs.(integrator.u[2:3:end])).^(vispower)
+        # vxupdatemaxvals = findmax([integrator.u[1:3:end] vxupdatemaxvals], dims=2)[1]
+        # vxupdatemaxvals = dropdims(vxupdatemaxvals, dims=2)
+        # vxupdatemax[] = sign.(vxupdatemaxvals) .* (abs.(vxupdatemaxvals)).^(vispower)
+        # vyupdatemaxvals = findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1]
+        # vyupdatemaxvals = dropdims(vyupdatemaxvals, dims=2)
+        # vyupdatemax[] = sign.(vyupdatemaxvals) .* (abs.(vyupdatemaxvals)).^(vispower)
+        # currenttime[] = Printf.@sprintf("t = %012.6f, n = %d", integrator.t / siay, i)
+        # currentvx[] = Printf.@sprintf("max(vx) = %01.5f, min(vx) = %01.5f", maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]))
+        # currentvy[] = Printf.@sprintf("max(vy) = %01.5f, min(vy) = %01.5f", maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
+
+        sleep(1e-10)
+    end
 end
 ex_qdmakie()
