@@ -11,12 +11,12 @@ function vplot(v)
 end
 
 function calc_dvθ(vθ, p, t)
-    ∂t, els, η, dc, blockvx, blockvy = p
-    vx = vθ[1:3:end]
-    vy = vθ[2:3:end]
+    ∂t, els, η, dc, blockvxglobal, blockvyglobal = p
+    vxglobal = vθ[1:3:end]
+    vyglobal = vθ[2:3:end]
     θ = vθ[3:3:end]
-    vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)
-    dt = ∂t * [blockvx .- vx blockvy .- vy]'[:]
+    vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
+    dt = ∂t * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
     dtpara, dtperp = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
     dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
     for i in 1:els.endidx
@@ -28,10 +28,10 @@ function calc_dvθ(vθ, p, t)
         dvperp[i] = 0 # fault perpendicular creep
         # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
     end
-    dvx, dvy = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvpara, dvperp)
+    dvxglobal, dvyglobal = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvpara, dvperp)
     dvθ = zeros(3 * els.endidx)
-    dvθ[1:3:end] = dvx
-    dvθ[2:3:end] = dvy
+    dvθ[1:3:end] = dvxglobal
+    dvθ[2:3:end] = dvyglobal
     dvθ[3:3:end] = dθ
     return dvθ
 end
