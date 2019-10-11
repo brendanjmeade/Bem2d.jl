@@ -17,14 +17,14 @@ function calc_dvθ(vθ, p, t)
     θ = vθ[3:3:end]
     vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
     dt = ∂t * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-    dtpara, dtperp = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
+    dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
     dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
     for i in 1:els.endidx
         vpara = abs.(vpara) # Chris R. suggestion
         θ = abs.(θ)
         dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
         # dθ[i] = 1 - θ[i] * vpara[i] / dc # Aging law
-        dvpara[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dtpara[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+        dvpara[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dtx[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
         dvperp[i] = 0 # fault perpendicular creep
         # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
     end
