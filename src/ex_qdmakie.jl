@@ -10,13 +10,13 @@ function vplot(v)
     return sign.(v) .* (abs.(v)).^(vispower)
 end
 
-function plotelementsmakie(els)
+function plotelementsmakie(els, subscene)
     names = unique(els.name)
     for j in 1:length(names) - 1
         @show names[j]
-        srcidx = findall(x->x == names[j], els.name)
-        for i in 1:els.endidx
-            # plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 0.5)
+        idx = findall(x->x == names[j], els.name)
+        for i in 1:length(idx)
+            Makie.plot!(subscene, [els.x1[idx[i]], els.x2[idx[i]]], [els.y1[idx[i]], els.y2[idx[i]]], color = :black)
         end
     end
     return nothing
@@ -105,7 +105,7 @@ function ex_qdmakie()
     println("Step integrating")
     xplot = collect(1:1:nfault)
     textsize = 1.75
-    vispower = 1.0/10.0
+    # vispower = 1.0/10.0
     vgloballimits = Makie.FRect(0, -2.0, nfault, 4.0)
     θlimits = Makie.FRect(0, -1.0, nfault, 11.0)
 
@@ -121,15 +121,22 @@ function ex_qdmakie()
     currentv = Makie.Node(string(0))
     currentθ = Makie.Node(string(0))
 
-    scene = Makie.Scene(resolution=(2500, 2000))
-    subscene1 = Makie.Scene(scene, Makie.IRect(50, 1300, 2800, 500))
-    subscene3 = Makie.Scene(scene, Makie.IRect(50, 100, 2800, 500))
-    Makie.plot!(subscene1, xplot, vxupdate, limits=vgloballimits, color = :red)
-    Makie.plot!(subscene1, xplot, vxupdatemax, limits=vgloballimits, color = :green, linestyle=:dot)
-    Makie.plot!(subscene1, xplot, vyupdate, limits=vgloballimits, color = :blue)
-    Makie.plot!(subscene1, xplot, vyupdatemax, limits=vgloballimits, color = :blue, linestyle=:dot)
-    Makie.text!(subscene1, currentv, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=vgloballimits)
-    subscene1[Axis][:names][:axisnames] = ("element index", "pow(v global)")
+    scene = Makie.Scene(resolution=(3000, 2000))
+    subscene1 = Makie.Scene(scene, Makie.IRect(50, 1050, 1350, 800))
+    subscene2 = Makie.Scene(scene, Makie.IRect(1600, 1050, 1350, 800))
+    subscene3 = Makie.Scene(scene, Makie.IRect(50, 50, 1350, 800))
+    subscene4 = Makie.Scene(scene, Makie.IRect(1600, 50, 1350, 800))
+
+    plotelementsmakie(els, subscene1)
+    subscene1[Axis][:names][:axisnames] = ("x (m)", "y (m)")
+
+
+    Makie.plot!(subscene2, xplot, vxupdate, limits=vgloballimits, color = :red)
+    Makie.plot!(subscene2, xplot, vxupdatemax, limits=vgloballimits, color = :green, linestyle=:dot)
+    Makie.plot!(subscene2, xplot, vyupdate, limits=vgloballimits, color = :blue)
+    Makie.plot!(subscene2, xplot, vyupdatemax, limits=vgloballimits, color = :blue, linestyle=:dot)
+    Makie.text!(subscene2, currentv, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=vgloballimits)
+    subscene2[Axis][:names][:axisnames] = ("element index", "pow(v global)")
 
     Makie.plot!(subscene3, xplot, θupdate, limits=θlimits, color = :green)
     # Makie.plot!(p1, xplot, vxupdatemax, limits=limits, color = :red, linestyle=:dot)
@@ -137,7 +144,6 @@ function ex_qdmakie()
     subscene3[Axis][:names][:axisnames] = ("element index", "log10(θ)")
     Makie.display(scene)
 
-    plotelementsmakie(els)
 
     @time for i in 1:nsteps
         DifferentialEquations.step!(integrator)
