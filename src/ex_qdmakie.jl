@@ -50,9 +50,9 @@ end
 
 function ex_qdmakie()
     # Fun things to play with
-    nsteps = 5
+    nsteps = 500
     amplitude = 0.0
-    nfault = 30
+    nfault = 100
 
     # Constants
     siay = 365.25 * 24 * 60 * 60
@@ -105,7 +105,6 @@ function ex_qdmakie()
     println("Step integrating")
     xplot = collect(1:1:nfault)
     textsize = 1.75
-    # vispower = 1.0/10.0
     vgloballimits = Makie.FRect(0, -2.0, nfault, 4.0)
     θlimits = Makie.FRect(0, -1.0, nfault, 11.0)
 
@@ -152,13 +151,6 @@ function ex_qdmakie()
         vyupdate[] = vplot(integrator.u[2:3:end])
         vxupdatemaxvals = dropdims(findmax([integrator.u[1:3:end] vxupdatemaxvals], dims=2)[1], dims=2)
         vxupdatemax[] = vplot(vxupdatemaxvals)
-
-        @show b1 = [vplot(vxupdatemaxvals)]
-        @show b2 = [collect(vxupdatemax[])]
-        @show b1-b2
-        # vxupdatemax[] = vplot(vxupdatemaxvals)
-
-
         vyupdatemaxvals = dropdims(findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1], dims=2)
         vyupdatemax[] = vplot(vyupdatemaxvals)
         currentv[] = Printf.@sprintf("t = %012.6f, n = %07d, max(vx) = %01.5f, min(vx) = %01.5f, max(vy) = %01.5f, min(vy) = %01.5f", integrator.t / siay, i, maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]), maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
