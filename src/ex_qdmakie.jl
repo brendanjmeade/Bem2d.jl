@@ -10,6 +10,18 @@ function vplot(v)
     return sign.(v) .* (abs.(v)).^(vispower)
 end
 
+function plotelementsmakie(els)
+    names = unique(els.name)
+    for j in 1:length(names) - 1
+        @show names[j]
+        srcidx = findall(x->x == names[j], els.name)
+        for i in 1:els.endidx
+            # plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 0.5)
+        end
+    end
+    return nothing
+end
+
 function calc_dvθ(vθ, p, t)
     ∂t, els, η, dc, blockvxglobal, blockvyglobal = p
     vxglobal = vθ[1:3:end]
@@ -125,6 +137,8 @@ function ex_qdmakie()
     subscene3[Axis][:names][:axisnames] = ("element index", "log10(θ)")
     Makie.display(scene)
 
+    plotelementsmakie(els)
+
     @time for i in 1:nsteps
         DifferentialEquations.step!(integrator)
 
@@ -136,6 +150,8 @@ function ex_qdmakie()
         vyupdatemaxvals = dropdims(findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1], dims=2)
         vyupdatemax[] = vplot(vyupdatemaxvals)
         currentv[] = Printf.@sprintf("t = %012.6f, n = %07d, max(vx) = %01.5f, min(vx) = %01.5f, max(vy) = %01.5f, min(vy) = %01.5f", integrator.t / siay, i, maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]), maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
+
+        # Local velocities
 
         # State
         θupdate[] = log10.(integrator.u[3:3:end])
