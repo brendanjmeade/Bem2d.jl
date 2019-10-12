@@ -13,7 +13,6 @@ end
 function plotelementsmakie(els, subscene)
     names = unique(els.name)
     for j in 1:length(names) - 1
-        @show names[j]
         idx = findall(x->x == names[j], els.name)
         for i in 1:length(idx)
             Makie.plot!(subscene, [els.x1[idx[i]], els.x2[idx[i]]], [els.y1[idx[i]], els.y2[idx[i]]], color = :black)
@@ -116,7 +115,7 @@ function ex_qdmakie()
     vyupdatemaxvals = 0.0 .* ones(nfault)
     θupdate = Makie.Node(0.0 .* ones(nfault))
     θupdatemax = Makie.Node(0.0 .* ones(nfault))
-    θupdatemaxvals = log10.(1e-1 .* ones(nfault))
+    θupdatemaxvals = log10.(1e-10 .* ones(nfault))
     vcurrent = Makie.Node(string(0))
     θcurrent = Makie.Node(string(0))
 
@@ -137,6 +136,8 @@ function ex_qdmakie()
     subscene2[Axis][:names][:axisnames] = ("element index", "pow(v global)")
 
     Makie.plot!(subscene3, xplot, θupdate, limits=θlimits, color = :green)
+    Makie.plot!(subscene3, xplot, θupdatemax, limits=θlimits, color = :green, linestyle=:dot)
+
     # Makie.plot!(subscene3, xplot, vxupdatemax, limits=limits, color = :red, linestyle=:dot)
     Makie.text!(subscene3, θcurrent, position = (0.0, 10.0), align = (:left,  :center), textsize = textsize, limits=θlimits)
     subscene3[Axis][:names][:axisnames] = ("element index", "log10(θ)")
@@ -162,6 +163,9 @@ function ex_qdmakie()
 
         # State
         θupdate[] = log10.(integrator.u[3:3:end])
+        θupdatemaxvals = dropdims(findmax([integrator.u[3:3:end] θupdatemaxvals], dims=2)[1], dims=2)
+        θupdatemax[] = log10.(θupdatemaxvals)
+
         θcurrent[] = Printf.@sprintf("t = %012.6f, n = %07d, max(θ) = %012.2f, min(θ) = %012.2f", integrator.t / siay, i, maximum(integrator.u[3:3:end]), minimum(integrator.u[3:3:end]))
 
         sleep(1e-10)
