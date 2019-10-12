@@ -116,6 +116,9 @@ function ex_qdmakie()
     θupdate = Makie.Node(0.0 .* ones(nfault))
     θupdatemax = Makie.Node(0.0 .* ones(nfault))
     θupdatemaxvals = log10.(1e-10 .* ones(nfault))
+    θupdatemin = Makie.Node(1e20 .* ones(nfault))
+    θupdateminvals = log10.(1e20 .* ones(nfault))
+
     vcurrent = Makie.Node(string(0))
     θcurrent = Makie.Node(string(0))
 
@@ -137,8 +140,7 @@ function ex_qdmakie()
 
     Makie.plot!(subscene3, xplot, θupdate, limits=θlimits, color = :green)
     Makie.plot!(subscene3, xplot, θupdatemax, limits=θlimits, color = :green, linestyle=:dot)
-
-    # Makie.plot!(subscene3, xplot, vxupdatemax, limits=limits, color = :red, linestyle=:dot)
+    Makie.plot!(subscene3, xplot, θupdatemin, limits=θlimits, color = :green, linestyle=:dot)
     Makie.text!(subscene3, θcurrent, position = (0.0, 10.0), align = (:left,  :center), textsize = textsize, limits=θlimits)
     subscene3[Axis][:names][:axisnames] = ("element index", "log10(θ)")
     Makie.display(scene)
@@ -165,7 +167,8 @@ function ex_qdmakie()
         θupdate[] = log10.(integrator.u[3:3:end])
         θupdatemaxvals = dropdims(findmax([integrator.u[3:3:end] θupdatemaxvals], dims=2)[1], dims=2)
         θupdatemax[] = log10.(θupdatemaxvals)
-
+        θupdateminvals = dropdims(findmin([integrator.u[3:3:end] θupdateminvals], dims=2)[1], dims=2)
+        θupdatemin[] = log10.(θupdateminvals)
         θcurrent[] = Printf.@sprintf("t = %012.6f, n = %07d, max(θ) = %012.2f, min(θ) = %012.2f", integrator.t / siay, i, maximum(integrator.u[3:3:end]), minimum(integrator.u[3:3:end]))
 
         sleep(1e-10)
