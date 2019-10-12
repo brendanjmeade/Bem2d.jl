@@ -117,8 +117,8 @@ function ex_qdmakie()
     θupdate = Makie.Node(0.0 .* ones(nfault))
     θupdatemax = Makie.Node(0.0 .* ones(nfault))
     θupdatemaxvals = log10.(1e-1 .* ones(nfault))
-    currentv = Makie.Node(string(0))
-    currentθ = Makie.Node(string(0))
+    vcurrent = Makie.Node(string(0))
+    θcurrent = Makie.Node(string(0))
 
     scene = Makie.Scene(resolution=(3000, 2000))
     subscene1 = Makie.Scene(scene, Makie.IRect(50, 1050, 1350, 800))
@@ -130,15 +130,15 @@ function ex_qdmakie()
     subscene1[Axis][:names][:axisnames] = ("x (m)", "y (m)")
 
     Makie.plot!(subscene2, xplot, vxupdate, limits=vgloballimits, color = :red)
-    Makie.plot!(subscene2, xplot, vxupdatemax, limits=vgloballimits, color = :green, linestyle=:dot)
+    Makie.plot!(subscene2, xplot, vxupdatemax, limits=vgloballimits, color = :red, linestyle=:dot)
     Makie.plot!(subscene2, xplot, vyupdate, limits=vgloballimits, color = :blue)
     Makie.plot!(subscene2, xplot, vyupdatemax, limits=vgloballimits, color = :blue, linestyle=:dot)
-    Makie.text!(subscene2, currentv, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=vgloballimits)
+    Makie.text!(subscene2, vcurrent, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=vgloballimits)
     subscene2[Axis][:names][:axisnames] = ("element index", "pow(v global)")
 
     Makie.plot!(subscene3, xplot, θupdate, limits=θlimits, color = :green)
-    # Makie.plot!(p1, xplot, vxupdatemax, limits=limits, color = :red, linestyle=:dot)
-    Makie.text!(subscene3, currentθ, position = (0.0, 10.0), align = (:left,  :center), textsize = textsize, limits=θlimits)
+    # Makie.plot!(subscene3, xplot, vxupdatemax, limits=limits, color = :red, linestyle=:dot)
+    Makie.text!(subscene3, θcurrent, position = (0.0, 10.0), align = (:left,  :center), textsize = textsize, limits=θlimits)
     subscene3[Axis][:names][:axisnames] = ("element index", "log10(θ)")
     Makie.display(scene)
 
@@ -153,13 +153,16 @@ function ex_qdmakie()
         vxupdatemax[] = vplot(vxupdatemaxvals)
         vyupdatemaxvals = dropdims(findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1], dims=2)
         vyupdatemax[] = vplot(vyupdatemaxvals)
-        currentv[] = Printf.@sprintf("t = %012.6f, n = %07d, max(vx) = %01.5f, min(vx) = %01.5f, max(vy) = %01.5f, min(vy) = %01.5f", integrator.t / siay, i, maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]), maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
+        vcurrent[] = Printf.@sprintf("t = %012.6f, n = %07d, max(vx) = %01.5f, min(vx) = %01.5f, max(vy) = %01.5f, min(vy) = %01.5f", integrator.t / siay, i, maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]), maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
 
         # Local velocities
+        vx, vy = Bem2d.multmatvec(els.rotmat[1:els.endidx, :, :], integrator.u[1:3:end], integrator.u[2:3:end])
+
+
 
         # State
         θupdate[] = log10.(integrator.u[3:3:end])
-        currentθ[] = Printf.@sprintf("t = %012.6f, n = %07d, max(θ) = %012.2f, min(θ) = %012.2f", integrator.t / siay, i, maximum(integrator.u[3:3:end]), minimum(integrator.u[3:3:end]))
+        θcurrent[] = Printf.@sprintf("t = %012.6f, n = %07d, max(θ) = %012.2f, min(θ) = %012.2f", integrator.t / siay, i, maximum(integrator.u[3:3:end]), minimum(integrator.u[3:3:end]))
 
         sleep(1e-10)
     end
