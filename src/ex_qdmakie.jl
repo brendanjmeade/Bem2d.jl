@@ -49,8 +49,8 @@ end
 
 function ex_qdmakie()
     # Fun things to play with
-    nsteps = 500
-    amplitude = 0.0
+    nsteps = 5000
+    amplitude = 100.0
     nfault = 100
 
     # Constants
@@ -73,8 +73,8 @@ function ex_qdmakie()
     x1, y1, x2, y2 = Bem2d.discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
 
     # Modify y1, and y2 for a sinusoidal fault
-    y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
-    y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
+    y1 = amplitude * @.sin(8 * π * x1 / faultwidth)
+    y2 = amplitude * @.sin(8 * π * x2 / faultwidth)
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2
@@ -113,13 +113,20 @@ function ex_qdmakie()
     vyglobalupdate = Makie.Node(0.0 .* ones(nfault))
     vyglobalupdatemax = Makie.Node(0.0 .* ones(nfault))
     vyglobalupdatemaxvals = 0.0 .* ones(nfault)
+
+    vxupdate = Makie.Node(0.0 .* ones(nfault))
+    vxupdatemax = Makie.Node(0.0 .* ones(nfault))
+    vxupdatemaxvals = 0.0 .* ones(nfault)
+    vyupdate = Makie.Node(0.0 .* ones(nfault))
+    vyupdatemax = Makie.Node(0.0 .* ones(nfault))
+    vyupdatemaxvals = 0.0 .* ones(nfault)
+
     θupdate = Makie.Node(0.0 .* ones(nfault))
     θupdatemax = Makie.Node(0.0 .* ones(nfault))
     θupdatemaxvals = log10.(1e-10 .* ones(nfault))
-    # θupdatemin = Makie.Node(1e20 .* ones(nfault))
-    # θupdateminvals = log10.(1e20 .* ones(nfault))
 
     vglobalcurrent = Makie.Node(string(0))
+    vcurrent = Makie.Node(string(0))
     θcurrent = Makie.Node(string(0))
 
     scene = Makie.Scene(resolution=(3000, 2000))
@@ -138,9 +145,15 @@ function ex_qdmakie()
     Makie.text!(subscene2, vglobalcurrent, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=vgloballimits)
     subscene2[Axis][:names][:axisnames] = ("element index", "pow(v global)")
 
+    Makie.plot!(subscene4, xplot, vxupdate, limits=vgloballimits, color = :red)
+    Makie.plot!(subscene4, xplot, vxupdatemax, limits=vgloballimits, color = :red, linestyle=:dot)
+    Makie.plot!(subscene4, xplot, vyupdate, limits=vgloballimits, color = :blue)
+    Makie.plot!(subscene4, xplot, vyupdatemax, limits=vgloballimits, color = :blue, linestyle=:dot)
+    Makie.text!(subscene4, vcurrent, position = (0.0, 2.0), align = (:left,  :center), textsize = textsize, limits=vgloballimits)
+    subscene4[Axis][:names][:axisnames] = ("element index", "pow(v global)")
+
     Makie.plot!(subscene3, xplot, θupdate, limits=θlimits, color = :green)
     Makie.plot!(subscene3, xplot, θupdatemax, limits=θlimits, color = :green, linestyle=:dot)
-    # Makie.plot!(subscene3, xplot, θupdatemin, limits=θlimits, color = :green, linestyle=:dot)
     Makie.text!(subscene3, θcurrent, position = (0.0, 10.0), align = (:left,  :center), textsize = textsize, limits=θlimits)
     subscene3[Axis][:names][:axisnames] = ("element index", "log10(θ)")
     Makie.display(scene)
@@ -160,6 +173,13 @@ function ex_qdmakie()
 
         # Local velocities
         vx, vy = Bem2d.multmatvec(els.rotmat[1:els.endidx, :, :], integrator.u[1:3:end], integrator.u[2:3:end])
+        vxupdate[] = vplot(vx)
+        vyupdate[] = vplot(vy)
+        vxupdatemaxvals = dropdims(findmax([integrator.u[1:3:end] vxupdatemaxvals], dims=2)[1], dims=2)
+        vxupdatemax[] = vplot(vxupdatemaxvals)
+        vyupdatemaxvals = dropdims(findmax([integrator.u[2:3:end] vyupdatemaxvals], dims=2)[1], dims=2)
+        vyupdatemax[] = vplot(vyupdatemaxvals)
+        vcurrent[] = Printf.@sprintf("t = %012.6f, n = %07d, max(vx) = %01.5f, min(vx) = %01.5f, max(vy) = %01.5f, min(vy) = %01.5f", integrator.t / siay, i, maximum(integrator.u[1:3:end]), minimum(integrator.u[1:3:end]), maximum(integrator.u[2:3:end]), minimum(integrator.u[2:3:end]))
 
 
 
@@ -167,8 +187,6 @@ function ex_qdmakie()
         θupdate[] = log10.(integrator.u[3:3:end])
         θupdatemaxvals = dropdims(findmax([integrator.u[3:3:end] θupdatemaxvals], dims=2)[1], dims=2)
         θupdatemax[] = log10.(θupdatemaxvals)
-        # θupdateminvals = dropdims(findmin([integrator.u[3:3:end] θupdateminvals], dims=2)[1], dims=2)
-        # θupdatemin[] = log10.(θupdateminvals)
         θcurrent[] = Printf.@sprintf("t = %012.6f, n = %07d, max(θ) = %012.2f, min(θ) = %012.2f", integrator.t / siay, i, maximum(integrator.u[3:3:end]), minimum(integrator.u[3:3:end]))
 
         sleep(1e-10)
