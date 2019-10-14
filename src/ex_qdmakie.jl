@@ -2,6 +2,7 @@ using Revise
 using DifferentialEquations
 using AbstractPlotting
 using Makie
+using MakieThemes
 using Printf
 using Bem2d
 
