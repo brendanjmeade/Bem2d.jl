@@ -2,7 +2,7 @@ using Revise
 using DifferentialEquations
 using AbstractPlotting
 using Makie
-using MakieThemes
+using Random
 using Printf
 using Bem2d
 
@@ -51,8 +51,8 @@ end
 function ex_qdmakie()
     # Fun things to play with
     nsteps = 5000
-    amplitude = 100.0
-    nfault = 100
+    amplitude = 1.0
+    nfault = 200
 
     # Constants
     siay = 365.25 * 24 * 60 * 60
@@ -74,8 +74,24 @@ function ex_qdmakie()
     x1, y1, x2, y2 = Bem2d.discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
 
     # Modify y1, and y2 for a sinusoidal fault
-    y1 = amplitude * @.sin(8 * π * x1 / faultwidth)
-    y2 = amplitude * @.sin(8 * π * x2 / faultwidth)
+    Random.seed!(1234)
+    roughy = cumsum(cumsum(randn(nfault + 1)))
+    dx = 2 * faultwidth
+    dy = roughy[end] - roughy[1]
+    slope = dy / dx
+
+    # @show roughy[end]
+    # @show slope * x2[end]
+    y1 = amplitude * (roughy[1:1:end-1] - slope * x1)
+    y2 = amplitude * (roughy[2:1:end] - slope * x2)
+    # y1 = amplitude * (-slope * x1)
+    # y2 = amplitude * (-slope * x2)
+
+    # @show y2[end]
+
+
+    # y1 = amplitude * sin.(8 * π * x1 / faultwidth)
+    # y2 = amplitude * sin.(8 * π * x2 / faultwidth)
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2
@@ -157,6 +173,7 @@ function ex_qdmakie()
     Makie.plot!(subscene3, xplot, θupdatemax, limits=θlimits, color = :green, linestyle=:dot)
     Makie.text!(subscene3, θcurrent, position = (0.0, 10.0), align = (:left,  :center), textsize = textsize, limits=θlimits)
     subscene3[Axis][:names][:axisnames] = ("element index", "log10(θ)")
+
     Makie.display(scene)
 
 
