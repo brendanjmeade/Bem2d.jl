@@ -2,8 +2,6 @@ using Revise
 using DifferentialEquations
 using PyCall
 using PyPlot
-using AbstractPlotting
-using Makie
 using Colors
 using ColorSchemes
 using JLD2
@@ -64,43 +62,28 @@ function plottimeseries(sol)
     PyPlot.show()
 end
 
-# Derivatives to feed to ODE integrator
 function calc_dvθ(vθ, p, t)
-    ∂t, els, η, dc, blockvx, blockvy = p
-    vx = vθ[1:3:end]
-    vy = vθ[2:3:end]
+    ∂t, els, η, dc, blockvxglobal, blockvyglobal = p
+    vxglobal = vθ[1:3:end]
+    vyglobal = vθ[2:3:end]
     θ = vθ[3:3:end]
-
-    # # Global block velocities from fault parallel and perpendicular velocity components
-    # blockvpara, blockvperp = multmatvecsingle(els.rotmat[1:els.endidx, :, :], blockvx, blockvy)
-    # blockvxpara, blockvypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], blockvpara, zeros(size(blockvperp)))
-    # blockvxperp, blockvyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(blockvpara)), blockvperp)
-
-    # Global fault velocites from fault parallel and perpendicular components
-    vpara, vperp = multmatvec(els.rotmat[1:els.endidx, :, :], vx, vy)
-    # vxpara, vypara = multmatvec(els.rotmatinv[1:els.endidx, :, :], vpara, zeros(size(vperp)))
-    # vxperp, vyperp = multmatvec(els.rotmatinv[1:els.endidx, :, :], zeros(size(vpara)), vperp)
-
-    # Change in tractions (global then local)
-    dt = ∂t * [blockvx .- vx blockvy .- vy]'[:]
-    dtpara, dtperp = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
-
-    # Frictional slip for fault parallel traction
-    dθ, dvpara, dvperp = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
-
+    vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
+    dt = ∂t * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
+    dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
+    dθ, dvx, dvy = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
     for i in 1:els.endidx
-        vpara = abs.(vpara) # Chris R. suggestion
-        θ = abs.(θ)
-        dθ[i] = -vpara[i] * θ[i] / dc * log(vpara[i] * θ[i] / dc) # slip law
-        # dθ[i] = 1 - θ[i] * vpara[i] / dc # Aging law
-        dvpara[i] = 1 / (η / els.σn[i] + els.a[i] / vpara[i]) * (dtpara[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
-        dvperp[i] = 0 # fault perpendicular creep
+        vx = abs.(vx) # Chris R. suggestion
+        θ = abs.(θ) # Chris R. suggestion
+        dθ[i] = -vx[i] * θ[i] / dc * log(vx[i] * θ[i] / dc) # slip law
+        # dθ[i] = 1 - θ[i] * vx[i] / dc # Aging law
+        dvx[i] = 1 / (η / els.σn[i] + els.a[i] / vx[i]) * (dtx[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+        dvy[i] = 0 # fault perpendicular creep
         # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
     end
-    dvx, dvy = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvpara, dvperp)
+    dvxglobal, dvyglobal = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvx, dvy)
     dvθ = zeros(3 * els.endidx)
-    dvθ[1:3:end] = dvx
-    dvθ[2:3:end] = dvy
+    dvθ[1:3:end] = dvxglobal
+    dvθ[2:3:end] = dvyglobal
     dvθ[3:3:end] = dθ
     return dvθ
 end
@@ -157,71 +140,10 @@ function ex_planarqdconst()
     # (Bulk) Time integrate elastic model
     p = (∂t, els, η, dc, blockvelx, blockvely)
     prob = DifferentialEquations.ODEProblem(calc_dvθ, ics, tspan, p)
-    # println("Bulk integrating")
-    # @time sol = solve(prob, DifferentialEquations.RK4(), abstol = abstol, reltol = reltol, progress = true)
-    # plottimeseries(sol)
     @time sol = solve(prob, DifferentialEquations.DP5(), abstol = abstol, reltol = reltol, progress = true)
-    plottimeseries(sol)
+    # plottimeseries(sol)
     @time @save outfilename sol
     println("Wrote integration results to:")
     println(outfilename)
-
-    # df = DataFrame(sol')
-    # CSV.write("out.csv", DataFrame(sol'))
-
-    # # (Step) Time integrate elastic model
-    # println("Step integrating")
-    # limits = Makie.FRect(0, -14, nfault, 20)
-    # xplot = collect(1:1:nfault)
-    # vxupdate = Makie.Node(1e-14 .* ones(nfault))
-    # currenttimestep = Makie.Node(string(0))
-    # currenttime = Makie.Node(string(0))
-    # currentminvx = Makie.Node(string(0))
-    # currentmaxvx = Makie.Node(string(0))
-    # currentminvy = Makie.Node(string(0))
-    # currentmaxvy = Makie.Node(string(0))
-    # currentminθ = Makie.Node(string(0))
-    # currentmaxθ = Makie.Node(string(0))
-    # scene = Makie.plot(xplot, vxupdate, limits=limits, color = :red)
-    # Makie.text!(currenttime, position = (0, 6), align = (:left,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currenttimestep, position = (0, 5), align = (:left,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentminvx, position = (nfault, 6), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentmaxvx, position = (nfault, 5), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentminvy, position = (nfault, 4), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentmaxvy, position = (nfault, 3), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentminθ, position = (nfault, 2), align = (:right,  :center), textsize = 2, limits=limits)
-    # Makie.text!(currentmaxθ, position = (nfault, 1), align = (:right,  :center), textsize = 2, limits=limits)
-    # axis = scene[Axis] # get the axis object from the scene
-    # axis[:names][:axisnames] = ("element index", "log v")
-    # Makie.display(scene)
-    #
-    # nsteps = 10000
-    # t = zeros(nsteps)
-    # vx = zeros(nsteps, nfault)
-    # vy = zeros(nsteps, nfault)
-    # θ = zeros(nsteps, nfault)
-    # integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
-    #
-    # @time for i in 1:nsteps
-    #     # TODO: Put a lower limit on velocity (e.g., 1e-15 m/s)
-    #     DifferentialEquations.step!(integrator)
-    #     # t[i] = integrator.t
-    #     # vx[i, :] = integrator.u[1:3:end]
-    #     # vy[i, :] = integrator.u[2:3:end]
-    #     # θ[i, :] = integrator.u[3:3:end]
-    #
-    #     # Update Makie plot
-    #     vxupdate[] = log10.(abs.(integrator.u[1:3:end]))
-    #     currenttime[] = string(integrator.t / siay)
-    #     currenttimestep[] = string(i)
-    #     currentminvx[] = string(minimum(integrator.u[1:3:end]))
-    #     currentmaxvx[] = string(maximum(integrator.u[1:3:end]))
-    #     currentminvy[] = string(minimum(integrator.u[2:3:end]))
-    #     currentmaxvy[] = string(maximum(integrator.u[2:3:end]))
-    #     currentminθ[] = string(minimum(integrator.u[3:3:end]))
-    #     currentmaxθ[] = string(maximum(integrator.u[3:3:end]))
-    #     sleep(1e-10)
-    # end
-
 end
 ex_planarqdconst()
