@@ -640,7 +640,7 @@ function plottimeseries(sol)
 
     PyPlot.figure(figsize = (15, 5))
     plotme = log10.(vx')
-    PyPlot.contourf(plotme, 20, cmap = get_cmap("plasma"))
+    PyPlot.contourf(plotme, 200, cmap = get_cmap("plasma"))
     PyPlot.colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
     PyPlot.contour(plotme, 20, linewidths = 0.5, linestyles = "solid", colors = "k")
     PyPlot.xlabel("time step")

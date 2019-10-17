@@ -1,9 +1,5 @@
 using Revise
 using DifferentialEquations
-# using PyCall
-# using PyPlot
-# using Colors
-# using ColorSchemes
 using JLD2
 using Dates
 using UUIDs
