@@ -1,9 +1,11 @@
 using Revise
+using JLD2
 using PyCall
 using PyPlot
 
-export plottimeseries
 function plottimeseries(sol)
+    filename = "2019-10-17T15:18:07.899_cf0c11f0-4bb7-4846-94dd-50fe7249a463.jld2"
+    JLD2.@load filename sol
     siay = 365.25 * 24 * 60 * 60
     nfault = Int(size(sol)[1] / 3)
     t = [x / siay for x in sol.t]

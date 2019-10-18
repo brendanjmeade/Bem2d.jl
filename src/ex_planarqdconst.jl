@@ -2,7 +2,6 @@ using Revise
 using DifferentialEquations
 using JLD2
 using Dates
-using UUIDs
 using Bem2d
 
 function calc_dvθ(vθ, p, t)
@@ -33,7 +32,7 @@ end
 
 function ex_planarqdconst()
     # Constants and model parameters
-    outfilename = string(Dates.now()) * '_' * string(UUIDs.uuid4()) * ".jld2"
+    outfilename = string(Dates.now()) * ".jld2"
     siay = 365.25 * 24 * 60 * 60
     tspan = (0, siay * 1000)
     abstol = 1e-4
