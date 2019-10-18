@@ -82,7 +82,6 @@ function ex_planarqdconst()
     p = (∂t, els, η, dc, blockvelx, blockvely)
     prob = DifferentialEquations.ODEProblem(calc_dvθ, ics, tspan, p)
     @time sol = solve(prob, DifferentialEquations.DP5(), abstol = abstol, reltol = reltol, progress = true)
-    @time Bem2d.plottimeseries(sol)
     @time @save outfilename sol
     println("Wrote integration results to:")
     println(outfilename)
