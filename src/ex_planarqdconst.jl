@@ -34,7 +34,7 @@ function ex_planarqdconst()
     # Constants and model parameters
     outfilename = string(Dates.now()) * ".jld2"
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 1000)
+    tspan = (0, siay * 2000)
     abstol = 1e-4
     reltol = 1e-4
     μ = 3e10
@@ -47,15 +47,15 @@ function ex_planarqdconst()
 
     # Create fault elements
     els = Bem2d.Elements(Int(1e5))
-    nfault = 30
+    nfault = 100
     nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = Bem2d.discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
 
     # Modify y1, and y2 for a sinusoidal fault
-    amplitude = 1000.0
-    y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
-    y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
+    # amplitude = 1000.0
+    # y1 = amplitude * @.sin(2 * π * x1 / faultwidth)
+    # y2 = amplitude * @.sin(2 * π * x2 / faultwidth)
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2

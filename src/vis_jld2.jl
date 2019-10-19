@@ -6,7 +6,8 @@ using PyPlot
 PyPlot.close("all")
 
 function plottimeseries()
-    filename = "2019-10-18T12:02:03.37.jld2"
+    filename = "2019-10-18T14:40:57.735.jld2"
+
     JLD2.@load filename sol
 
     siay = 365.25 * 24 * 60 * 60
@@ -63,7 +64,9 @@ end
 # plottimeseries()
 
 function plotvelocities()
+    # filename = "2019-10-18T14:40:57.735.jld2"
     filename = "2019-10-18T12:02:03.37.jld2"
+
     JLD2.@load filename sol
 
     siay = 365.25 * 24 * 60 * 60
@@ -88,27 +91,27 @@ function plotvelocities()
     # end
 
     # Swap order of loops here?
-    # dt = diff(sol.t)
-    for ifault in 1:nfault
-        for itime in 2:length(t)
-            # sx[itime, ifault] = sx[itime - 1, ifault] + vx[itime, ifault] * dt[itime - 1]
+    for itime in 2:length(t)
+        for ifault in 1:nfault
             sx[itime, ifault] = sx[itime - 1, ifault] + vx[itime, ifault] * (t[itime] - t[itime - 1])
         end
     end
 
 
-    # PyPlot.figure(figsize = (15, 5))
-    # plotme = log10.(vx')
-    # PyPlot.contourf(plotme, 200, cmap = get_cmap("plasma"))
-    # PyPlot.colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
-    # PyPlot.contour(plotme, 20, linewidths = 0.5, linestyles = "solid", colors = "k")
-    # PyPlot.xlabel("time step")
-    # PyPlot.ylabel("element index")
-    # PyPlot.show()
+    PyPlot.figure(figsize = (35, 10))
+    plotme = log10.(vx')
+    PyPlot.contourf(plotme, 200, cmap = get_cmap("plasma"))
+    PyPlot.colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
+    PyPlot.contour(plotme, 20, linewidths = 0.5, linestyles = "solid", colors = "k")
+    PyPlot.xlabel("time step")
+    PyPlot.ylabel("element index")
+    PyPlot.show()
 
-    PyPlot.figure(figsize = (15, 5))
-    # for i in 1:30
-    #     PyPlot.plot(sx[], "-k")
+    PyPlot.figure(figsize = (25, 10))
+    # nlines = 100
+    # plotidx = Int.(round.(collect(LinRange(1, length(sol.t)-1, nlines))))
+    # for i in 1:nlines
+    #     PyPlot.plot(sx[plotidx[i], :], "-k")
     # end
     plotme = sx'
     PyPlot.contourf(plotme, 200, cmap = get_cmap("plasma"))
