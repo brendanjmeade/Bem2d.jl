@@ -526,7 +526,12 @@ function quaduσcoincidentinterleaved(fun2uσ, xobs, yobs, els, idx, para, perp,
     return uinterleaved, σinterleaved
 end
 
-# TODO.  This is under active development
+export pointonline
+function pointonline(x1, y1, x2, y2, x3)
+    y3 = ((y2 - y1) * (x3 - x2)) / (x2 - x1) + y2
+    return y3
+end
+
 # Each 6x6 displacement submatrix is shaped as:
 #
 #       sx(ϕ1) sy(ϕ1) sx(ϕ2) sy(ϕ2) sx(ϕ3) sy(ϕ3)
