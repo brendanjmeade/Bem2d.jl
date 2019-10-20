@@ -54,6 +54,10 @@ function calcdvθquad(vθ, p, t)
     vyglobal = vθ[2:3:end]
     θ = vθ[3:3:end]
 
+    vxglobalcentroid = vxglobal[1:3:end]
+    vyglobalcentroid = vyglobal[1:3:end]
+    θglobal = θ[1:3:end]
+    
     vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
     dt = ∂tquad * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
     dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
