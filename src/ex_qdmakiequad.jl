@@ -22,7 +22,7 @@ function plotelementsmakie(els, subscene)
     return nothing
 end
 
-function calc_dvθ(vθ, p, t)
+function calcdvθconst(vθ, p, t)
     ∂tconst, els, η, dc, blockvxglobal, blockvyglobal = p
     vxglobal = vθ[1:3:end]
     vyglobal = vθ[2:3:end]
@@ -40,6 +40,38 @@ function calc_dvθ(vθ, p, t)
         dvy[i] = 0 # fault perpendicular creep
         # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
     end
+    dvxglobal, dvyglobal = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvx, dvy)
+    dvθ = zeros(3 * els.endidx)
+    dvθ[1:3:end] = dvxglobal
+    dvθ[2:3:end] = dvyglobal
+    dvθ[3:3:end] = dθ
+    return dvθ
+end
+
+function calcdvθquad(vθ, p, t)
+    ∂tconst, els, η, dc, blockvxglobal, blockvyglobal = p
+    vxglobal = vθ[1:3:end]
+    vyglobal = vθ[2:3:end]
+    θ = vθ[3:3:end]
+
+    vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
+    dt = ∂tquad * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
+    dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
+    dθ, dvx, dvy = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
+
+    # Isolate centroids and loop over them (only!!!)
+    for i in 1:els.endidx
+        vx = abs.(vx)
+        θ = abs.(θ)
+        dθ[i] = -vx[i] * θ[i] / dc * log(vx[i] * θ[i] / dc) # slip law
+        # dθ[i] = 1 - θ[i] * vx[i] / dc # Aging law
+        dvx[i] = 1 / (η / els.σn[i] + els.a[i] / vx[i]) * (dtx[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+        dvy[i] = 0 # fault perpendicular creep
+        # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
+    end
+
+    # With centroid velocities calculate other velocities via BCs and continuity
+    
     dvxglobal, dvyglobal = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvx, dvy)
     dvθ = zeros(3 * els.endidx)
     dvθ[1:3:end] = dvxglobal
@@ -95,7 +127,7 @@ function ex_qdmakie()
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
     p = (∂tconst, els, η, dc, blockvelx, blockvely)
-    prob = DifferentialEquations.ODEProblem(calc_dvθ, ics, tspan, p)
+    prob = DifferentialEquations.ODEProblem(calcdvθconst, ics, tspan, p)
     integrator = init(prob, DP5(), abstol = abstol, reltol = reltol, progress = true)
 
     println("Step integrating")
