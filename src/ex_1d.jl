@@ -40,10 +40,12 @@ function ex_1d()
     σn = 30e6
     dc = 0.2
 
+
+    
     # Initial conditions
     ics = [1e8, Vp / 1000]
-    display(ics)
-
+    @show ics
+    
     # Time integrate
     p = (dc, η, σn, a, b, μ, Vp, L, ρ)
     prob = ODEProblem(calcdvθ, ics, tspan, p)
