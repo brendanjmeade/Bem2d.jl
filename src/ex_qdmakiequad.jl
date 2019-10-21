@@ -54,28 +54,39 @@ function calcdvθquad(vθ, p, t)
     vyglobal = vθ[2:3:end]
     θ = vθ[3:3:end]
 
-    vxglobalcentroid = vxglobal[1:3:end]
-    vyglobalcentroid = vyglobal[1:3:end]
-    θglobal = θ[1:3:end]
-    
     vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
     dt = ∂tquad * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
     dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
-    dθ, dvx, dvy = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
+    # dθ, dvx, dvy = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
 
-    # Isolate centroids and loop over them (only!!!)
-    for i in 1:els.endidx
-        vx = abs.(vx)
-        θ = abs.(θ)
-        dθ[i] = -vx[i] * θ[i] / dc * log(vx[i] * θ[i] / dc) # slip law
-        # dθ[i] = 1 - θ[i] * vx[i] / dc # Aging law
-        dvx[i] = 1 / (η / els.σn[i] + els.a[i] / vx[i]) * (dtx[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
-        dvy[i] = 0 # fault perpendicular creep
-        # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
+    # Isolate centroids only
+    ncentroid = Int(length(vxglobal) / 3)
+    # vxglobalcentroid = vxglobal[2:3:end]
+    # vyglobalcentroid = vyglobal[2:3:end]
+    vxcentroid = vx[2:3:end]
+    vycentroid = vy[2:3:end]
+    θcentroid = θ[2:3:end]
+    dtxcentroid = dtx[2:3:end]
+    dtycentroid = dty[2:3:end]
+    dθcentroid = zeros(ncentroid)
+    dvxcentroid = zeros(ncentroid)
+    dvycentoid = zeros(ncentroid)
+
+    # Loop over centroids
+    for i in 1:ncentroid
+        vxcentroid = abs.(vxcentroid)
+        θcentroid = abs.(θcentroid)
+        dθcentroid[i] = -vxcentroid[i] * θcentroid[i] / dc * log(vxcentroid[i] * θcentroid[i] / dc) # slip law
+        # dθcentroid[i] = 1 - θ[i] * vxcentroid[i] / dc # Aging law
+        dvxcentroid[i] = 1 / (η / els.σn[i] + els.a[i] / vx[i]) * (dtx[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
+        dvycentroid[i] = 0 # fault perpendicular creep
     end
 
     # With centroid velocities calculate other velocities via BCs and continuity
-    
+    for i in 1:length(vxcentroid)
+        #
+    end
+
     dvxglobal, dvyglobal = Bem2d.multmatvec(els.rotmatinv[1:els.endidx, :, :], dvx, dvy)
     dvθ = zeros(3 * els.endidx)
     dvθ[1:3:end] = dvxglobal
