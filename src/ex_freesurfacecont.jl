@@ -108,7 +108,16 @@ function ex_freesurface()
     show()
 
     # Now do volume solution to assess the effects of discontinuities
-    # ufaultconst
+    npts = 50
+    xobs, yobs = Bem2d.obsgrid(-5, -2, 5, 2, npts)
+
+    faultidx = findall(x->x == "fault", els.name)
+    freesurfidx = findall(x->x == "freesurf", els.name)
+
+    ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xobs, yobs, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
+    ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xobs, yobs, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
+
+
 
 end
 ex_freesurface()
