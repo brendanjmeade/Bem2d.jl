@@ -174,7 +174,7 @@ function ex_freesurface()
     show()
 
     # Now do volume solution to assess the effects of discontinuities
-    npts = 200
+    npts = 50
     xobs, yobs = obsgrid(-5, -2, 5, 2, npts)
 
     faultidx = findall(x->x == "fault", els.name)
@@ -188,7 +188,7 @@ function ex_freesurface()
 
 
     qux = reshape(ufreesurfacequad[1:2:end], (nfreesurf, 3))
-    quy = reshape(ufreesurfacequad[1:2:end], (nfreesurf, 3))
+    quy = reshape(ufreesurfacequad[2:2:end], (nfreesurf, 3))
 
     ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xobs, yobs, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
     ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xobs, yobs, els, freesurfidx, qux, quy, μ, ν)
