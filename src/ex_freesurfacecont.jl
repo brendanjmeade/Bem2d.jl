@@ -182,9 +182,19 @@ function ex_freesurface()
 
     ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xobs, yobs, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
     ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xobs, yobs, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
+    # plot6panel(els, xobs, yobs, npts, ufaultconstvol, σfaultconstvol, "fault only (CS elements)")
+    # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol, σfreesurfaceconstvol, "free surface only (CS elements)")
+    plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol + ufaultconstvol, σfreesurfaceconstvol + σfaultconstvol, "total (CS elements)")
 
-    plot6panel(els, xobs, yobs, npts, ufaultconstvol, σfaultconstvol, "fault only (CS elements)")
-    plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol, σfreesurfaceconstvol, "free surface only (CS elements)")
+
+    qux = reshape(ufreesurfacequad[1:2:end], (nfreesurf, 3))
+    quy = reshape(ufreesurfacequad[1:2:end], (nfreesurf, 3))
+
+    ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xobs, yobs, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
+    ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xobs, yobs, els, freesurfidx, qux, quy, μ, ν)
+    # plot6panel(els, xobs, yobs, npts, ufaultquadvol, σfaultquadvol, "fault only (3QN elements)")
+    # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol, σfreesurfacequadvol, "free surface only (3QN elements)")
+    plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol + ufaultquadvol, σfreesurfacequadvol + σfaultquadvol, "total (3QN elements)")
 
 
 end
