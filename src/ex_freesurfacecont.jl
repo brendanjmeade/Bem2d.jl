@@ -4,6 +4,72 @@ using PyPlot
 using Bem2d
 
 
+function plot6panel(els, xobs, yobs, npts, u, σ, titlelabel)
+    σ = log10.(abs.(σ))
+
+    fontsize = 20
+    figure(figsize = (30, 20))
+    ncontours = 10
+
+    subplot(2, 3, 2)
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 1], npts, npts), ncontours, cmap = get_cmap("plasma"))
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$u_x$ (m)")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 1], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
+    plotelements(els)
+    xticks([minimum(xobs), 0, maximum(xobs)])
+    yticks([minimum(yobs), 0, maximum(yobs)])
+    gca().set_aspect("equal")
+    xlabel(L"$x$ (m)", fontsize=fontsize)
+    ylabel(L"$y$ (m)")
+
+    subplot(2, 3, 3)
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 2], npts, npts), ncontours, cmap = get_cmap("plasma"))
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$u_y$ (m)")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 2], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
+    plotelements(els)
+    xticks([minimum(xobs), 0, maximum(xobs)])
+    yticks([minimum(yobs), 0, maximum(yobs)])
+    gca().set_aspect("equal")
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+
+    subplot(2, 3, 4)
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 1], npts, npts), ncontours, cmap = get_cmap("plasma"))
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{xx}$ (Pa)")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 1], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
+    plotelements(els)
+    xticks([minimum(xobs), 0, maximum(xobs)])
+    yticks([minimum(yobs), 0, maximum(yobs)])
+    gca().set_aspect("equal")
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+
+    subplot(2, 3, 5)
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 2], npts, npts), ncontours, cmap = get_cmap("plasma"))
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{yy}$ (Pa)")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 2], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
+    plotelements(els)
+    xticks([minimum(xobs), 0, maximum(xobs)])
+    yticks([minimum(yobs), 0, maximum(yobs)])
+    gca().set_aspect("equal")
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+
+    subplot(2, 3, 6)
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 3], npts, npts), ncontours, cmap = get_cmap("plasma"))
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{xy}$ (Pa)")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 3], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
+    plotelements(els)
+    xticks([minimum(xobs), 0, maximum(xobs)])
+    yticks([minimum(yobs), 0, maximum(yobs)])
+    gca().set_aspect("equal")
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+
+    suptitle(titlelabel, fontsize=2*fontsize)
+    show()
+end
+
 function ex_freesurface()
     μ = 30e9
     ν = 0.25
@@ -108,7 +174,7 @@ function ex_freesurface()
     show()
 
     # Now do volume solution to assess the effects of discontinuities
-    npts = 50
+    npts = 200
     xobs, yobs = obsgrid(-5, -2, 5, 2, npts)
 
     faultidx = findall(x->x == "fault", els.name)
@@ -116,40 +182,9 @@ function ex_freesurface()
 
     ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xobs, yobs, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
     ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xobs, yobs, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
-    @show size(ufaultconstvol)
 
-    figure(figsize = (30, 20))
-    ncontours = 10
-
-    u = ufaultconstvol
-    σ = σfaultconstvol
-
-    subplot(2, 3, 2)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 1], npts, npts), ncontours, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$u_x$ (m)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 1], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
-    plotelements(els)
-    xticks([minimum(xobs), 0, maximum(xobs)])
-    yticks([minimum(yobs), 0, maximum(yobs)])
-    gca().set_aspect("equal")
-    xlabel(L"$x$ (m)")
-    ylabel(L"$y$ (m)")
-
-    subplot(2, 3, 3)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 2], npts, npts), ncontours, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$u_y$ (m)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 2], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
-    plotelements(els)
-    xticks([minimum(xobs), 0, maximum(xobs)])
-    yticks([minimum(yobs), 0, maximum(yobs)])
-    gca().set_aspect("equal")
-    xlabel(L"$x$ (m)")
-    ylabel(L"$y$ (m)")
-
-
-
-
-    show()
+    plot6panel(els, xobs, yobs, npts, ufaultconstvol, σfaultconstvol, "fault only (CS elements)")
+    plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol, σfreesurfaceconstvol, "free surface only (CS elements)")
 
 
 end
