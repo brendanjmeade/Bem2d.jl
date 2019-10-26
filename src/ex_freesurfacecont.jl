@@ -125,7 +125,7 @@ function ex_freesurface()
 
     # Okada solution
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
-    xokada = collect(LinRange(-5, 5, 1000))
+    xokada = collect(LinRange(-5, 5, 10000))
     uxokada = zeros(length(xokada))
     uyokada = zeros(length(xokada))
 
@@ -144,6 +144,15 @@ function ex_freesurface()
         uyokada[i] = u[3]
     end
 
+
+    # Attempt at showing actual BEM slip
+    faultidx = findall(x->x == "fault", els.name)
+    freesurfidx = findall(x->x == "freesurf", els.name)
+    uconstfault, σconstfault = constuσ(slip2uσ, xokada, zeros(size(xokada)), els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
+    uconstfreesurf, σconstfreesurf = constuσ(slip2uσ, xokada, zeros(size(xokada)), els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
+    uconst = uconstfault
+
+    # Plot ux and uy profiles
     fontsize = 24
     markersize = 15
     linewidth = 0.5
@@ -152,6 +161,8 @@ function ex_freesurface()
 
     ax = subplot(2, 1, 1)
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada")
+    plot(xokada, uconst[1:2:end], "-g", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
+
     plot(xplotconst, ufreesurfaceconst[1:2:end], "bo", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
     plot(xplotquad, ufreesurfacequad[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
     gca().set_xlim([-5, 5]); gca().set_ylim([-1.0, 1.0])
@@ -173,27 +184,27 @@ function ex_freesurface()
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
     show()
 
-    # Now do volume solution to assess the effects of discontinuities
-    npts = 50
-    xobs, yobs = obsgrid(-5, -2, 5, 2, npts)
-
-    faultidx = findall(x->x == "fault", els.name)
-    freesurfidx = findall(x->x == "freesurf", els.name)
-
-    ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xobs, yobs, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
-    ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xobs, yobs, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
-    # plot6panel(els, xobs, yobs, npts, ufaultconstvol, σfaultconstvol, "fault only (CS elements)")
-    plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol, σfreesurfaceconstvol, "free surface only (CS elements)")
-    # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol + ufaultconstvol, σfreesurfaceconstvol + σfaultconstvol, "total (CS elements)")
-
-    qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
-    quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
-
-    ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xobs, yobs, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
-    ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xobs, yobs, els, freesurfidx, qux, quy, μ, ν)
-    # plot6panel(els, xobs, yobs, npts, ufaultquadvol, σfaultquadvol, "fault only (3QN elements)")
-    plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol, σfreesurfacequadvol, "free surface only (3QN elements)")
-    # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol + ufaultquadvol, σfreesurfacequadvol + σfaultquadvol, "total (3QN elements)")
+    # # Now do volume solution to assess the effects of discontinuities
+    # npts = 50
+    # xobs, yobs = obsgrid(-5, -2, 5, 2, npts)
+    #
+    # faultidx = findall(x->x == "fault", els.name)
+    # freesurfidx = findall(x->x == "freesurf", els.name)
+    #
+    # ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xobs, yobs, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
+    # ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xobs, yobs, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
+    # # plot6panel(els, xobs, yobs, npts, ufaultconstvol, σfaultconstvol, "fault only (CS elements)")
+    # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol, σfreesurfaceconstvol, "free surface only (CS elements)")
+    # # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol + ufaultconstvol, σfreesurfaceconstvol + σfaultconstvol, "total (CS elements)")
+    #
+    # qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
+    # quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
+    #
+    # ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xobs, yobs, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
+    # ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xobs, yobs, els, freesurfidx, qux, quy, μ, ν)
+    # # plot6panel(els, xobs, yobs, npts, ufaultquadvol, σfaultquadvol, "fault only (3QN elements)")
+    # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol, σfreesurfacequadvol, "free surface only (3QN elements)")
+    # # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol + ufaultquadvol, σfreesurfacequadvol + σfaultquadvol, "total (3QN elements)")
 
 
 end
