@@ -64,11 +64,16 @@ function ex_freesurface()
     yokada = -0.1 * ones(size(xokada))
     uxokada = zeros(length(xokada))
     uyokada = zeros(length(xokada))
+    σxxokada = zeros(length(xokada))
+    σyyokada = zeros(length(xokada))
+    σxyokada = zeros(length(xokada))
+
     for i in 1:length(xokada)
         # Fault dipping at 45 degrees
-        _, u, _ = ow.dc3dwrapper(
+        _, u, s = ow.dc3dwrapper(
             2.0 / 3.0,
-            [0, xokada[i] + 0.5, 0],
+            # [0, xokada[i] + 0.5, 0],
+            [0, xokada[i] + 0.5, yokada[i]],
             0.5,
             45,  # 135
             [-1000, 1000],
@@ -77,8 +82,29 @@ function ex_freesurface()
         )
         uxokada[i] = u[2]
         uyokada[i] = u[3]
+
+        dgtxx = s[1, 1]
+        dgtyy = s[2, 2]
+        dgtxy = s[1, 2]
+        dgtyx = s[2, 1]
+
+        # dgtxx = s[1+1, 1+1]
+        # dgtyy = s[2+1, 2+1]
+        # dgtxy = s[1+1, 2+1]
+        # dgtyx = s[2+1, 1+1]
+
+        exx = dgtxx
+        eyy = dgtyy
+        exy = 0.5 * (dgtyx + dgtxy)
+        sxx = μ * (exx + eyy) + 2 * μ * exx
+        syy = μ * (exx + eyy) + 2 * μ * eyy
+        sxy = 2 * μ * exy
+        σxxokada[i] = sxx
+        σyyokada[i] = syy
+        σxyokada[i] = sxy
     end
 
+    @show σxyokada
 
     # Off-fault stresses
     faultidx = findall(x->x == "fault", els.name)
@@ -103,6 +129,7 @@ function ex_freesurface()
     ax = subplot(3, 1, 1)
     plot(xokada, log10.(abs.(σconst[:, 1])), "-r", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 1])), "-b", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(σxxokada[:, 1])), "-g", linewidth=linewidth, label="Okada")
     gca().set_xlim([-5, 5]);
     gca().set_ylim([6, 12])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
@@ -114,6 +141,7 @@ function ex_freesurface()
     ax = subplot(3, 1, 2)
     plot(xokada, log10.(abs.(σconst[:, 2])), "-r", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 2])), "-b", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(σyyokada[:, 1])), "-g", linewidth=linewidth, label="Okada")
     gca().set_xlim([-5, 5]);
     gca().set_ylim([6, 12])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
@@ -125,6 +153,7 @@ function ex_freesurface()
     ax = subplot(3, 1, 3)
     plot(xokada, log10.(abs.(σconst[:, 3])), "-r", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 3])), "-b", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(σxyokada[:, 1])), "-g", linewidth=linewidth, label="Okada")
     gca().set_xlim([-5, 5]);
     gca().set_ylim([6, 12])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
