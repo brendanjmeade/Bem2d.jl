@@ -16,6 +16,8 @@ function plot6panel(els, xobs, yobs, npts, u, σ, titlelabel)
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$u_x$ (m)")
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 1], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
     plotelements(els)
+    xlim([minimum(xobs), maximum(xobs)])
+    ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
     yticks([minimum(yobs), 0, maximum(yobs)])
     gca().set_aspect("equal")
@@ -27,6 +29,8 @@ function plot6panel(els, xobs, yobs, npts, u, σ, titlelabel)
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$u_y$ (m)")
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 2], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
     plotelements(els)
+    xlim([minimum(xobs), maximum(xobs)])
+    ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
     yticks([minimum(yobs), 0, maximum(yobs)])
     gca().set_aspect("equal")
@@ -38,6 +42,8 @@ function plot6panel(els, xobs, yobs, npts, u, σ, titlelabel)
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{xx}$ (Pa)")
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 1], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
     plotelements(els)
+    xlim([minimum(xobs), maximum(xobs)])
+    ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
     yticks([minimum(yobs), 0, maximum(yobs)])
     gca().set_aspect("equal")
@@ -49,6 +55,8 @@ function plot6panel(els, xobs, yobs, npts, u, σ, titlelabel)
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{yy}$ (Pa)")
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 2], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
     plotelements(els)
+    xlim([minimum(xobs), maximum(xobs)])
+    ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
     yticks([minimum(yobs), 0, maximum(yobs)])
     gca().set_aspect("equal")
@@ -60,6 +68,8 @@ function plot6panel(els, xobs, yobs, npts, u, σ, titlelabel)
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{xy}$ (Pa)")
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 3], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
     plotelements(els)
+    xlim([minimum(xobs), maximum(xobs)])
+    ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
     yticks([minimum(yobs), 0, maximum(yobs)])
     gca().set_aspect("equal")
@@ -78,6 +88,7 @@ function ex_freesurface()
     els = Elements(Int(1e5))
     nfreesurf = 20
     x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
+
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -128,7 +139,6 @@ function ex_freesurface()
     xokada = collect(LinRange(-5, 5, 10000))
     uxokada = zeros(length(xokada))
     uyokada = zeros(length(xokada))
-
     for i in 1:length(xokada)
         # Fault dipping at 45 degrees
         _, u, _ = ow.dc3dwrapper(
@@ -145,13 +155,6 @@ function ex_freesurface()
     end
 
 
-    # Attempt at showing actual BEM slip
-    faultidx = findall(x->x == "fault", els.name)
-    freesurfidx = findall(x->x == "freesurf", els.name)
-    uconstfault, σconstfault = constuσ(slip2uσ, xokada, zeros(size(xokada)), els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
-    uconstfreesurf, σconstfreesurf = constuσ(slip2uσ, xokada, zeros(size(xokada)), els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
-    uconst = uconstfault
-
     # Plot ux and uy profiles
     fontsize = 24
     markersize = 15
@@ -161,8 +164,6 @@ function ex_freesurface()
 
     ax = subplot(2, 1, 1)
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada")
-    plot(xokada, uconst[1:2:end], "-g", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
-
     plot(xplotconst, ufreesurfaceconst[1:2:end], "bo", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
     plot(xplotquad, ufreesurfacequad[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
     gca().set_xlim([-5, 5]); gca().set_ylim([-1.0, 1.0])
@@ -184,27 +185,30 @@ function ex_freesurface()
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
     show()
 
-    # # Now do volume solution to assess the effects of discontinuities
+    # Now do volume solution to assess the effects of discontinuities
     # npts = 50
-    # xobs, yobs = obsgrid(-5, -2, 5, 2, npts)
+    # xobs, yobs = obsgrid(-3, -2, 3, 0, npts)
     #
     # faultidx = findall(x->x == "fault", els.name)
     # freesurfidx = findall(x->x == "freesurf", els.name)
     #
     # ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xobs, yobs, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
     # ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xobs, yobs, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
+    # @show minimum(abs.(σfreesurfaceconstvol))
+    # @show maximum(abs.(σfreesurfaceconstvol))
+
     # # plot6panel(els, xobs, yobs, npts, ufaultconstvol, σfaultconstvol, "fault only (CS elements)")
     # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol, σfreesurfaceconstvol, "free surface only (CS elements)")
-    # # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol + ufaultconstvol, σfreesurfaceconstvol + σfaultconstvol, "total (CS elements)")
+    # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol + ufaultconstvol, σfreesurfaceconstvol + σfaultconstvol, "total (CS elements)")
     #
     # qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
     # quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
-    #
+
     # ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xobs, yobs, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
     # ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xobs, yobs, els, freesurfidx, qux, quy, μ, ν)
     # # plot6panel(els, xobs, yobs, npts, ufaultquadvol, σfaultquadvol, "fault only (3QN elements)")
     # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol, σfreesurfacequadvol, "free surface only (3QN elements)")
-    # # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol + ufaultquadvol, σfreesurfacequadvol + σfaultquadvol, "total (3QN elements)")
+    # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol + ufaultquadvol, σfreesurfacequadvol + σfaultquadvol, "total (3QN elements)")
 
 
 end
