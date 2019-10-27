@@ -4,82 +4,6 @@ using PyPlot
 using Bem2d
 
 
-function plot6panel(els, xobs, yobs, npts, u, σ, titlelabel)
-    σ = log10.(abs.(σ))
-
-    fontsize = 20
-    figure(figsize = (30, 20))
-    ncontours = 50
-
-    subplot(2, 3, 2)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 1], npts, npts), ncontours, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$u_x$ (m)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 1], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
-    plotelements(els)
-    xlim([minimum(xobs), maximum(xobs)])
-    ylim([minimum(yobs), maximum(yobs)])
-    xticks([minimum(xobs), 0, maximum(xobs)])
-    yticks([minimum(yobs), 0, maximum(yobs)])
-    gca().set_aspect("equal")
-    xlabel(L"$x$ (m)", fontsize=fontsize)
-    ylabel(L"$y$ (m)")
-
-    subplot(2, 3, 3)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 2], npts, npts), ncontours, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$u_y$ (m)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(u[:, 2], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
-    plotelements(els)
-    xlim([minimum(xobs), maximum(xobs)])
-    ylim([minimum(yobs), maximum(yobs)])
-    xticks([minimum(xobs), 0, maximum(xobs)])
-    yticks([minimum(yobs), 0, maximum(yobs)])
-    gca().set_aspect("equal")
-    xlabel(L"$x$ (m)")
-    ylabel(L"$y$ (m)")
-
-    subplot(2, 3, 4)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 1], npts, npts), ncontours, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{xx}$ (Pa)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 1], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
-    plotelements(els)
-    xlim([minimum(xobs), maximum(xobs)])
-    ylim([minimum(yobs), maximum(yobs)])
-    xticks([minimum(xobs), 0, maximum(xobs)])
-    yticks([minimum(yobs), 0, maximum(yobs)])
-    gca().set_aspect("equal")
-    xlabel(L"$x$ (m)")
-    ylabel(L"$y$ (m)")
-
-    subplot(2, 3, 5)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 2], npts, npts), ncontours, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{yy}$ (Pa)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 2], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
-    plotelements(els)
-    xlim([minimum(xobs), maximum(xobs)])
-    ylim([minimum(yobs), maximum(yobs)])
-    xticks([minimum(xobs), 0, maximum(xobs)])
-    yticks([minimum(yobs), 0, maximum(yobs)])
-    gca().set_aspect("equal")
-    xlabel(L"$x$ (m)")
-    ylabel(L"$y$ (m)")
-
-    subplot(2, 3, 6)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 3], npts, npts), ncontours, cmap = get_cmap("plasma"))
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\sigma_{xy}$ (Pa)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(σ[:, 3], npts, npts), ncontours, linewidths = 0.5, colors = "gray")
-    plotelements(els)
-    xlim([minimum(xobs), maximum(xobs)])
-    ylim([minimum(yobs), maximum(yobs)])
-    xticks([minimum(xobs), 0, maximum(xobs)])
-    yticks([minimum(yobs), 0, maximum(yobs)])
-    gca().set_aspect("equal")
-    xlabel(L"$x$ (m)")
-    ylabel(L"$y$ (m)")
-
-    suptitle(titlelabel, fontsize=2*fontsize)
-    show()
-end
-
 function ex_freesurface()
     μ = 30e9
     ν = 0.25
@@ -137,6 +61,7 @@ function ex_freesurface()
     # Okada solution
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
     xokada = collect(LinRange(-5, 5, 10000))
+    yokada = -0.1 * ones(size(xokada))
     uxokada = zeros(length(xokada))
     uyokada = zeros(length(xokada))
     for i in 1:length(xokada)
@@ -155,61 +80,61 @@ function ex_freesurface()
     end
 
 
+    # Off-fault stresses
+    faultidx = findall(x->x == "fault", els.name)
+    freesurfidx = findall(x->x == "freesurf", els.name)
+    ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xokada, yokada, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
+    ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xokada, yokada, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
+    σconst = σfaultconstvol + σfreesurfaceconstvol
+
+    qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
+    quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
+    ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xokada, yokada, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
+    ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xokada, yokada, els, freesurfidx, qux, quy, μ, ν)
+    σquad = σfaultquadvol + σfreesurfacequadvol
+
     # Plot ux and uy profiles
     fontsize = 24
     markersize = 15
-    linewidth = 0.5
+    linewidth = 2.0
     close("all")
-    figure(figsize = (14, 18))
+    figure(figsize = (15, 15))
 
-    ax = subplot(2, 1, 1)
-    plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada")
-    plot(xplotconst, ufreesurfaceconst[1:2:end], "bo", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
-    plot(xplotquad, ufreesurfacequad[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
-    gca().set_xlim([-5, 5]); gca().set_ylim([-1.0, 1.0])
+    ax = subplot(3, 1, 1)
+    plot(xokada, log10.(abs.(σconst[:, 1])), "-r", linewidth=linewidth, label="CS BEM")
+    plot(xokada, log10.(abs.(σquad[:, 1])), "-b", linewidth=linewidth, label="3QN BEM")
+    gca().set_xlim([-5, 5]);
+    gca().set_ylim([6, 12])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
-    gca().set_yticks([-1.00, -0.75, -0.50, -0.25, 0.0, 0.25, 0.50, 0.75, 1.00])
+    gca().set_yticks([6, 9, 12])
     legend(fontsize=fontsize)
     ax.tick_params("both", labelsize = fontsize)
-    ylabel(L"$u_x$ (m)", fontsize=fontsize)
+    xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{xx}$ (Pa)", fontsize=fontsize)
 
-    ax = subplot(2, 1, 2)
-    plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada")
-    plot(xplotconst, ufreesurfaceconst[2:2:end], "bo", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
-    plot(xplotquad, ufreesurfacequad[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
-    gca().set_xlim([-5, 5]); gca().set_ylim([-1.0, 1.0])
+    ax = subplot(3, 1, 2)
+    plot(xokada, log10.(abs.(σconst[:, 2])), "-r", linewidth=linewidth, label="CS BEM")
+    plot(xokada, log10.(abs.(σquad[:, 2])), "-b", linewidth=linewidth, label="3QN BEM")
+    gca().set_xlim([-5, 5]);
+    gca().set_ylim([6, 12])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
-    gca().set_yticks([-1.00, -0.75, -0.50, -0.25, 0.0, 0.25, 0.50, 0.75, 1.00])
+    gca().set_yticks([6, 9, 12])
     legend(fontsize=fontsize)
     ax.tick_params("both", labelsize = fontsize)
-    xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
+    xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{yy}$ (Pa)", fontsize=fontsize)
+
+    ax = subplot(3, 1, 3)
+    plot(xokada, log10.(abs.(σconst[:, 3])), "-r", linewidth=linewidth, label="CS BEM")
+    plot(xokada, log10.(abs.(σquad[:, 3])), "-b", linewidth=linewidth, label="3QN BEM")
+    gca().set_xlim([-5, 5]);
+    gca().set_ylim([6, 12])
+    gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
+    gca().set_yticks([6, 9, 12])
+    legend(fontsize=fontsize)
+    ax.tick_params("both", labelsize = fontsize)
+    xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{xy}$ (Pa)", fontsize=fontsize)
+
+    tight_layout()
     show()
-
-    # Now do volume solution to assess the effects of discontinuities
-    # npts = 50
-    # xobs, yobs = obsgrid(-3, -2, 3, 0, npts)
-    #
-    # faultidx = findall(x->x == "fault", els.name)
-    # freesurfidx = findall(x->x == "freesurf", els.name)
-    #
-    # ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xobs, yobs, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
-    # ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xobs, yobs, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
-    # @show minimum(abs.(σfreesurfaceconstvol))
-    # @show maximum(abs.(σfreesurfaceconstvol))
-
-    # # plot6panel(els, xobs, yobs, npts, ufaultconstvol, σfaultconstvol, "fault only (CS elements)")
-    # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol, σfreesurfaceconstvol, "free surface only (CS elements)")
-    # plot6panel(els, xobs, yobs, npts, ufreesurfaceconstvol + ufaultconstvol, σfreesurfaceconstvol + σfaultconstvol, "total (CS elements)")
-    #
-    # qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
-    # quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
-
-    # ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xobs, yobs, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
-    # ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xobs, yobs, els, freesurfidx, qux, quy, μ, ν)
-    # # plot6panel(els, xobs, yobs, npts, ufaultquadvol, σfaultquadvol, "fault only (3QN elements)")
-    # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol, σfreesurfacequadvol, "free surface only (3QN elements)")
-    # plot6panel(els, xobs, yobs, npts, ufreesurfacequadvol + ufaultquadvol, σfreesurfacequadvol + σfaultquadvol, "total (3QN elements)")
-
 
 end
 ex_freesurface()
