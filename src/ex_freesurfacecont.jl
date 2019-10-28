@@ -10,9 +10,11 @@ function ex_freesurface()
 
     # Free surface
     els = Elements(Int(1e5))
-    nfreesurf = 20
-    x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
+    # nfreesurf = 20
+    # x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
 
+    nfreesurf = 200
+    x1, y1, x2, y2 = discretizedline(-50, 0, 50, 0, nfreesurf)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -105,27 +107,27 @@ function ex_freesurface()
 
     ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xokada, yokada, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
     ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xokada, yokada, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
-    uconst = ufaultconstvol + ufreesurfaceconstvol
-    σconst = σfaultconstvol + σfreesurfaceconstvol
+    uconst = ufaultconstvol - ufreesurfaceconstvol # Note negative sign
+    σconst = σfaultconstvol - σfreesurfaceconstvol # Note negative sign
 
     qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
     quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
     ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xokada, yokada, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
     ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xokada, yokada, els, freesurfidx, qux, quy, μ, ν)
-    uquad = ufaultquadvol + ufreesurfacequadvol
-    σquad = σfaultquadvol + σfreesurfacequadvol
+    uquad = ufaultquadvol - ufreesurfacequadvol # Note negative sign
+    σquad = σfaultquadvol - σfreesurfacequadvol # Note negative sign
 
     # Plot ux and uy profiles
     fontsize = 24
     markersize = 15
-    linewidth = 2.0
+    linewidth = 5.0
     close("all")
     figure(figsize = (30, 15))
 
     ax = subplot(2, 3, 2)
-    plot(xokada, uconst[:, 1], "-r", markeredgewidth=linewidth, markersize=markersize, label = "CS BEM")
-    plot(xokada, uquad[:, 1], "-b", markeredgewidth=linewidth, markersize=markersize, label = "3QN BEM")
-    plot(xokada, uxokada, "--g", linewidth=linewidth, label="Okada")
+    plot(xokada, uconst[:, 1], "-g", linewidth=linewidth, label = "CS BEM")
+    plot(xokada, uquad[:, 1], "-r", linewidth=linewidth, label = "3QN BEM")
+    plot(xokada, uxokada, "--b", linewidth=linewidth, label="Okada")
     gca().set_xlim([-5, 5])
     gca().set_ylim([-1.0, 1.0])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
@@ -135,9 +137,9 @@ function ex_freesurface()
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_x$ (m)", fontsize=fontsize)
 
     ax = subplot(2, 3, 3)
-    plot(xokada, uconst[:, 2], "-r", markeredgewidth=linewidth, markersize=markersize, label = "CS BEM")
-    plot(xokada, uquad[:, 2], "-b", markeredgewidth=linewidth, markersize=markersize, label = "3QN BEM")
-    plot(xokada, uyokada, "--g", linewidth=linewidth, label="Okada")
+    plot(xokada, uconst[:, 2], "-g", linewidth=linewidth, label = "CS BEM")
+    plot(xokada, uquad[:, 2], "-r", linewidth=linewidth, label = "3QN BEM")
+    plot(xokada, uyokada, "--b", linewidth=linewidth, label="Okada")
     gca().set_xlim([-5, 5])
     gca().set_ylim([-1.0, 1.0])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
@@ -147,9 +149,9 @@ function ex_freesurface()
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
 
     ax = subplot(2, 3, 4)
-    plot(xokada, log10.(abs.(σconst[:, 1])), "-r", linewidth=linewidth, label="CS BEM")
-    plot(xokada, log10.(abs.(σquad[:, 1])), "-b", linewidth=linewidth, label="3QN BEM")
-    plot(xokada, log10.(abs.(σxxokada[:, 1])), "--g", linewidth=linewidth, label="Okada")
+    plot(xokada, log10.(abs.(σconst[:, 1])), "-g", color="mediumseagreen", linewidth=linewidth, label="CS BEM")
+    plot(xokada, log10.(abs.(σquad[:, 1])), "-r", color="red", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(σxxokada[:, 1])), "--b", color="black", linewidth=2.0, label="Okada")
     gca().set_xlim([-5, 5]);
     gca().set_ylim([6, 12])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
