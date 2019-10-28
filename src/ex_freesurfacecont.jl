@@ -61,7 +61,7 @@ function ex_freesurface()
     # Okada solution
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
     xokada = collect(LinRange(-5, 5, 10000))
-    yokada = -0.1 * ones(size(xokada))
+    yokada = -0.5 * ones(size(xokada))
     uxokada = zeros(length(xokada))
     uyokada = zeros(length(xokada))
     σxxokada = zeros(length(xokada))
@@ -83,15 +83,10 @@ function ex_freesurface()
         uxokada[i] = u[2]
         uyokada[i] = u[3]
 
-        dgtxx = s[1, 1]
-        dgtyy = s[2, 2]
-        dgtxy = s[1, 2]
-        dgtyx = s[2, 1]
-
-        # dgtxx = s[1+1, 1+1]
-        # dgtyy = s[2+1, 2+1]
-        # dgtxy = s[1+1, 2+1]
-        # dgtyx = s[2+1, 1+1]
+        dgtxx = s[2, 2]
+        dgtyy = s[3, 3]
+        dgtxy = s[3, 2]
+        dgtyx = s[2, 3]
 
         exx = dgtxx
         eyy = dgtyy
@@ -104,19 +99,19 @@ function ex_freesurface()
         σxyokada[i] = sxy
     end
 
-    @show σxyokada
-
     # Off-fault stresses
     faultidx = findall(x->x == "fault", els.name)
     freesurfidx = findall(x->x == "freesurf", els.name)
     ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xokada, yokada, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
     ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xokada, yokada, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
+    uconst = ufaultconstvol + ufreesurfaceconstvol
     σconst = σfaultconstvol + σfreesurfaceconstvol
 
     qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
     quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
     ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xokada, yokada, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
     ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xokada, yokada, els, freesurfidx, qux, quy, μ, ν)
+    uquad = ufaultquadvol + ufreesurfacequadvol
     σquad = σfaultquadvol + σfreesurfacequadvol
 
     # Plot ux and uy profiles
@@ -124,9 +119,38 @@ function ex_freesurface()
     markersize = 15
     linewidth = 2.0
     close("all")
-    figure(figsize = (15, 15))
+    figure(figsize = (30, 15))
 
-    ax = subplot(3, 1, 1)
+    ax = subplot(2, 3, 2)
+    plot(xokada, uconst[:, 1], "-r", markeredgewidth=linewidth, markersize=markersize, label = "CS BEM")
+    plot(xokada, uquad[:, 1], "-k", markeredgewidth=linewidth, markersize=markersize, label = "3QN BEM")
+    plot(xokada, uxokada, "-g", linewidth=linewidth, label="Okada")
+    gca().set_xlim([-5, 5])
+    gca().set_ylim([-1.0, 1.0])
+    gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
+    gca().set_yticks([-1, 0, 1])
+    legend(fontsize=fontsize)
+    ax.tick_params("both", labelsize = fontsize)
+    xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_x$ (m)", fontsize=fontsize)
+
+    ax = subplot(2, 3, 3)
+    plot(xokada, uconst[:, 2], "-r", markeredgewidth=linewidth, markersize=markersize, label = "CS BEM")
+    plot(xokada, uquad[:, 2], "-k", markeredgewidth=linewidth, markersize=markersize, label = "3QN BEM")
+    plot(xokada, uyokada, "-g", linewidth=linewidth, label="Okada")
+
+
+    # plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada")
+    # plot(xplotconst, ufreesurfaceconst[2:2:end], "bo", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
+    # plot(xplotquad, ufreesurfacequad[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
+    gca().set_xlim([-5, 5])
+    gca().set_ylim([-1.0, 1.0])
+    gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
+    gca().set_yticks([-1, 0, 1])
+    legend(fontsize=fontsize)
+    ax.tick_params("both", labelsize = fontsize)
+    xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
+
+    ax = subplot(2, 3, 4)
     plot(xokada, log10.(abs.(σconst[:, 1])), "-r", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 1])), "-b", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(σxxokada[:, 1])), "-g", linewidth=linewidth, label="Okada")
@@ -138,7 +162,7 @@ function ex_freesurface()
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{xx}$ (Pa)", fontsize=fontsize)
 
-    ax = subplot(3, 1, 2)
+    ax = subplot(2, 3, 5)
     plot(xokada, log10.(abs.(σconst[:, 2])), "-r", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 2])), "-b", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(σyyokada[:, 1])), "-g", linewidth=linewidth, label="Okada")
@@ -150,7 +174,7 @@ function ex_freesurface()
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{yy}$ (Pa)", fontsize=fontsize)
 
-    ax = subplot(3, 1, 3)
+    ax = subplot(2, 3, 6)
     plot(xokada, log10.(abs.(σconst[:, 3])), "-r", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 3])), "-b", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(σxyokada[:, 1])), "-g", linewidth=linewidth, label="Okada")
