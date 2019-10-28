@@ -10,8 +10,8 @@ function ex_freesurface()
 
     # Free surface
     els = Elements(Int(1e5))
-    nfreesurf = 1000
-    x1, y1, x2, y2 = discretizedline(-50, 0, 50, 0, nfreesurf)
+    nfreesurf = 20
+    x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
 
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
@@ -72,25 +72,13 @@ function ex_freesurface()
         # Fault dipping at 45 degrees
         _, u, s = ow.dc3dwrapper(
             2.0 / 3.0,
-            # [0, xokada[i] + 0.5, 0],
-            [0, xokada[i] + 0.5, yokada[i] - 1e5],
-            0.5 + 1e5,
+            [0, xokada[i] + 0.5, yokada[i]],
+            0.5,
             45,  # 135
             [-1e5, 1e5],
             [-sqrt(2) / 2, sqrt(2) / 2],
             [0.0, 1.0, 0.0],
         )
-
-        # # Horizontal fault
-        # _, u, s = dc3dwrapper(
-        #     2.0 / 3.0,
-        #     [0, x[i], y[i] - big_deep],
-        #     big_deep,
-        #     45,
-        #     [-1e10, 1e10],
-        #     [-L * np.sqrt(2), L * np.sqrt(2)],
-        #     [0.0, 0.0, 1.0],
-        # )
 
         uxokada[i] = u[2]
         uyokada[i] = u[3]
@@ -115,13 +103,10 @@ function ex_freesurface()
     faultidx = findall(x->x == "fault", els.name)
     freesurfidx = findall(x->x == "freesurf", els.name)
 
-    @show faultslipconst[1:2:end]
-    @show faultslipconst[2:2:end]
-
     ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xokada, yokada, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
     ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xokada, yokada, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
-    uconst = ufaultconstvol .+ ufreesurfaceconstvol
-    σconst = σfaultconstvol .+ σfreesurfaceconstvol
+    uconst = ufaultconstvol + ufreesurfaceconstvol
+    σconst = σfaultconstvol + σfreesurfaceconstvol
 
     qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
     quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
