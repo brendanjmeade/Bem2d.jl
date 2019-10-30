@@ -41,12 +41,8 @@ function ex_thrusttopo()
     standardize_elements!(els)
 
     # Partial derivatves
-    srcidx = findall(x->x == "fault", els.name)
-    obsidx = findall(x->x == "freesurf", els.name)
-    ∂u1, ∂σ1, ∂t1 = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
-    srcidx = findall(x->x == "freesurf", els.name)
-    obsidx = findall(x->x == "freesurf", els.name)
-    ∂u2, ∂σ2, ∂t2 = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
+    ∂u1, ∂σ1, ∂t1 = ∂constuσ(slip2uσ, els, getidx("fault", els), getidx("freesurf", els), μ, ν)
+    ∂u2, ∂σ2, ∂t2 = ∂constuσ(slip2uσ, els, getidx("freesurf", els), getidx("freesurf", els), μ, ν)
 
     # Solve the BEM problem for unit slip in the x-direction
     faultslip = zeros(2 * nfault)
