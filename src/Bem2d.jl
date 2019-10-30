@@ -599,4 +599,12 @@ function coef2slip(xnodes, coef, a)
     return slip
 end
 
+# Get indices matching label name and report how many are selected
+export getidx
+function getidx(label, els)
+    idx = findall(x->x == label, els.name)
+    println("Bem2d.getidx found " * string(length(idx)) * " elements with label <<" * label * ">>")
+    return idx
+end
+
 end
