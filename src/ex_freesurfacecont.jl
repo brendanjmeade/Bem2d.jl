@@ -1,8 +1,9 @@
 using Revise
+using Printf
 using PyCall
 using PyPlot
+using Statistics
 using Bem2d
-
 
 function ex_freesurface()
     μ = 30e9
@@ -10,7 +11,7 @@ function ex_freesurface()
 
     # Free surface
     els = Elements(Int(1e5))
-    # nfreesurf = 200
+    # nfreesurf = 20
     # x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
     nfreesurf = 200
     x1, y1, x2, y2 = discretizedline(-50, 0, 50, 0, nfreesurf)
@@ -55,7 +56,7 @@ function ex_freesurface()
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
     xokada = collect(LinRange(-5, 5, 1000))
     # yokada = -0.1 * ones(size(xokada))
-    yokada = -1.8e-1 * ones(size(xokada))
+    yokada = -1.666666667e-1 * ones(size(xokada))
 
     uxokada = zeros(length(xokada))
     uyokada = zeros(length(xokada))
@@ -92,8 +93,8 @@ function ex_freesurface()
     end
 
     # Off-fault stresses
-    faultidx = findall(x->x == "fault", els.name)
-    freesurfidx = findall(x->x == "freesurf", els.name)
+    faultidx = getidx("fault", els)
+    freesurfidx = getidx("freesurf", els)
 
     ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xokada, yokada, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
     ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xokada, yokada, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
@@ -113,31 +114,6 @@ function ex_freesurface()
     linewidth = 5.0
     close("all")
     figure(figsize = (30, 15))
-
-    # ax = subplot(2, 3, 2)
-    # plot(xokada, uconst[:, 1], "-c", linewidth=linewidth, label = "CS BEM")
-    # plot(xokada, uquad[:, 1], "-r", linewidth=linewidth, label = "3QN BEM")
-    # plot(xokada, uxokada, "--b", linewidth=2.0, label="Okada")
-    # gca().set_xlim([-5, 5])
-    # gca().set_ylim([-1.0, 1.0])
-    # gca().set_xticks([-5, 0, 5])
-    # gca().set_yticks([-1, 0, 1])
-    # legend(fontsize=fontsize)
-    # ax.tick_params("both", labelsize = fontsize)
-    # xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_x$ (m)", fontsize=fontsize)
-    #
-    # ax = subplot(2, 3, 3)
-    # plot(xokada, uconst[:, 2], "-c", linewidth=linewidth, label = "CS BEM")
-    # plot(xokada, uquad[:, 2], "-r", linewidth=linewidth, label = "3QN BEM")
-    # plot(xokada, uyokada, "--b", linewidth=2.0, label="Okada")
-    # gca().set_xlim([-5, 5])
-    # gca().set_ylim([-1.0, 1.0])
-    # # gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
-    # gca().set_xticks([-5, 0, 5])
-    # gca().set_yticks([-1, 0, 1])
-    # legend(fontsize=fontsize, frameon=false)
-    # ax.tick_params("both", labelsize = fontsize)
-    # xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
 
     ax = subplot(2, 3, 1)
     plot(xokada, log10.(abs.(σconst[:, 1])), "-c", linewidth=linewidth, label="CS BEM")
@@ -171,15 +147,15 @@ function ex_freesurface()
     gca().set_ylim([6, 12])
     gca().set_xticks([-5, 0, 5])
     gca().set_yticks([6, 9, 12])
-    legend(fontsize=fontsize)
+    legend(fontsize=fontsize, frameon=false)
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{xy}$ (Pa)", fontsize=fontsize)
 
     ax = subplot(2, 3, 4)
     σxxconsterror = 100 * (σconst[:, 1] - σxxokada[:, 1]) ./ σxxokada[:, 1]
     σxxquaderror = 100 * (σquad[:, 1] - σxxokada[:, 1]) ./ σxxokada[:, 1]
-    plot(xokada, log10.(abs.(σxxconsterror)), "-c", linewidth=linewidth, label="CS BEM")
-    plot(xokada, log10.(abs.(σxxquaderror)), "-r", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(σxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxxconsterror)))
+    plot(xokada, log10.(abs.(σxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxxquaderror)))
     gca().set_xlim([-5, 5])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-5, 0, 5])
@@ -191,8 +167,8 @@ function ex_freesurface()
     ax = subplot(2, 3, 5)
     σyyconsterror = 100 * (σconst[:, 2] - σyyokada[:, 1]) ./ σyyokada[:, 1]
     σyyquaderror = 100 * (σquad[:, 2] - σyyokada[:, 1]) ./ σyyokada[:, 1]
-    plot(xokada, log10.(abs.(σyyconsterror)), "-c", linewidth=linewidth, label="CS BEM")
-    plot(xokada, log10.(abs.(σyyquaderror)), "-r", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(σyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σyyconsterror)))
+    plot(xokada, log10.(abs.(σyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σyyquaderror)))
     gca().set_xlim([-5, 5])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-5, 0, 5])
@@ -204,8 +180,8 @@ function ex_freesurface()
     ax = subplot(2, 3, 6)
     σxyconsterror = 100 * (σconst[:, 3] - σxyokada[:, 1]) ./ σxyokada[:, 1]
     σxyquaderror = 100 * (σquad[:, 3] - σxyokada[:, 1]) ./ σxyokada[:, 1]
-    plot(xokada, log10.(abs.(σxyconsterror)), "-c", linewidth=linewidth, label="CS BEM")
-    plot(xokada, log10.(abs.(σxyquaderror)), "-r", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(σxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxyconsterror)))
+    plot(xokada, log10.(abs.(σxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxyquaderror)))
     gca().set_xlim([-5, 5])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-5, 0, 5])
@@ -216,6 +192,5 @@ function ex_freesurface()
 
     tight_layout()
     show()
-
 end
 ex_freesurface()
