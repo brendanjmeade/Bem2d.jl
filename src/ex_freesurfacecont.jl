@@ -12,9 +12,9 @@ function ex_freesurface()
     # Free surface
     els = Elements(Int(1e5))
     # nfreesurf = 20
-    # x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
+    # x1, y1, x2, y2 = discretizedline(-5e3, 0, 5e3, 0, nfreesurf)
     nfreesurf = 200
-    x1, y1, x2, y2 = discretizedline(-50, 0, 50, 0, nfreesurf)
+    x1, y1, x2, y2 = discretizedline(-50e3, 0, 50e3, 0, nfreesurf)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -26,7 +26,7 @@ function ex_freesurface()
 
     # 45 degree dipping fault
     nfault = 1
-    x1, y1, x2, y2 = discretizedline(-1, -1, 0, 0, nfault)
+    x1, y1, x2, y2 = discretizedline(-1e3, -1e3, 0, 0, nfault)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -54,10 +54,8 @@ function ex_freesurface()
 
     # Okada solution
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
-    xokada = collect(LinRange(-5, 5, 1000))
-    # yokada = -0.1 * ones(size(xokada))
-    yokada = -1.666666667e-1 * ones(size(xokada))
-
+    xokada = collect(LinRange(-5e3, 5e3, 1000))
+    yokada = -1.666666667e2 * ones(size(xokada))
     uxokada = zeros(length(xokada))
     uyokada = zeros(length(xokada))
     σxxokada = zeros(length(xokada))
@@ -68,11 +66,11 @@ function ex_freesurface()
         # Fault dipping at 45 degrees
         _, u, s = ow.dc3dwrapper(
             2.0 / 3.0,
-            [0, xokada[i] + 0.5, yokada[i]],
-            0.5,
+            [0, xokada[i] + 0.5e3, yokada[i]],
+            0.5e3,
             45,
             [-1e5, 1e5],
-            [-sqrt(2) / 2, sqrt(2) / 2],
+            [-1e3*sqrt(2) / 2, 1e3*sqrt(2) / 2],
             [0.0, 1.0, 0.0],
         )
         uxokada[i] = u[2]
@@ -119,10 +117,10 @@ function ex_freesurface()
     plot(xokada, log10.(abs.(σconst[:, 1])), "-c", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 1])), "-r", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(σxxokada[:, 1])), "--k", linewidth=2.0, label="Okada")
-    gca().set_xlim([-5, 5])
-    gca().set_ylim([6, 12])
-    gca().set_xticks([-5, 0, 5])
-    gca().set_yticks([6, 9, 12])
+    # gca().set_xlim([-5e3, 5e3])
+    # gca().set_ylim([6, 12])
+    # gca().set_xticks([-5e3, 0, 5e3])
+    # gca().set_yticks([6, 9, 12])
     legend(fontsize=fontsize, frameon=false)
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{xx}$ (Pa)", fontsize=fontsize)
@@ -131,10 +129,10 @@ function ex_freesurface()
     plot(xokada, log10.(abs.(σconst[:, 2])), "-c", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 2])), "-r", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(σyyokada[:, 1])), "--k", linewidth=2.0, label="Okada")
-    gca().set_xlim([-5, 5])
-    gca().set_ylim([6, 12])
-    gca().set_xticks([-5, 0, 5])
-    gca().set_yticks([6, 9, 12])
+    # gca().set_xlim([-5e3, 5e3])
+    # gca().set_ylim([6, 12])
+    # gca().set_xticks([-5e3, 0, 5e3])
+    # gca().set_yticks([6, 9, 12])
     legend(fontsize=fontsize, frameon=false)
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{yy}$ (Pa)", fontsize=fontsize)
@@ -143,10 +141,10 @@ function ex_freesurface()
     plot(xokada, log10.(abs.(σconst[:, 3])), "-c", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(σquad[:, 3])), "-r", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(σxyokada[:, 1])), "--k", linewidth=2.0, label="Okada")
-    gca().set_xlim([-5, 5])
-    gca().set_ylim([6, 12])
-    gca().set_xticks([-5, 0, 5])
-    gca().set_yticks([6, 9, 12])
+    # gca().set_xlim([-5e3, 5e3])
+    # gca().set_ylim([6, 12])
+    # gca().set_xticks([-5e3, 0, 5e3])
+    # gca().set_yticks([6, 9, 12])
     legend(fontsize=fontsize, frameon=false)
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{xy}$ (Pa)", fontsize=fontsize)
@@ -156,9 +154,9 @@ function ex_freesurface()
     σxxquaderror = 100 * (σquad[:, 1] - σxxokada[:, 1]) ./ σxxokada[:, 1]
     plot(xokada, log10.(abs.(σxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxxconsterror)))
     plot(xokada, log10.(abs.(σxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxxquaderror)))
-    gca().set_xlim([-5, 5])
+    gca().set_xlim([-5e3, 5e3])
     gca().set_ylim([-3, 6])
-    gca().set_xticks([-5, 0, 5])
+    gca().set_xticks([-5e3, 0, 5e3])
     gca().set_yticks([-3, 0, 3, 6])
     legend(fontsize=fontsize, frameon=false)
     ax.tick_params("both", labelsize = fontsize)
@@ -169,9 +167,9 @@ function ex_freesurface()
     σyyquaderror = 100 * (σquad[:, 2] - σyyokada[:, 1]) ./ σyyokada[:, 1]
     plot(xokada, log10.(abs.(σyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σyyconsterror)))
     plot(xokada, log10.(abs.(σyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σyyquaderror)))
-    gca().set_xlim([-5, 5])
+    gca().set_xlim([-5e3, 5e3])
     gca().set_ylim([-3, 6])
-    gca().set_xticks([-5, 0, 5])
+    gca().set_xticks([-5e3, 0, 5e3])
     gca().set_yticks([-3, 0, 3, 6])
     legend(fontsize=fontsize, frameon=false)
     ax.tick_params("both", labelsize = fontsize)
@@ -182,9 +180,9 @@ function ex_freesurface()
     σxyquaderror = 100 * (σquad[:, 3] - σxyokada[:, 1]) ./ σxyokada[:, 1]
     plot(xokada, log10.(abs.(σxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxyconsterror)))
     plot(xokada, log10.(abs.(σxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxyquaderror)))
-    gca().set_xlim([-5, 5])
+    gca().set_xlim([-5e3, 5e3])
     gca().set_ylim([-3, 6])
-    gca().set_xticks([-5, 0, 5])
+    gca().set_xticks([-5e3, 0, 5e3])
     gca().set_yticks([-3, 0, 3, 6])
     legend(fontsize=fontsize, frameon=false)
     ax.tick_params("both", labelsize = fontsize)
