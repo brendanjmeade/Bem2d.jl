@@ -413,7 +413,7 @@ end
 export plotelements
 function plotelements(els)
     for i in 1:els.endidx
-        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 0.5)
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0)
     end
     return nothing
 end
