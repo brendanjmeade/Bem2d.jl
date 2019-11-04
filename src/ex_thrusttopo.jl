@@ -86,7 +86,9 @@ function ex_thrusttopo()
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         reshape(ufield, npts, npts), ucontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
-    plotelements(els)
+    for i in 1:els.endidx
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+    end
     xlim([minimum(xobs), maximum(xobs)])
     ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
@@ -102,7 +104,9 @@ function ex_thrusttopo()
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         reshape(σfield, npts, npts), σcontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
-    plotelements(els)
+    for i in 1:els.endidx
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+    end
     xlim([minimum(xobs), maximum(xobs)])
     ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
@@ -180,7 +184,9 @@ function ex_thrusttopo()
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         reshape(ufield, npts, npts), ucontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
-    plotelements(els)
+    for i in 1:els.endidx
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+    end
     xlim([minimum(xobs), maximum(xobs)])
     ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
@@ -196,7 +202,9 @@ function ex_thrusttopo()
     contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
         reshape(σfield, npts, npts), σcontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
-    plotelements(els)
+    for i in 1:els.endidx
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+    end
     xlim([minimum(xobs), maximum(xobs)])
     ylim([minimum(yobs), maximum(yobs)])
     xticks([minimum(xobs), 0, maximum(xobs)])
