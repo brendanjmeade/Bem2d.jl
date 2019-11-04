@@ -39,8 +39,6 @@ function ex_1d()
     Vp = 1e-9
     σn = 30e6
     dc = 0.2
-
-
     
     # Initial conditions
     ics = [1e8, Vp / 1000]
