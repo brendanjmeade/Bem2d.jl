@@ -26,6 +26,10 @@ function calcdvθ!(dvθ, vθ, p, t)
 end
 
 function ex_1d()
+
+    # Try inplace update following lorenz style at:
+    https://docs.juliadiffeq.org/latest/tutorials/ode_example.html
+    
     # Model parameters
     siay = 365.25 * 24 * 60 * 60
     tspan = (0.0, siay * 2000.0)
