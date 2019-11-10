@@ -24,6 +24,8 @@ function ex_freesurface()
     end
     standardize_elements!(els)
 
+    @show els.xnodes[1, 1] - els.xnodes[1, 2]
+
     # 45 degree dipping fault
     nfault = 1
     x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault)
