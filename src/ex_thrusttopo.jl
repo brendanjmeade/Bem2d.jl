@@ -3,17 +3,28 @@ using PyCall
 using PyPlot
 using Bem2d
 
+function asdf(els)
+    idx = Dict()
+    names = unique(els.name)
+    for i in 1:length(names)
+        idx[names[i]] = getidx(names[i], els)
+    end
+    return idx
+end
+
+
 function ex_thrusttopo()
     μ = 30e9
     ν = 0.25
     els = Elements(Int(1e5))
 
     # Observation points for internal evaluation and visualization
-    npts = 300
+    npts = 50
     xobs, yobs = obsgrid(-10e3, -5e3, 10e3, 5e3, npts)
-
+    nfreesurf = 40
+    nfault = 10
+    
     # Topographic free surface
-    nfreesurf = 400
     x1, y1, x2, y2 = discretizedline(-20e3, 0, 20e3, 0, nfreesurf)
     y1 = -1e-3 * atan.(x1 / 1e3)
     y2 = -1e-3 * atan.(x2 / 1e3)
@@ -27,7 +38,6 @@ function ex_thrusttopo()
     standardize_elements!(els)
 
     # Curved fault
-    nfault = 100
     x1, y1, x2, y2 = discretizedline(-7e3, 0e3, 0, 0, nfault)
     y1 = 3e3 * atan.(x1 / 1e3)
     y2 = 3e3 * atan.(x2 / 1e3)
@@ -40,27 +50,30 @@ function ex_thrusttopo()
     end
     standardize_elements!(els)
 
+    # Dictionary with indices to all names/labels
+    idx = asdf(els)
+    
     # Partial derivatves
-    ∂u1, ∂σ1, ∂t1 = ∂constuσ(slip2uσ, els, getidx("fault", els), getidx("freesurf", els), μ, ν)
-    ∂u2, ∂σ2, ∂t2 = ∂constuσ(slip2uσ, els, getidx("freesurf", els), getidx("freesurf", els), μ, ν)
-
+    ∂u1, ∂σ1, ∂t1 = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurf"], μ, ν)
+    ∂u2, ∂σ2, ∂t2 = ∂constuσ(slip2uσ, els, idx["freesurf"], idx["freesurf"], μ, ν)
+    
     # Solve the BEM problem for unit slip in the x-direction
     faultslip = zeros(2 * nfault)
     faultslip[1:2:end] .= 1.0 # Global coordinate system
     ufreesurfslip = inv(∂t2) * ∂t1 * faultslip
 
     # Fault in full space
-    faultidx = getidx("fault", els)
-    ufault, σfault = constuσ(slip2uσ, xobs, yobs, els, faultidx, ones(size(faultidx)), zeros(size(faultidx)), μ, ν)
+    # faultidx = getidx("fault", els)
+    ufault, σfault = constuσ(slip2uσ, xobs, yobs, els, idx["fault"], ones(size(idx["fault"])), zeros(size(idx["fault"])), μ, ν)
 
     # Free surface in full space
-    freesurfidx = getidx("freesurf", els)
-    ufreesurf, σfreesurf = constuσ(slip2uσ, xobs, yobs, els, freesurfidx, ufreesurfslip[1:2:end], ufreesurfslip[2:2:end], μ, ν)
+    # freesurfidx = getidx("freesurf", els)
+    ufreesurf, σfreesurf = constuσ(slip2uσ, xobs, yobs, els, idx["freesurf"], ufreesurfslip[1:2:end], ufreesurfslip[2:2:end], μ, ν)
 
     # Pretty picture of displacements and stresses
-    xfreesurf = unique([els.x1[freesurfidx] ; els.x2[freesurfidx]])
+    xfreesurf = unique([els.x1[idx["freesurf"]] ; els.x2[idx["freesurf"]]])
     xfill = [xfreesurf ; [10e3 ; -10e3 ; -10e3]]
-    yfreesurf = unique([els.y1[freesurfidx] ; els.y2[freesurfidx]])
+    yfreesurf = unique([els.y1[idx["freesurf"]] ; els.y2[idx["freesurf"]]])
     yfill = [yfreesurf ; [5e3 ; 5e3 ; minimum(yfreesurf)]]
 
     # Combine two fields for total displacement and stress fields
@@ -131,7 +144,6 @@ function ex_thrusttopo()
     standardize_elements!(els)
 
     # Curved fault
-    nfault = 100
     x1, y1, x2, y2 = discretizedline(-7e3, 0e3, 0, 0, nfault)
     y1 = 3e3 * atan.(x1 / 1e3)
     y2 = 3e3 * atan.(x2 / 1e3)
