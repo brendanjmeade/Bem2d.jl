@@ -56,6 +56,7 @@ function ex_thrusttopo()
 
     # Dictionary with indices to all names/labels
     idx = getidxdict(els)
+    ∂ = init∂(els)
     
     # Partial derivatves
     ∂u1, ∂σ1, ∂t1 = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurfflat"], μ, ν)

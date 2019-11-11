@@ -619,4 +619,24 @@ function getidxdict(els)
     return idxdict
 end
 
+# Create a nested dictionary for storing partial derivatives
+export init∂
+function init∂(els)
+    ∂ = Dict()
+    ∂["u"] = Dict()
+    ∂["σ"] = Dict()
+    ∂["t"] = Dict()
+    ∂names = collect(keys(∂))
+    elnames = collect(keys(getidxdict(els)))
+    for i∂ in 1:length(∂names)
+        for i in 1:length(elnames)
+            ∂[∂names[i∂]][elnames[i]] = Dict()
+            for j in 1:length(elnames)
+                ∂[∂names[i∂]][elnames[i]][elnames[j]] = []
+            end
+        end
+    end
+    return ∂
+end
+
 end
