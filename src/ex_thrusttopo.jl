@@ -3,15 +3,6 @@ using PyCall
 using PyPlot
 using Bem2d
 
-function asdf(els)
-    idx = Dict()
-    names = unique(els.name)
-    for i in 1:length(names)
-        idx[names[i]] = getidx(names[i], els)
-    end
-    return idx
-end
-
 
 function ex_thrusttopo()
     μ = 30e9
@@ -64,7 +55,7 @@ function ex_thrusttopo()
     standardize_elements!(els)
 
     # Dictionary with indices to all names/labels
-    idx = asdf(els)
+    idx = getidxdict(els)
     
     # Partial derivatves
     ∂u1, ∂σ1, ∂t1 = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurfflat"], μ, ν)

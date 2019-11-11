@@ -603,8 +603,20 @@ end
 export getidx
 function getidx(label, els)
     idx = findall(x->x == label, els.name)
-    println("Bem2d.getidx found " * string(length(idx)) * " elements with label <<" * label * ">>")
+    println("getidx found " * string(length(idx)) * " elements with label <<" * label * ">>")
     return idx
+end
+
+export getidxdict
+function getidxdict(els)
+    idxdict = Dict()
+    names = unique(els.name)
+    for i in 1:length(names)
+        if length(names[i]) > 0
+            idxdict[names[i]] = getidx(names[i], els)
+        end
+    end
+    return idxdict
 end
 
 end
