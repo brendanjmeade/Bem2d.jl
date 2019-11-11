@@ -1,19 +1,26 @@
 using DifferentialEquations
-using BenchmarkTools
 using PyCall
 using PyPlot
 
-function calcdvθ(vθ, p, t)
+function calca(a, v)
+    alow = 0.045
+    ahighdiff = 0.0319 - 0.0450
+    switchrange = 1e-2 # m/s
+    a = alow + 0.5 * ahighdiff * (1 + tanh((v - 5e-3) / switchrange))
+    return a
+end
+
+function calcdvθexp!(dvθ, vθ, p, t)
     dc, η, σn, a, b, μ, Vp, L, ρ = p
     θ = vθ[1]
     v = vθ[2]
-    dθ = -v * θ / dc * log(v * θ / dc)
-    dv = 1 / (η / σn + a / v) * (μ * (Vp - v) / (L * σn) - b * dθ / θ)
-    dvθ = [dθ, dv]
-    return dvθ
+    a = calca(a, v)
+    dvθ[1] = -v * θ / dc * log(v * θ / dc)
+    dvθ[2] = 1 / (η / σn + a / v) * (μ * (Vp - v) / (L * σn) - b * dvθ[1] / θ)
+    return nothing
 end
 
-function calcdvθ!(dvθ, vθ, p, t)
+function calcdvθref!(dvθ, vθ, p, t)
     dc, η, σn, a, b, μ, Vp, L, ρ = p
     θ = vθ[1]
     v = vθ[2]
@@ -25,7 +32,7 @@ end
 function ex_1d()
     # Model parameters
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0.0, siay * 20000.0)
+    tspan = (0.0, siay * 5000.0)
     μ = 3e10
     ν = 0.25
     ρ = 2700.0
@@ -36,17 +43,17 @@ function ex_1d()
     Vp = 1e-9
     σn = 30e6
     dc = 0.2
-    abstol = 1e-10
-    reltol = 1e-10
+    abstol = 1e-4
+    reltol = 1e-4
     
     # Initial conditions
     ics = [1e8; Vp / 1000]
     
     # Time integrate
     p = (dc, η, σn, a, b, μ, Vp, L, ρ)
-    prob1 = ODEProblem(calcdvθ, ics, tspan, p)
+    prob1 = ODEProblem(calcdvθref!, ics, tspan, p)
     @time sol1 = solve(prob1, RK4(), abstol = abstol, reltol = reltol)
-    prob2 = ODEProblem(calcdvθ!, ics, tspan, p)
+    prob2 = ODEProblem(calcdvθexp!, ics, tspan, p)
     @time sol2 = solve(prob2, RK4(), abstol = abstol, reltol = reltol)
     
     t1 = [x / siay for x in sol1.t]
@@ -61,11 +68,13 @@ function ex_1d()
     subplot(2, 2, 1)
     plot(t1, θ1, "-b", linewidth = 0.5)
     plot(t2, θ2, "-r", linewidth = 0.5)
+    yscale("log")
     ylabel(L"\theta")
 
     subplot(2, 2, 2)
     plot(1:1:length(t1), θ1, "-b", linewidth = 0.5)
     plot(1:1:length(t2), θ2, "-r", linewidth = 0.5)
+    yscale("log")
     ylabel(L"\theta")
 
     subplot(2, 2, 3)
