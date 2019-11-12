@@ -33,7 +33,9 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
         reshape(ufield, npts, npts), ucontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
     for i in 1:els.endidx
-        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+        if els.name[i] == "fault" || els.name[i] == "freesurfflat"
+            plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+        end
     end
     xlim([minimum(xobs), maximum(xobs)])
     ylim([minimum(yobs), maximum(yobs)])
@@ -51,7 +53,9 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
         reshape(σfield, npts, npts), σcontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
     for i in 1:els.endidx
-        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+        if els.name[i] == "fault" || els.name[i] == "freesurfflat"
+            plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+        end
     end
     xlim([minimum(xobs), maximum(xobs)])
     ylim([minimum(yobs), maximum(yobs)])
@@ -85,7 +89,9 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
         reshape(ufield, npts, npts), ucontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
     for i in 1:els.endidx
-        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+        if els.name[i] == "fault" || els.name[i] == "freesurftopo"
+            plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+        end
     end
     xlim([minimum(xobs), maximum(xobs)])
     ylim([minimum(yobs), maximum(yobs)])
@@ -103,7 +109,9 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
         reshape(σfield, npts, npts), σcontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
     for i in 1:els.endidx
-        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+        if els.name[i] == "fault" || els.name[i] == "freesurftopo"
+            plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k", linewidth = 2.0, zorder=40)
+        end
     end
     xlim([minimum(xobs), maximum(xobs)])
     ylim([minimum(yobs), maximum(yobs)])
@@ -124,10 +132,10 @@ function ex_thrusttopo()
     els = Elements(Int(1e5))
 
     # Observation points for internal evaluation and visualization
-    npts = 50
+    npts = 100
     xobs, yobs = obsgrid(-10e3, -5e3, 10e3, 5e3, npts)
-    nfreesurf = 40
-    nfault = 10
+    nfreesurf = 100
+    nfault = 50
     
     # Flat free surface
     x1, y1, x2, y2 = discretizedline(-20e3, 0, 20e3, 0, nfreesurf)
