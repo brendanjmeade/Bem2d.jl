@@ -24,7 +24,6 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
     ucontours = collect(LinRange(0.0, 1.0, ncontours))
     σcontours = collect(LinRange(10.0, 16.0, ncontours))
 
-    close("all")
     figure(figsize = (15, 10))
     subplot(2, 2, 1)
     contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
@@ -171,13 +170,17 @@ function ex_thrusttopo()
     # Create convience tools
     idx = getidxdict(els)
     ∂const = init∂(els)
-    
+    ∂quad = init∂(els)
+
+    #
+    # CS elements
+    #
     # Partial derivatves for solving BEM problem
     _, _, ∂const["t"]["fault"]["freesurfflat"] = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurfflat"], μ, ν)
     _, _, ∂const["t"]["freesurfflat"]["freesurfflat"] = ∂constuσ(slip2uσ, els, idx["freesurfflat"], idx["freesurfflat"], μ, ν)
     _, _, ∂const["t"]["fault"]["freesurftopo"] = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurftopo"], μ, ν)
     _, _, ∂const["t"]["freesurftopo"]["freesurftopo"] = ∂constuσ(slip2uσ, els, idx["freesurftopo"], idx["freesurftopo"], μ, ν)
-
+    
     # Solve the BEM problem for unit slip in the x-direction
     faultslip = zeros(2 * nfault)
     faultslip[1:2:end] .= 1.0 # Global coordinate system
@@ -192,5 +195,29 @@ function ex_thrusttopo()
     # Pretty plotting
     plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfreesurfflat, σfreesurftopo, xobs, yobs, npts)
 
+    #
+    # 3QN elements
+    #
+    # Partial derivatves for solving BEM problem
+    _, _, ∂quad["t"]["fault"]["freesurfflat"] = ∂quaduσ(slip2uσ, els, idx["fault"], idx["freesurfflat"], μ, ν)
+    _, _, ∂quad["t"]["freesurfflat"]["freesurfflat"] = ∂quaduσ(slip2uσ, els, idx["freesurfflat"], idx["freesurfflat"], μ, ν)
+    _, _, ∂quad["t"]["fault"]["freesurftopo"] = ∂quaduσ(slip2uσ, els, idx["fault"], idx["freesurftopo"], μ, ν)
+    _, _, ∂quad["t"]["freesurftopo"]["freesurftopo"] = ∂quaduσ(slip2uσ, els, idx["freesurftopo"], idx["freesurftopo"], μ, ν)
+
+    # Solve the BEM problem for unit slip in the x-direction
+    faultslip = zeros(6 * nfault)
+    faultslip[1:2:end] .= 1.0 # Global coordinate system
+    ufreesurfflatslip = inv(∂quad["t"]["freesurfflat"]["freesurfflat"]) * ∂quad["t"]["fault"]["freesurfflat"] * faultslip
+    ufreesurftoposlip = inv(∂quad["t"]["freesurftopo"]["freesurftopo"]) * ∂quad["t"]["fault"]["freesurftopo"] * faultslip
+
+    # Forward model for volumetric displacements and stresses
+    ufault, σfault = constuσ(slip2uσ, xobs, yobs, els, idx["fault"], ones(size(idx["fault"])), zeros(size(idx["fault"])), μ, ν)
+    # TODO: Need to do the fancy reshape for quad forward model
+    ufreesurfflat, σfreesurfflat = quaduσ(slip2uσ, xobs, yobs, els, idx["freesurfflat"], ufreesurfflatslip[1:2:end], ufreesurfflatslip[2:2:end], μ, ν)
+    ufreesurftopo, σfreesurftopo = quaduσ(slip2uσ, xobs, yobs, els, idx["freesurftopo"], ufreesurftoposlip[1:2:end], ufreesurftoposlip[2:2:end], μ, ν)
+
+    # Pretty plotting
+    plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfreesurfflat, σfreesurftopo, xobs, yobs, npts)
+    
 end
 ex_thrusttopo()
