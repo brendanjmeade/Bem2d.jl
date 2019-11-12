@@ -118,6 +118,7 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
 end
 
 function ex_thrusttopo()
+    close("all")
     μ = 30e9
     ν = 0.25
     els = Elements(Int(1e5))
@@ -211,10 +212,9 @@ function ex_thrusttopo()
     ufreesurftoposlip = inv(∂quad["t"]["freesurftopo"]["freesurftopo"]) * ∂quad["t"]["fault"]["freesurftopo"] * faultslip
 
     # Forward model for volumetric displacements and stresses
-    ufault, σfault = constuσ(slip2uσ, xobs, yobs, els, idx["fault"], ones(size(idx["fault"])), zeros(size(idx["fault"])), μ, ν)
-    # TODO: Need to do the fancy reshape for quad forward model
-    ufreesurfflat, σfreesurfflat = quaduσ(slip2uσ, xobs, yobs, els, idx["freesurfflat"], ufreesurfflatslip[1:2:end], ufreesurfflatslip[2:2:end], μ, ν)
-    ufreesurftopo, σfreesurftopo = quaduσ(slip2uσ, xobs, yobs, els, idx["freesurftopo"], ufreesurftoposlip[1:2:end], ufreesurftoposlip[2:2:end], μ, ν)
+    ufault, σfault = quaduσ(slip2uσ, xobs, yobs, els, idx["fault"], quadstack(ones(3 * length(idx["fault"]))), quadstack(zeros(3 * length(idx["fault"]))), μ, ν)
+    ufreesurfflat, σfreesurfflat = quaduσ(slip2uσ, xobs, yobs, els, idx["freesurfflat"], quadstack(ufreesurfflatslip[1:2:end]), quadstack(ufreesurfflatslip[2:2:end]), μ, ν)
+    ufreesurftopo, σfreesurftopo = quaduσ(slip2uσ, xobs, yobs, els, idx["freesurftopo"], quadstack(ufreesurftoposlip[1:2:end]), quadstack(ufreesurftoposlip[2:2:end]), μ, ν)
 
     # Pretty plotting
     plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfreesurfflat, σfreesurftopo, xobs, yobs, npts)

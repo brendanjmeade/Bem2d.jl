@@ -639,4 +639,14 @@ function init∂(els)
     return ∂
 end
 
+# Utility function for "stacking" a flattened quad vector
+# Useful for converting results of BEM solve to arguments
+# that can be used with quaduσ for forward models
+export quadstack
+function quadstack(vec)
+    stack = transpose(reshape(vec, 3, Int(length(vec) / 3)))
+    return stack
+end
+
+
 end
