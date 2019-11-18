@@ -79,7 +79,7 @@ mutable struct Elements
 end
 
 export updateendidx!
-function updateendidx!(elements)
+function updateendidx!(elements::Elements)
     elements.endidx = findall(isnan, elements.x1)[1] - 1
     return nothing
 end
@@ -130,13 +130,16 @@ end
 export constuσ
 function constuσ(fun2uσ::Function, x, y, els::Elements, idx, xcomp, ycomp, μ, ν)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
+    # TODO: Preallocate everything before for loop
+    _x, _y = zeros(length(x)), zeros(length(x))
+    
     for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
-        _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
-        _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
-        f = constkernel(_x, _y, els.halflength[idx[j]], ν)
+        @views _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
+        @views _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
+        @views f = constkernel(_x, _y, els.halflength[idx[j]], ν)
         _u, _σ = fun2uσ(_xcomp, _ycomp, f, _y, μ, ν)
-        _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
+        @views _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
         u += _u
         σ += _σ
     end
@@ -146,9 +149,6 @@ end
 # Far-field displacements and stresses for constant quadratic elements
 export quaduσ
 function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
-    # println("Entered quaduσ")
-    # display(xcomp)
-    # display(ycomp)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
@@ -482,10 +482,10 @@ export ∂constuσ
 function ∂constuσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     nobs, nsrc = length(obsidx), length(srcidx)
     ∂u, ∂σ, ∂t = zeros(2 * nobs, 2 * nsrc), zeros(3 * nobs, 2 * nsrc), zeros(2 * nobs, 2 * nsrc)
+    _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
     for isrc in 1:nsrc
         for iobs in 1:nobs
             #TODO: PUll zeros 
-            _∂u, _∂σ, _∂t = zeros(Float32, 2, 2), zeros(3, 2), zeros(2, 2)
             _∂u[:, 1], _∂σ[:, 1] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 1, 0, μ, ν)
             _∂u[:, 2], _∂σ[:, 2] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 0, 1, μ, ν)
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
@@ -545,12 +545,11 @@ export ∂quaduσ
 function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     nobs, nsrc = length(obsidx), length(srcidx)
     ∂u, ∂σ, ∂t = zeros(6 * nobs, 6 * nsrc), zeros(9 * nobs, 6 * nsrc), zeros(6 * nobs, 6 * nsrc)
+    _∂u, _∂σ, _∂t = zeros(6, 6), zeros(9, 6), zeros(6, 6)
 
     # Far-field interactions for all except main (block) diagonal
     for isrc in 1:nsrc
         for iobs in 1:nobs
-            _∂u, _∂σ, _∂t = zeros(6, 6), zeros(9, 6), zeros(6, 6)
-            # if isrc == iobs
             if srcidx[isrc] == obsidx[iobs]
                 _∂u[:, 1], _∂σ[:, 1] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], μ, ν)
                 _∂u[:, 2], _∂σ[:, 2] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], μ, ν)
