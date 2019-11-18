@@ -12,19 +12,18 @@ end
 
 # Based on: http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
 export meshgrid
-function meshgrid(xs, ys)
-    return [xs[i] for i in 1:length(xs), j in 1:length(ys)], [ys[j] for i in 1:length(xs), j in 1:length(ys)]
+function meshgrid(xs::AbstractArray, ys::AbstractArray)
+    xmat = repeat(xs, 1, length(ys))
+    ymat = transpose(repeat(ys, 1, length(xs)))
+    return xmat, ymat
 end
 
 # Create regular grid for plotting simple models
 export obsgrid
-function obsgrid(xmin, ymin, xmax, ymax, npts)
-    xobs = LinRange(xmin, xmax, npts)
-    yobs = LinRange(ymin, ymax, npts)
-    xobs, yobs = meshgrid(xobs, yobs)
-    xobs = xobs[:]
-    yobs = yobs[:]
-    return xobs, yobs
+function obsgrid(xmin::AbstractFloat, ymin::AbstractFloat, xmax::AbstractFloat, ymax::AbstractFloat, npts::Int)
+    T = typeof(xmin)
+    xobs, yobs = meshgrid(LinRange(T(xmin), T(xmax), npts), LinRange(T(ymin), T(ymax), npts))    
+    return xobs[:], yobs[:]
 end
 
 export Elements
@@ -129,7 +128,7 @@ end
 
 # Calculate u and σ for constant slip/traction elements
 export constuσ
-function constuσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
+function constuσ(fun2uσ::Function, x, y, els::Elements, idx, xcomp, ycomp, μ, ν)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
@@ -485,7 +484,8 @@ function ∂constuσ(fun2uσ, els, srcidx, obsidx, μ, ν)
     ∂u, ∂σ, ∂t = zeros(2 * nobs, 2 * nsrc), zeros(3 * nobs, 2 * nsrc), zeros(2 * nobs, 2 * nsrc)
     for isrc in 1:nsrc
         for iobs in 1:nobs
-            _∂u, _∂σ, _∂t = zeros(2, 2), zeros(3, 2), zeros(2, 2)
+            #TODO: PUll zeros 
+            _∂u, _∂σ, _∂t = zeros(Float32, 2, 2), zeros(3, 2), zeros(2, 2)
             _∂u[:, 1], _∂σ[:, 1] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 1, 0, μ, ν)
             _∂u[:, 2], _∂σ[:, 2] = constuσ(fun2uσ, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 0, 1, μ, ν)
             _∂t[:, 1] = σ2t(_∂σ[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
