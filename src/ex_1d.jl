@@ -1,6 +1,7 @@
 using DifferentialEquations
 using PyCall
 using PyPlot
+using Infiltrator
 
 function calca(a, v)
     alow = 0.045
@@ -45,6 +46,8 @@ function ex_1d()
     dc = 0.2
     abstol = 1e-4
     reltol = 1e-4
+
+    @infiltrate
     
     # Initial conditions
     ics = [1e8; Vp / 1000]
