@@ -130,14 +130,15 @@ end
 export constuσ
 function constuσ(fun2uσ::Function, x, y, els::Elements, idx, xcomp, ycomp, μ, ν)
     u, σ = zeros(length(x), 2), zeros(length(x), 3)
-    # TODO: Preallocate everything before for loop
     _x, _y = zeros(length(x)), zeros(length(x))
-    
-    for j in 1:length(idx)
+    _xcomp, _ycomp = zeros(1), zeros(1)
+    f = zeros(length(x), 7)
+    _u, _σ = zeros(length(x), 2), zeros(length(x), 3)
+    @inbounds @simd for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
         @views _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         @views _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
-        @views f = constkernel(_x, _y, els.halflength[idx[j]], ν)
+        @views f = constkernel(_x, _y, els.halflength[idx[j]], ν)        
         _u, _σ = fun2uσ(_xcomp, _ycomp, f, _y, μ, ν)
         @views _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
         u += _u

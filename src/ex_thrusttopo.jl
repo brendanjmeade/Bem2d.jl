@@ -200,7 +200,7 @@ function ex_thrusttopo()
     ufault, σfault = constuσ(slip2uσ, xobs, yobs, els, idx["fault"], ones(size(idx["fault"])), zeros(size(idx["fault"])), μ, ν)
     ufreesurfflat, σfreesurfflat = constuσ(slip2uσ, xobs, yobs, els, idx["freesurfflat"], ufreesurfflatslip[1:2:end], ufreesurfflatslip[2:2:end], μ, ν)
     ufreesurftopo, σfreesurftopo = constuσ(slip2uσ, xobs, yobs, els, idx["freesurftopo"], ufreesurftoposlip[1:2:end], ufreesurftoposlip[2:2:end], μ, ν)
-
+    
     # Pretty plotting
     plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfreesurfflat, σfreesurftopo, xobs, yobs, npts)
 
