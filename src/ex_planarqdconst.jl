@@ -74,16 +74,16 @@ function ex_planarqdconst()
     @time _, _, ∂quad["t"]["fault"]["freesurfflat"] = ∂quaduσ(slip2uσ, els, idx["fault"], idx["fault"], μ, ν)
 
     # Set initial conditions
-    ics = zeros(3 * nnodes)
-    ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
-    ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
-    ics[3:3:end] = 1e8 * ones(nnodes)
+    icsconst = zeros(3 * nnodes)
+    icsconst[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
+    icsconst[2:3:end] = 0.0 * blockvely * ones(nnodes)
+    icsconst[3:3:end] = 1e8 * ones(nnodes)
 
     # (Bulk) Time integrate elastic model
-    p = (∂const, els, η, dc, blockvelx, blockvely)
-    prob = ODEProblem(calc_dvθ, ics, tspan, p)
-    @time sol = solve(prob, DP5(), abstol=abstol, reltol=reltol)
-    @time @save outfilename sol
+    pconst = (∂const, els, η, dc, blockvelx, blockvely)
+    probconst = ODEProblem(calc_dvθ, icsconst, tspan, pconst)
+    @time solconst = solve(probconst, DP5(), abstol=abstol, reltol=reltol)
+    @time @save outfilename solconst
     println("Wrote integration results to:")
     println(outfilename)
 end
