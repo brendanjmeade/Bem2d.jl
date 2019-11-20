@@ -4,6 +4,7 @@ using AbstractPlotting
 using Makie
 using Random
 using Printf
+using NPZ
 using Bem2d
 
 function vplot(v)
@@ -32,10 +33,10 @@ function calc_dvθ(vθ, p, t)
     dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
     dθ, dvx, dvy = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
     for i in 1:els.endidx
-        vx = abs.(vx) # Chris R. suggestion
-        θ = abs.(θ) # Chris R. suggestion
-        dθ[i] = -vx[i] * θ[i] / dc * log(vx[i] * θ[i] / dc) # slip law
-        # dθ[i] = 1 - θ[i] * vx[i] / dc # Aging law
+        vx = @. abs(vx)
+        θ = @. abs(θ)
+        # dθ[i] = -vx[i] * θ[i] / dc * log(vx[i] * θ[i] / dc) # slip law
+        dθ[i] = 1 - θ[i] * vx[i] / dc # Aging law
         dvx[i] = 1 / (η / els.σn[i] + els.a[i] / vx[i]) * (dtx[i] / els.σn[i] - els.b[i] * dθ[i] / θ[i])
         dvy[i] = 0 # fault perpendicular creep
         # dvperp[i] = dvpara[i] # fault perpendicular velocity proportional to fault parallel velocity
@@ -50,13 +51,13 @@ end
 
 function ex_qdmakie()
     # Fun things to play with
-    nsteps = 5000
+    nsteps = 2000
     amplitude = 1.0
     nfault = 200
 
     # Constants
     siay = 365.25 * 24 * 60 * 60
-    tspan = (0, siay * 1000)
+    tspan = (0, siay * 100)
     abstol = 1e-4
     reltol = 1e-4
     μ = 3e10
@@ -80,23 +81,23 @@ function ex_qdmakie()
     dy = roughy[end] - roughy[1]
     slope = dy / dx
 
-    # @show roughy[end]
-    # @show slope * x2[end]
-    y1 = amplitude * (roughy[1:1:end-1] - slope * x1)
-    y2 = amplitude * (roughy[2:1:end] - slope * x2)
+    # y1 = amplitude * (roughy[1:1:end-1] - slope * x1)
+    # y2 = amplitude * (roughy[2:1:end] - slope * x2)
     # y1 = amplitude * (-slope * x1)
     # y2 = amplitude * (-slope * x2)
-
-    # @show y2[end]
-
-
     # y1 = amplitude * sin.(8 * π * x1 / faultwidth)
     # y2 = amplitude * sin.(8 * π * x2 / faultwidth)
+
+    # Spatially variable a
+    avec = collect(LinRange(0.010, 0.020, nfault))
+    
     els.x1[els.endidx + 1:els.endidx + nfault] = x1
     els.y1[els.endidx + 1:els.endidx + nfault] = y1
     els.x2[els.endidx + 1:els.endidx + nfault] = x2
     els.y2[els.endidx + 1:els.endidx + nfault] = y2
-    els.a[els.endidx + 1:els.endidx + nfault] .= 0.015
+    # els.a[els.endidx + 1:els.endidx + nfault] .= 0.015
+    els.a[els.endidx + 1:els.endidx + nfault] = avec
+    
     els.b[els.endidx + 1:els.endidx + nfault] .= 0.020
     els.σn[els.endidx + 1:els.endidx + nfault] .= 50e6
     els.name[els.endidx + 1:els.endidx + nfault] .= "fault"
@@ -209,5 +210,8 @@ function ex_qdmakie()
 
         sleep(1e-10)
     end
+
+    tmat = ∂t
+    npzwrite("tmat.npy", tmat)
 end
 ex_qdmakie()
