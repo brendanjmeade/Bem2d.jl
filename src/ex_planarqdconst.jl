@@ -64,7 +64,7 @@ function ex_planarqdconst()
     end
     standardize_elements!(els)
 
-    # Create convience tools
+    # Convenience variables to make bookkeeping easier
     idx = getidxdict(els)
     ∂const = init∂(els)
     ∂quad = init∂(els)
