@@ -541,41 +541,46 @@ end
 # uy(ϕ2)
 # ux(ϕ3)
 # uy(ϕ3)
-export ∂quaduσ
-function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
-    nobs, nsrc = length(obsidx), length(srcidx)
-    ∂u, ∂σ, ∂t = zeros(6 * nobs, 6 * nsrc), zeros(9 * nobs, 6 * nsrc), zeros(6 * nobs, 6 * nsrc)
-    _∂u, _∂σ, _∂t = zeros(6, 6), zeros(9, 6), zeros(6, 6)
+export partialsquaddispstress
+function partialsquaddispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
+    nobs = length(obsidx)
+    nsrc = length(srcidx)
+    partialsdisp = zeros(6 * nobs, 6 * nsrc)
+    partialsstress = zeros(9 * nobs, 6 * nsrc)
+    partialstrac = zeros(6 * nobs, 6 * nsrc)
+    _partialsdisp = zeros(6, 6)
+    _partialsstress = zeros(9, 6)
+    _partialstrac = zeros(6, 6)
 
     # Far-field interactions for all except main (block) diagonal
     for isrc in 1:nsrc
         for iobs in 1:nobs
             if srcidx[isrc] == obsidx[iobs]
-                _∂u[:, 1], _∂σ[:, 1] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], μ, ν)
-                _∂u[:, 2], _∂σ[:, 2] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], μ, ν)
-                _∂u[:, 3], _∂σ[:, 3] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], μ, ν)
-                _∂u[:, 4], _∂σ[:, 4] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], μ, ν)
-                _∂u[:, 5], _∂σ[:, 5] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], μ, ν)
-                _∂u[:, 6], _∂σ[:, 6] = quaduσcoincidentinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
+                _partialsdisp[:, 1], _partialsstress[:, 1] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], mu, nu)
+                _partialsdisp[:, 2], _partialsstress[:, 2] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], mu, nu)
+                _partialsdisp[:, 3], _partialsstress[:, 3] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], mu, nu)
+                _partialsdisp[:, 4], _partialsstress[:, 4] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], mu, nu)
+                _partialsdisp[:, 5], _partialsstress[:, 5] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], mu, nu)
+                _partialsdisp[:, 6], _partialsstress[:, 6] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], mu, nu)
             else
-                _∂u[:, 1], _∂σ[:, 1] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], μ, ν)
-                _∂u[:, 2], _∂σ[:, 2] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], μ, ν)
-                _∂u[:, 3], _∂σ[:, 3] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], μ, ν)
-                _∂u[:, 4], _∂σ[:, 4] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], μ, ν)
-                _∂u[:, 5], _∂σ[:, 5] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], μ, ν)
-                _∂u[:, 6], _∂σ[:, 6] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
+                _partialsdisp[:, 1], _partialsstress[:, 1] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], mu, nu)
+                _partialsdisp[:, 2], _partialsstress[:, 2] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], mu, nu)
+                _partialsdisp[:, 3], _partialsstress[:, 3] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], mu, nu)
+                _partialsdisp[:, 4], _partialsstress[:, 4] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], mu, nu)
+                _partialsdisp[:, 5], _partialsstress[:, 5] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], mu, nu)
+                _partialsdisp[:, 6], _partialsstress[:, 6] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], mu, nu)
             end
             for i in 1:6
-                _∂t[1:2, i] = stress2trac(_∂σ[1:3, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-                _∂t[3:4, i] = stress2trac(_∂σ[4:6, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-                _∂t[5:6, i] = stress2trac(_∂σ[7:9, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+                _partialstrac[1:2, i] = stress2trac(_partialsstress[1:3, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+                _partialstrac[3:4, i] = stress2trac(_partialsstress[4:6, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+                _partialstrac[5:6, i] = stress2trac(_partialsstress[7:9, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             end
-            ∂u[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂u
-            ∂σ[9 * (iobs - 1) + 1:9 * (iobs - 1) + 9, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂σ
-            ∂t[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂t
+            partialsdisp[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _partialsdisp
+            partialsstress[9 * (iobs - 1) + 1:9 * (iobs - 1) + 9, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _partialsstress
+            partialstrac[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _partialstrac
         end
     end
-    return ∂u, ∂σ, ∂t
+    return partialsdisp, partialsstress, partialstrac
 end
 
 # Go from fault slip at 3 nodes to 3 quadratic shape function coefficients

@@ -127,8 +127,8 @@ end
 
 function ex_thrusttopo()
     close("all")
-    μ = 30e9
-    ν = 0.25
+    mu = 30e9
+    nu = 0.25
     els = Elements(Int(1e5))
 
     # Observation points for internal evaluation and visualization
@@ -178,17 +178,17 @@ function ex_thrusttopo()
 
     # Create convience tools
     idx = getidxdict(els)
-    ∂const = init∂(els)
-    ∂quad = init∂(els)
+    partialsconst = initpartials(els)
+    partialsquad = initpartials(els)
 
     #
     # CS elements
     #
     # Partial derivatves for solving BEM problem
-    _, _, ∂const["t"]["fault"]["freesurfflat"] = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurfflat"], μ, ν)
-    _, _, ∂const["t"]["freesurfflat"]["freesurfflat"] = ∂constuσ(slip2uσ, els, idx["freesurfflat"], idx["freesurfflat"], μ, ν)
-    _, _, ∂const["t"]["fault"]["freesurftopo"] = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurftopo"], μ, ν)
-    _, _, ∂const["t"]["freesurftopo"]["freesurftopo"] = ∂constuσ(slip2uσ, els, idx["freesurftopo"], idx["freesurftopo"], μ, ν)
+    _, _, partialsconst["trac"]["fault"]["freesurfflat"] = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurfflat"], mu, nu)
+    _, _, partialsconst["trac"]["freesurfflat"]["freesurfflat"] = ∂constuσ(slip2uσ, els, idx["freesurfflat"], idx["freesurfflat"], mu, nu)
+    _, _, partialsconst["trac"]["fault"]["freesurftopo"] = ∂constuσ(slip2uσ, els, idx["fault"], idx["freesurftopo"], mu, nu)
+    _, _, partialsconst["trac"]["freesurftopo"]["freesurftopo"] = ∂constuσ(slip2uσ, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
     
     # Solve the BEM problem for unit slip in the x-direction
     faultslip = zeros(2 * nfault)
