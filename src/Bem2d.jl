@@ -50,7 +50,7 @@ mutable struct Elements
     ynodes::Array{Float64,2}
     a::Array{Float64,1}
     b::Array{Float64,1}
-    σn::Array{Float64,1}
+    normalstress::Array{Float64,1}
     endidx::Int64
     Elements(maxidx) = new(fill(NaN, maxidx), # x1
                            fill(NaN, maxidx), # y1
@@ -620,23 +620,23 @@ function getidxdict(els)
 end
 
 # Create a nested dictionary for storing partial derivatives
-export init∂
-function init∂(els)
-    ∂ = Dict()
-    ∂["u"] = Dict()
-    ∂["σ"] = Dict()
-    ∂["t"] = Dict()
-    ∂names = collect(keys(∂))
+export initpartials
+function initpartials(els)
+    partials = Dict()
+    partials["u"] = Dict()
+    partials["σ"] = Dict()
+    partials["t"] = Dict()
+    fieldnames = collect(keys(partials))
     elnames = collect(keys(getidxdict(els)))
-    for i∂ in 1:length(∂names)
+    for iname in 1:length(fieldnames)
         for i in 1:length(elnames)
-            ∂[∂names[i∂]][elnames[i]] = Dict()
+            partials[fieldnames[iname]][elnames[i]] = Dict()
             for j in 1:length(elnames)
-                ∂[∂names[i∂]][elnames[i]][elnames[j]] = []
+                partials[fieldnames[iname]][elnames[i]][elnames[j]] = []
             end
         end
     end
-    return ∂
+    return partials
 end
 
 # Utility function for "stacking" a flattened quad vector

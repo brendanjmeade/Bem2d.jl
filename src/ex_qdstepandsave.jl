@@ -18,7 +18,7 @@ function derivs(u, p, t)
 
     for i in 1:els.endidx
         dtheta[i] = 1 - theta[i] * vx[i] / dc # Aging law
-        dvx[i] = 1 / (eta / els.σn[i] + els.a[i] / vx[i]) * (dtx[i] / els.σn[i] - els.b[i] * dtheta[i] / theta[i])
+        dvx[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtx[i] / els.normalstress[i] - els.b[i] * dtheta[i] / theta[i])
         dvy[i] = 0 # fault perpendicular creep
     end
 
@@ -62,16 +62,20 @@ function ex_qdstepandsave()
         els.y2[els.endidx + i] = y2[i]
         els.a[els.endidx + i] = 0.015
         els.b[els.endidx + i] = 0.020
-        els.σn[els.endidx + i] = 50e6 # sigman
+        els.normalstress[els.endidx + i] = 50e6
         els.name[els.endidx + i] = "fault"
     end
     standardize_elements!(els)
 
+    # Create convience tools
+    idx = getidxdict(els)
+    ∂const = initpartials(els)
+    
     # Calculate slip to traction partials on the fault
     println("Calculating velocity to traction matrix")
     srcidx = findall(x->x == "fault", els.name)
     obsidx = srcidx
-    @time _, _, partrac = ∂constuσ(slip2uσ, els, srcidx, obsidx, mu, nu)
+    @time _, _, partrac = ∂constuσ(slip2uσ, els, idx["fault"], idx["fault"], mu, nu)
     # @time _, _, partrac = parconst_dispstress(slip2dispstress, els, srcidx, obsidx, mu, nu)
     
     # Set initial conditions
