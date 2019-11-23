@@ -148,32 +148,32 @@ function constdispstress(fun2dispstress::Function, x, y, els::Elements, idx, xco
 end
 
 # Far-field displacements and stresses for constant quadratic elements
-export quaduσ
-function quaduσ(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
-    u, σ = zeros(length(x), 2), zeros(length(x), 3)
+export quaddispstress # previously quaduσ
+function quaddispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
+    disp = zeros(length(x), 2)
+    stress = zeros(length(x), 3)
+
     for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
         _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
-        f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], ν)
+        f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], nu)
         _xcomp, _ycomp = multmatsinglevec(els.rotmatinv[idx[j], :, :], xcomp[j, :], ycomp[j, :])
 
         # TODO: I think I need to get xnodes is local coordinate system
         # This should be a translate and a rotate
         # Should these matrices be moved to standardize_elements?
-        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :],
-            els.xnodes[idx[j], :] .- els.xcenter[idx[j]],
-            els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
-        ϕx = slip2coef(xnodes, _xcomp, els.halflength[idx[j]])
-        ϕy = slip2coef(xnodes, _ycomp, els.halflength[idx[j]])
+        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :], els.xnodes[idx[j], :] .- els.xcenter[idx[j]], els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
+        phix = slip2coef(xnodes, _xcomp, els.halflength[idx[j]])
+        phiy = slip2coef(xnodes, _ycomp, els.halflength[idx[j]])
         for i in 1:3
-            # _u, _σ = fun2uσ(_xcomp[i], _ycomp[i], f[:, :, i], _y, μ, ν)
-            _u, _σ = fun2uσ(ϕx[i], ϕy[i], f[:, :, i], _y, μ, ν)
-            _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
-            u += _u
-            σ += _σ
+            # _disp, _stress = fun2dispstress(_xcomp[i], _ycomp[i], f[:, :, i], _y, mu, nu)
+            _disp, _stress = fun2dispstress(phix[i], phiy[i], f[:, :, i], _y, mu, nu)
+            _disp, _stress = rotuσ(_disp, _stress, els.rotmat[idx[j], :, :])
+            disp += _disp
+            stress += _stress
         end
     end
-    return u, σ
+    return disp, stress
 end
 
 # Far-field displacements and stresses for constant quadratic elements
@@ -502,7 +502,7 @@ end
 # and stresses rather than the stacked columns
 export quaduσinterleaved
 function quaduσinterleaved(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
-    ustacked, σstacked = quaduσ(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
+    ustacked, σstacked = quaddispstress(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
     uinterleaved = zeros(2 * length(xobs))
     uinterleaved[1:2:end] = ustacked[:, 1]
     uinterleaved[2:2:end] = ustacked[:, 2]

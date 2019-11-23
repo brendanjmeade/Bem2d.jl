@@ -208,24 +208,24 @@ function ex_thrusttopo()
     # 3QN elements
     #
     # Partial derivatves for solving BEM problem
-    # _ , _, ∂quad["t"]["fault"]["freesurfflat"] = ∂quaduσ(slip2uσ, els, idx["fault"], idx["freesurfflat"], μ, ν)
-    # _, _, ∂quad["t"]["freesurfflat"]["freesurfflat"] = ∂quaduσ(slip2uσ, els, idx["freesurfflat"], idx["freesurfflat"], μ, ν)
-    # _, _, ∂quad["t"]["fault"]["freesurftopo"] = ∂quaduσ(slip2uσ, els, idx["fault"], idx["freesurftopo"], μ, ν)
-    # _, _, ∂quad["t"]["freesurftopo"]["freesurftopo"] = ∂quaduσ(slip2uσ, els, idx["freesurftopo"], idx["freesurftopo"], μ, ν)
+    _, _, partialsquad["trac"]["fault"]["freesurfflat"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["freesurfflat"], mu, nu)
+    _, _, partialsquad["trac"]["freesurfflat"]["freesurfflat"] = partialsquaddispstress(slip2dispstress, els, idx["freesurfflat"], idx["freesurfflat"], mu, nu)
+    _, _, partialsquad["trac"]["fault"]["freesurftopo"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["freesurftopo"], mu, nu)
+    _, _, partialsquad["trac"]["freesurftopo"]["freesurftopo"] = partialsquaddispstress(slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
+    @show rand(1)
+    # Solve the BEM problem for unit slip in the x-direction
+    faultslip = zeros(6 * nfault)
+    faultslip[1:2:end] .= 1.0 # Global coordinate system
+    dispfreesurfflatslip = inv(partialsquad["trac"]["freesurfflat"]["freesurfflat"]) * partialsquad["trac"]["fault"]["freesurfflat"] * faultslip
+    dispfreesurftoposlip = inv(partialsquad["trac"]["freesurftopo"]["freesurftopo"]) * partialsquad["trac"]["fault"]["freesurftopo"] * faultslip
 
-    # # Solve the BEM problem for unit slip in the x-direction
-    # faultslip = zeros(6 * nfault)
-    # faultslip[1:2:end] .= 1.0 # Global coordinate system
-    # ufreesurfflatslip = inv(∂quad["t"]["freesurfflat"]["freesurfflat"]) * ∂quad["t"]["fault"]["freesurfflat"] * faultslip
-    # ufreesurftoposlip = inv(∂quad["t"]["freesurftopo"]["freesurftopo"]) * ∂quad["t"]["fault"]["freesurftopo"] * faultslip
+    # Forward model for volumetric displacements and stresses
+    dispfault, stressfault = quaddispstress(slip2dispstress, xobs, yobs, els, idx["fault"], quadstack(ones(3 * length(idx["fault"]))), quadstack(zeros(3 * length(idx["fault"]))), mu, nu)
+    dispfreesurfflat, stressfreesurfflat = quaddispstress(slip2dispstress, xobs, yobs, els, idx["freesurfflat"], quadstack(dispfreesurfflatslip[1:2:end]), quadstack(dispfreesurfflatslip[2:2:end]), mu, nu)
+    dispfreesurftopo, stressfreesurftopo = quaddispstress(slip2dispstress, xobs, yobs, els, idx["freesurftopo"], quadstack(dispfreesurftoposlip[1:2:end]), quadstack(dispfreesurftoposlip[2:2:end]), mu, nu)
 
-    # # Forward model for volumetric displacements and stresses
-    # ufault, σfault = quaduσ(slip2uσ, xobs, yobs, els, idx["fault"], quadstack(ones(3 * length(idx["fault"]))), quadstack(zeros(3 * length(idx["fault"]))), μ, ν)
-    # ufreesurfflat, σfreesurfflat = quaduσ(slip2uσ, xobs, yobs, els, idx["freesurfflat"], quadstack(ufreesurfflatslip[1:2:end]), quadstack(ufreesurfflatslip[2:2:end]), μ, ν)
-    # ufreesurftopo, σfreesurftopo = quaduσ(slip2uσ, xobs, yobs, els, idx["freesurftopo"], quadstack(ufreesurftoposlip[1:2:end]), quadstack(ufreesurftoposlip[2:2:end]), μ, ν)
-
-    # # Pretty plotting
-    # plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfreesurfflat, σfreesurftopo, xobs, yobs, npts)
+    # Pretty plotting
+    plotlocal(els, idx, dispfault, dispfreesurfflat, dispfreesurftopo, stressfault, stressfreesurfflat, stressfreesurftopo, xobs, yobs, npts)
     
 end
 ex_thrusttopo()
