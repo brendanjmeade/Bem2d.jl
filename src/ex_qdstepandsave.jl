@@ -18,9 +18,9 @@ function derivs(u, p, t)
     theta = @. abs(theta)
 
     for i in 1:els.endidx
-        dtheta[i] = 1 - theta[i] * vx[i] / dc # Aging law
+        dtheta[i] = 1 - theta[i] * vx[i] / dc
         dvx[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtx[i] / els.normalstress[i] - els.b[i] * dtheta[i] / theta[i])
-        dvy[i] = 0 # fault perpendicular creep
+        dvy[i] = 0
     end
 
     dvxglobal, dvyglobal = multmatvec(els.rotmatinv[1:els.endidx, :, :], dvx, dvy)
