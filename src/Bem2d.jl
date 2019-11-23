@@ -623,9 +623,9 @@ end
 export initpartials
 function initpartials(els)
     partials = Dict()
-    partials["u"] = Dict()
-    partials["σ"] = Dict()
-    partials["t"] = Dict()
+    partials["disp"] = Dict()
+    partials["stress"] = Dict()
+    partials["trac"] = Dict()
     fieldnames = collect(keys(partials))
     elnames = collect(keys(getidxdict(els)))
     for iname in 1:length(fieldnames)

@@ -2,15 +2,16 @@ using Revise
 using DifferentialEquations
 using JLD2
 using Dates
+using Infiltrator
 using Bem2d
 
 function derivs(u, p, t)
-    partrac, els, eta, dc, blockvxglobal, blockvyglobal = p
+    partials, els, eta, dc, blockvxglobal, blockvyglobal = p
     vxglobal = u[1:3:end]
     vyglobal = u[2:3:end]
     theta = u[3:3:end]
     vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
-    dt = partrac * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
+    dt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
     dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
     dtheta, dvx, dvy = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
     vx = @. abs(vx)
@@ -69,21 +70,20 @@ function ex_qdstepandsave()
 
     # Create convience tools
     idx = getidxdict(els)
-    ∂const = initpartials(els)
+    partials = initpartials(els)
     
     # Calculate slip to traction partials on the fault
     println("Calculating velocity to traction matrix")
     srcidx = findall(x->x == "fault", els.name)
     obsidx = srcidx
-    @time _, _, partrac = ∂constuσ(slip2uσ, els, idx["fault"], idx["fault"], mu, nu)
-    # @time _, _, partrac = parconst_dispstress(slip2dispstress, els, srcidx, obsidx, mu, nu)
+    @time _, _, partials["trac"]["fault"]["fault"] = ∂constuσ(slip2uσ, els, idx["fault"], idx["fault"], mu, nu)
     
     # Set initial conditions
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
-    p = (partrac, els, eta, dc, blockvelx, blockvely)
+    p = (partials, els, eta, dc, blockvelx, blockvely)
     prob = ODEProblem(derivs, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
 
