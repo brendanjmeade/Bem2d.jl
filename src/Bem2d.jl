@@ -580,22 +580,20 @@ end
 
 # Go from fault slip at 3 nodes to 3 quadratic shape function coefficients
 function slip2coef(xnodes, slip, a)
-    ∂ = zeros(3, 3)
-    ∂[:, 1] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .- 3 ./ 4)
-    ∂[:, 2] = (1 .- 3 .* (xnodes ./ a) ./ 2) .* (1 .+ 3 .* (xnodes ./ a) ./ 2)
-    ∂[:, 3] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .+ 3 ./ 4)
-    coef = inv(∂) * slip
-    return coef
+    mat = zeros(3, 3)
+    mat[:, 1] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .- 3 ./ 4)
+    mat[:, 2] = (1 .- 3 .* (xnodes ./ a) ./ 2) .* (1 .+ 3 .* (xnodes ./ a) ./ 2)
+    mat[:, 3] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .+ 3 ./ 4)
+    return inv(mat) * slip
 end
 
 # Go from quadratic coefficients to slip.  Check for correctness
 function coef2slip(xnodes, coef, a)
-    ∂ = zeros(3, 3)
-    ∂[:, 1] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .- 3 ./ 4)
-    ∂[:, 2] = (1 .- 3 .* (xnodes ./ a) ./ 2) .* (1 .+ 3 * (xnodes ./ a) ./ 2)
-    ∂[:, 3] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .+ 3 ./ 4)
-    slip = ∂ * coef
-    return slip
+    mat = zeros(3, 3)
+    mat[:, 1] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .- 3 ./ 4)
+    mat[:, 2] = (1 .- 3 .* (xnodes ./ a) ./ 2) .* (1 .+ 3 * (xnodes ./ a) ./ 2)
+    mat[:, 3] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .+ 3 ./ 4)
+    return mat * coef
 end
 
 # Get indices matching label name and report how many are selected
