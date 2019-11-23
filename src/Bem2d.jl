@@ -370,8 +370,8 @@ function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     return disp, stress
 end
 
-export σ2t
-function σ2t(stress, nvec)
+export stress2trac
+function stress2trac(stress, nvec)
     return [stress[1] stress[3] ; stress[3] stress[2]] * nvec
 end
 
@@ -488,8 +488,8 @@ function partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
         for iobs in 1:nobs
             _partialsdisp[:, 1], _partialsstress[:, 1] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 1, 0, mu, nu)
             _partialsdisp[:, 2], _partialsstress[:, 2] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 0, 1, mu, nu)
-            _partialstrac[:, 1] = σ2t(_partialsstress[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-            _partialstrac[:, 2] = σ2t(_partialsstress[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            _partialstrac[:, 1] = stress2trac(_partialsstress[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            _partialstrac[:, 2] = stress2trac(_partialsstress[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             partialsdisp[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsdisp
             partialsstress[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsstress
             partialstrac[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialstrac
@@ -566,9 +566,9 @@ function ∂quaduσ(fun2uσ, els, srcidx, obsidx, μ, ν)
                 _∂u[:, 6], _∂σ[:, 6] = quaduσinterleaved(fun2uσ, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], μ, ν)
             end
             for i in 1:6
-                _∂t[1:2, i] = σ2t(_∂σ[1:3, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-                _∂t[3:4, i] = σ2t(_∂σ[4:6, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-                _∂t[5:6, i] = σ2t(_∂σ[7:9, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+                _∂t[1:2, i] = stress2trac(_∂σ[1:3, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+                _∂t[3:4, i] = stress2trac(_∂σ[4:6, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+                _∂t[5:6, i] = stress2trac(_∂σ[7:9, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             end
             ∂u[6 * (iobs - 1) + 1:6 * (iobs - 1) + 6, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂u
             ∂σ[9 * (iobs - 1) + 1:9 * (iobs - 1) + 9, 6 * (isrc - 1) + 1:6 * (isrc - 1) + 6] = _∂σ
@@ -602,7 +602,7 @@ end
 export getidx
 function getidx(label, els)
     idx = findall(x->x == label, els.name)
-    println("getidx found " * string(length(idx)) * " elements with label <<" * label * ">>")
+    println("getidx found " * string(length(idx)) * " elements with label \"" * label * "\"")
     return idx
 end
 
