@@ -74,9 +74,7 @@ function ex_qdstepandsave()
     
     # Calculate slip to traction partials on the fault
     println("Calculating velocity to traction matrix")
-    srcidx = findall(x->x == "fault", els.name)
-    obsidx = srcidx
-    @time _, _, partials["trac"]["fault"]["fault"] = ∂constuσ(slip2uσ, els, idx["fault"], idx["fault"], mu, nu)
+    @time _, _, partials["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     
     # Set initial conditions
     ics = zeros(3 * nnodes)
