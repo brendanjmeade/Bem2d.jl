@@ -6,8 +6,8 @@ using PyCall
 using PyPlot
 
 export interleave
-function interleave(vec1, vec2)
-    return [vec1 vec2]'[:]
+function interleave(vec1::AbstractArray, vec2::AbstractArray)
+    return transpose([vec1 vec2])[:]
 end
 
 export meshgrid
