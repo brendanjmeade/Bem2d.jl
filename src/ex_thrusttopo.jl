@@ -3,7 +3,7 @@ using PyCall
 using PyPlot
 using Bem2d
 
-function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfreesurfflat, σfreesurftopo, xobs, yobs, npts)
+function plotlocal(els, idx, dispfault, dispfreesurfflat, dispfreesurftopo, stressfault, stressfreesurfflat, stressfreesurftopo, xobs, yobs, npts)
     # Pretty picture of displacements and stresses
     xfreesurf = unique([els.x1[idx["freesurfflat"]] ; els.x2[idx["freesurfflat"]]])
     xfill = [xfreesurf ; [10e3 ; -10e3 ; -10e3]]
@@ -11,26 +11,24 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
     yfill = [yfreesurf ; [5e3 ; 5e3 ; minimum(yfreesurf)]]
 
     # Combine two fields for total displacement and stress fields
-    ufield = sqrt.((ufault - ufreesurfflat)[:, 1].^2 + (ufault - ufreesurfflat)[:, 2].^2)
-    σxx = (σfault - σfreesurfflat)[:, 1]
-    σyy = (σfault - σfreesurfflat)[:, 2]
-    σxy = (σfault - σfreesurfflat)[:, 3]
-    I1 = σxx + σyy  # 1st invariant
-    I2 = σxx .* σyy - σxy.^2  # 2nd invariant
+    dispfield = sqrt.((dispfault - dispfreesurfflat)[:, 1].^2 + (dispfault - dispfreesurfflat)[:, 2].^2)
+    stressxx = (stressfault - stressfreesurfflat)[:, 1]
+    stressyy = (stressfault - stressfreesurfflat)[:, 2]
+    stressxy = (stressfault - stressfreesurfflat)[:, 3]
+    I1 = stressxx + stressyy  # 1st invariant
+    I2 = stressxx .* stressyy - stressxy.^2  # 2nd invariant
     J2 = (I1.^2) ./ 3.0 - I2  # 2nd invariant (deviatoric)
-    σfield = log10.(abs.(J2))
+    stressfield = log10.(abs.(J2))
 
     ncontours = 20
-    ucontours = collect(LinRange(0.0, 1.0, ncontours))
-    σcontours = collect(LinRange(10.0, 16.0, ncontours))
+    dispcontours = collect(LinRange(0.0, 1.0, ncontours))
+    stresscontours = collect(LinRange(10.0, 16.0, ncontours))
 
     figure(figsize = (15, 10))
     subplot(2, 2, 1)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        reshape(ufield, npts, npts), ucontours, cmap = get_cmap("plasma"))
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(dispfield, npts, npts), dispcontours, cmap = get_cmap("plasma"))
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$||u||$ (m)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        reshape(ufield, npts, npts), ucontours, linewidths = 0.5, colors = "gray")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(dispfield, npts, npts), dispcontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
     for i in 1:els.endidx
         if els.name[i] == "fault" || els.name[i] == "freesurfflat"
@@ -46,11 +44,9 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
     ylabel(L"$y$ (m)")
 
     subplot(2, 2, 3)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        reshape(σfield, npts, npts), σcontours, cmap = get_cmap("hot_r"))
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(stressfield, npts, npts), stresscontours, cmap = get_cmap("hot_r"))
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}|\mathrm{J}_2|$ (Pa$^2$)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        reshape(σfield, npts, npts), σcontours, linewidths = 0.5, colors = "gray")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(stressfield, npts, npts), stresscontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
     for i in 1:els.endidx
         if els.name[i] == "fault" || els.name[i] == "freesurfflat"
@@ -72,21 +68,19 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
     yfill = [yfreesurf ; [5e3 ; 5e3 ; minimum(yfreesurf)]]
 
     # Combine two fields for total displacement and stress fields
-    ufield = sqrt.((ufault - ufreesurftopo)[:, 1].^2 + (ufault - ufreesurftopo)[:, 2].^2)
-    σxx = (σfault - σfreesurftopo)[:, 1]
-    σyy = (σfault - σfreesurftopo)[:, 2]
-    σxy = (σfault - σfreesurftopo)[:, 3]
-    I1 = σxx + σyy  # 1st invariant
-    I2 = σxx .* σyy - σxy.^2  # 2nd invariant
+    dispfield = sqrt.((dispfault - dispfreesurftopo)[:, 1].^2 + (dispfault - dispfreesurftopo)[:, 2].^2)
+    stressxx = (stressfault - stressfreesurftopo)[:, 1]
+    stressyy = (stressfault - stressfreesurftopo)[:, 2]
+    stressxy = (stressfault - stressfreesurftopo)[:, 3]
+    I1 = stressxx + stressyy  # 1st invariant
+    I2 = stressxx .* stressyy - stressxy.^2  # 2nd invariant
     J2 = (I1.^2) ./ 3.0 - I2  # 2nd invariant (deviatoric)
-    σfield = log10.(abs.(J2))
+    stressfield = log10.(abs.(J2))
 
     subplot(2, 2, 2)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        reshape(ufield, npts, npts), ucontours, cmap = get_cmap("plasma"))
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(dispfield, npts, npts), dispcontours, cmap = get_cmap("plasma"))
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$||u||$ (m)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        reshape(ufield, npts, npts), ucontours, linewidths = 0.5, colors = "gray")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(dispfield, npts, npts), dispcontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
     for i in 1:els.endidx
         if els.name[i] == "fault" || els.name[i] == "freesurftopo"
@@ -102,11 +96,9 @@ function plotlocal(els, idx, ufault, ufreesurfflat, ufreesurftopo, σfault, σfr
     ylabel(L"$y$ (m)")
 
     subplot(2, 2, 4)
-    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        reshape(σfield, npts, npts), σcontours, cmap = get_cmap("hot_r"))
+    contourf(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(stressfield, npts, npts), stresscontours, cmap = get_cmap("hot_r"))
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}|\mathrm{J}_2|$ (Pa$^2$)")
-    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        reshape(σfield, npts, npts), σcontours, linewidths = 0.5, colors = "gray")
+    contour(reshape(xobs, npts, npts), reshape(yobs, npts, npts), reshape(stressfield, npts, npts), stresscontours, linewidths = 0.5, colors = "gray")
     fill(xfill, yfill, "w", zorder = 30)
     for i in 1:els.endidx
         if els.name[i] == "fault" || els.name[i] == "freesurftopo"
@@ -212,7 +204,7 @@ function ex_thrusttopo()
     _, _, partialsquad["trac"]["freesurfflat"]["freesurfflat"] = partialsquaddispstress(slip2dispstress, els, idx["freesurfflat"], idx["freesurfflat"], mu, nu)
     _, _, partialsquad["trac"]["fault"]["freesurftopo"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["freesurftopo"], mu, nu)
     _, _, partialsquad["trac"]["freesurftopo"]["freesurftopo"] = partialsquaddispstress(slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
-    @show rand(1)
+
     # Solve the BEM problem for unit slip in the x-direction
     faultslip = zeros(6 * nfault)
     faultslip[1:2:end] .= 1.0 # Global coordinate system
