@@ -10,7 +10,6 @@ function interleave(vec1, vec2)
     return [vec1 vec2]'[:]
 end
 
-# Based on: http://julia-programming-language.2336112.n4.nabble.com/Meshgrid-function-td37003.html
 export meshgrid
 function meshgrid(xs::AbstractArray, ys::AbstractArray)
     xmat = repeat(xs, 1, length(ys))
@@ -126,7 +125,7 @@ function multmatvecsingle(mats, vec1, vec2)
     return newvec1, newvec2
 end
 
-# Calculate u and σ for constant slip/traction elements
+# Calculate displacements and stress for constant slip/traction elements
 export constdispstress
 function constdispstress(fun2dispstress::Function, x, y, els::Elements, idx, xcomp, ycomp, mu, nu)
     disp, stress = zeros(length(x), 2), zeros(length(x), 3)
@@ -135,12 +134,11 @@ function constdispstress(fun2dispstress::Function, x, y, els::Elements, idx, xco
     f = zeros(length(x), 7)
     _disp, _stress = zeros(length(x), 2), zeros(length(x), 3)
     @inbounds @simd for j in 1:length(idx)
-        # Rotate and translate into SC coordinate system
         @views _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         @views _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
         @views f = constkernel(_x, _y, els.halflength[idx[j]], nu)        
         _disp, _stress = fun2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
-        @views _disp, _stress = rotuσ(_disp, _stress, els.rotmat[idx[j], :, :])
+        @views _disp, _stress = rotdispstress(_disp, _stress, els.rotmat[idx[j], :, :])
         disp += _disp
         stress += _stress
     end
@@ -148,13 +146,12 @@ function constdispstress(fun2dispstress::Function, x, y, els::Elements, idx, xco
 end
 
 # Far-field displacements and stresses for constant quadratic elements
-export quaddispstress # previously quaduσ
+export quaddispstress
 function quaddispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
     disp = zeros(length(x), 2)
     stress = zeros(length(x), 3)
 
     for j in 1:length(idx)
-        # Rotate and translate into SC coordinate system
         _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], nu)
         _xcomp, _ycomp = multmatsinglevec(els.rotmatinv[idx[j], :, :], xcomp[j, :], ycomp[j, :])
@@ -168,7 +165,7 @@ function quaddispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
         for i in 1:3
             # _disp, _stress = fun2dispstress(_xcomp[i], _ycomp[i], f[:, :, i], _y, mu, nu)
             _disp, _stress = fun2dispstress(phix[i], phiy[i], f[:, :, i], _y, mu, nu)
-            _disp, _stress = rotuσ(_disp, _stress, els.rotmat[idx[j], :, :])
+            _disp, _stress = rotdispstress(_disp, _stress, els.rotmat[idx[j], :, :])
             disp += _disp
             stress += _stress
         end
@@ -177,30 +174,28 @@ function quaddispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
 end
 
 # Far-field displacements and stresses for constant quadratic elements
-export quaduσcoincident
-function quaduσcoincident(fun2uσ, x, y, els, idx, xcomp, ycomp, μ, ν)
-    u, σ = zeros(length(x), 2), zeros(length(x), 3)
+export quaddispstresscoincident
+function quaddispstresscoincident(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
+    disp = zeros(length(x), 2)
+    stress = zeros(length(x), 3)
     for j in 1:length(idx)
         # Rotate and translate into SC coordinate system
         _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
-        f = quadkernel_coincident(els.halflength[idx[j]], ν)
+        f = quadkernel_coincident(els.halflength[idx[j]], nu)
         _xcomp, _ycomp = multmatsinglevec(els.rotmatinv[idx[j], :, :], xcomp[j, :], ycomp[j, :])
-        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :],
-            els.xnodes[idx[j], :] .- els.xcenter[idx[j]],
-            els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
-        ϕx = slip2coef(xnodes, _xcomp, els.halflength[idx[j]])
-        ϕy = slip2coef(xnodes, _ycomp, els.halflength[idx[j]])
+        xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :], els.xnodes[idx[j], :] .- els.xcenter[idx[j]], els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
+        phix = slip2coef(xnodes, _xcomp, els.halflength[idx[j]])
+        phiy = slip2coef(xnodes, _ycomp, els.halflength[idx[j]])
         for i in 1:3
-            # _u, _σ = fun2uσ(_xcomp[i], _ycomp[i], f[:, :, i], _y, μ, ν)
-            _u, _σ = fun2uσ(ϕx[i], ϕy[i], f[:, :, i], _y, μ, ν)
-            _u, _σ = rotuσ(_u, _σ, els.rotmat[idx[j], :, :])
-            u += _u
-            σ += _σ
+            # _disp, _stress = fun2uσ(_xcomp[i], _ycomp[i], f[:, :, i], _y, mu, nu)
+            _disp, _stress = fun2dispstress(phix[i], phiy[i], f[:, :, i], _y, mu, nu)
+            _disp, _stress = rotdispstress(_disp, _stress, els.rotmat[idx[j], :, :])
+            disp += _disp
+            stress += _stress
         end
     end
-    return u, σ
+    return disp, stress
 end
-
 
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constkernel(x, y, a, ν)
@@ -341,18 +336,19 @@ function quadkernel_farfield(x, y, a, ν)
 end
 
 # Generalization from Starfield and Crouch
-export trac2uσ
-function trac2uσ(xcomp, ycomp, f, y, μ, ν)
-    u, σ = zeros(length(y), 2), zeros(length(y), 3)
+export trac2dispstress
+function trac2dispstress(xcomp, ycomp, f, y, mu, nu)
+    disp = zeros(length(y), 2)
+    stress = zeros(length(y), 3)
     _xcomp, _ycomp = -xcomp, -ycomp # For Okada consistency
     for i in 1:length(y)
-        u[i, 1] = _xcomp / (2.0 * μ) * ((3.0 - 4.0 * ν) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * μ) * (-y[i] * f[i, 3])
-        u[i, 2] = _xcomp / (2.0 * μ) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * μ) * ((3.0 - 4.0 * ν) * f[i, 1] - y[i] * f[i, 2])
-        σ[i, 1] = _xcomp * ((3.0 - 2.0 * ν) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * ν * f[i, 2] + y[i] * f[i, 5])
-        σ[i, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * ν) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * (1.0 - ν) * f[i, 2] - y[i] * f[i, 5])
-        σ[i, 3] = _xcomp * (2.0 * (1.0 - ν) * f[i, 2] + y[i] * f[i, 5]) + _ycomp * ((1.0 - 2.0 * ν) * f[i, 3] - y[i] * f[i, 4])
+        disp[i, 1] = _xcomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * mu) * (-y[i] * f[i, 3])
+        disp[i, 2] = _xcomp / (2.0 * mu) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] - y[i] * f[i, 2])
+        stress[i, 1] = _xcomp * ((3.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * nu * f[i, 2] + y[i] * f[i, 5])
+        stress[i, 2] = _xcomp * (-1.0 * (1.0 - 2.0 * nu) * f[i, 3] + y[i] * f[i, 4]) + _ycomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5])
+        stress[i, 3] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] + y[i] * f[i, 5]) + _ycomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
     end
-    return u, σ
+    return disp, stress
 end
 
 # Generalization of Starfield and Crouch
@@ -397,17 +393,18 @@ function standardize_elements!(els)
     return nothing
 end
 
-export rotuσ
-function rotuσ(u, σ, rotmat)
+export rotdispstress # rotdispstress
+function rotdispstress(disp, stress, rotmat)
     # TODO: If this is slow hand expand the matrix vector μltiplies
     # inplace for speed.  Some benchmarks suggest 50x speedup!
-    _u, _σ = zeros(size(u)), zeros(size(σ))
-    for i in 1:size(σ)[1]
-        _u[i, 1], _u[i, 2] = rotmat * [u[i, 1] ; u[i, 2]]
-        σtensor = [σ[i, 1] σ[i, 3] ; σ[i, 3] σ[i, 2]]
-        _σ[i, 1], _σ[i, 3], _, _σ[i, 2] = rotmat * σtensor * rotmat'
+    _disp = zeros(size(disp))
+    _stress = zeros(size(stress))
+    for i in 1:size(stress)[1]
+        _disp[i, 1], _disp[i, 2] = rotmat * [disp[i, 1] ; disp[i, 2]]
+        stresstensor = [stress[i, 1] stress[i, 3] ; stress[i, 3] stress[i, 2]]
+        _stress[i, 1], _stress[i, 3], _, _stress[i, 2] = rotmat * stresstensor * transpose(rotmat)
     end
-    return _u, _σ
+    return _disp, _stress
 end
 
 export plotelements
@@ -500,30 +497,30 @@ end
 
 # This is small helper function to return interleaved displacements
 # and stresses rather than the stacked columns
-export quaduσinterleaved
-function quaduσinterleaved(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
-    ustacked, σstacked = quaddispstress(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
-    uinterleaved = zeros(2 * length(xobs))
-    uinterleaved[1:2:end] = ustacked[:, 1]
-    uinterleaved[2:2:end] = ustacked[:, 2]
-    σinterleaved = zeros(3 * length(xobs))
-    σinterleaved[1:3:end] = σstacked[:, 1]
-    σinterleaved[2:3:end] = σstacked[:, 2]
-    σinterleaved[3:3:end] = σstacked[:, 3]
-    return uinterleaved, σinterleaved
+export quaddispstressinterleaved
+function quaddispstressinterleaved(fun2dispstress, xobs, yobs, els, idx, para, perp, mu, nu)
+    dispstacked, stressstacked = quaddispstress(fun2dispstress, xobs, yobs, els, idx, para, perp, mu, nu)
+    dispinterleaved = zeros(2 * length(xobs))
+    dispinterleaved[1:2:end] = dispstacked[:, 1]
+    dispinterleaved[2:2:end] = dispstacked[:, 2]
+    stressinterleaved = zeros(3 * length(xobs))
+    stressinterleaved[1:3:end] = stressstacked[:, 1]
+    stressinterleaved[2:3:end] = stressstacked[:, 2]
+    stressinterleaved[3:3:end] = stressstacked[:, 3]
+    return dispinterleaved, stressinterleaved
 end
 
-export quaduσcoincidentinterleaved
-function quaduσcoincidentinterleaved(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
-    ustacked, σstacked = quaduσcoincident(fun2uσ, xobs, yobs, els, idx, para, perp, μ, ν)
-    uinterleaved = zeros(2 * length(xobs))
-    uinterleaved[1:2:end] = ustacked[:, 1]
-    uinterleaved[2:2:end] = ustacked[:, 2]
-    σinterleaved = zeros(3 * length(xobs))
-    σinterleaved[1:3:end] = σstacked[:, 1]
-    σinterleaved[2:3:end] = σstacked[:, 2]
-    σinterleaved[3:3:end] = σstacked[:, 3]
-    return uinterleaved, σinterleaved
+export quaddispstresscoincidentinterleaved
+function quaddispstresscoincidentinterleaved(fun2dispstress, xobs, yobs, els, idx, para, perp, mu, nu)
+    dispstacked, stressstacked = quaddispstresscoincident(fun2dispstress, xobs, yobs, els, idx, para, perp, mu, nu)
+    dispinterleaved = zeros(2 * length(xobs))
+    dispinterleaved[1:2:end] = dispstacked[:, 1]
+    dispinterleaved[2:2:end] = dispstacked[:, 2]
+    stressinterleaved = zeros(3 * length(xobs))
+    stressinterleaved[1:3:end] = stressstacked[:, 1]
+    stressinterleaved[2:3:end] = stressstacked[:, 2]
+    stressinterleaved[3:3:end] = stressstacked[:, 3]
+    return dispinterleaved, stressinterleaved
 end
 
 export pointonline
@@ -556,19 +553,19 @@ function partialsquaddispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
     for isrc in 1:nsrc
         for iobs in 1:nobs
             if srcidx[isrc] == obsidx[iobs]
-                _partialsdisp[:, 1], _partialsstress[:, 1] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], mu, nu)
-                _partialsdisp[:, 2], _partialsstress[:, 2] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], mu, nu)
-                _partialsdisp[:, 3], _partialsstress[:, 3] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], mu, nu)
-                _partialsdisp[:, 4], _partialsstress[:, 4] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], mu, nu)
-                _partialsdisp[:, 5], _partialsstress[:, 5] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], mu, nu)
-                _partialsdisp[:, 6], _partialsstress[:, 6] = quaduσcoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], mu, nu)
+                _partialsdisp[:, 1], _partialsstress[:, 1] = quaddispstresscoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], mu, nu)
+                _partialsdisp[:, 2], _partialsstress[:, 2] = quaddispstresscoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], mu, nu)
+                _partialsdisp[:, 3], _partialsstress[:, 3] = quaddispstresscoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], mu, nu)
+                _partialsdisp[:, 4], _partialsstress[:, 4] = quaddispstresscoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], mu, nu)
+                _partialsdisp[:, 5], _partialsstress[:, 5] = quaddispstresscoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], mu, nu)
+                _partialsdisp[:, 6], _partialsstress[:, 6] = quaddispstresscoincidentinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], mu, nu)
             else
-                _partialsdisp[:, 1], _partialsstress[:, 1] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], mu, nu)
-                _partialsdisp[:, 2], _partialsstress[:, 2] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], mu, nu)
-                _partialsdisp[:, 3], _partialsstress[:, 3] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], mu, nu)
-                _partialsdisp[:, 4], _partialsstress[:, 4] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], mu, nu)
-                _partialsdisp[:, 5], _partialsstress[:, 5] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], mu, nu)
-                _partialsdisp[:, 6], _partialsstress[:, 6] = quaduσinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], mu, nu)
+                _partialsdisp[:, 1], _partialsstress[:, 1] = quaddispstressinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [1 0 0], [0 0 0], mu, nu)
+                _partialsdisp[:, 2], _partialsstress[:, 2] = quaddispstressinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [1 0 0], mu, nu)
+                _partialsdisp[:, 3], _partialsstress[:, 3] = quaddispstressinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 1 0], [0 0 0], mu, nu)
+                _partialsdisp[:, 4], _partialsstress[:, 4] = quaddispstressinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 1 0], mu, nu)
+                _partialsdisp[:, 5], _partialsstress[:, 5] = quaddispstressinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 1], [0 0 0], mu, nu)
+                _partialsdisp[:, 6], _partialsstress[:, 6] = quaddispstressinterleaved(fun2dispstress, els.xnodes[obsidx[iobs], :], els.ynodes[obsidx[iobs], :], els, srcidx[isrc], [0 0 0], [0 0 1], mu, nu)
             end
             for i in 1:6
                 _partialstrac[1:2, i] = stress2trac(_partialsstress[1:3, i], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
@@ -643,7 +640,7 @@ end
 
 # Utility function for "stacking" a flattened quad vector
 # Useful for converting results of BEM solve to arguments
-# that can be used with quaduσ for forward models
+# that can be used with quaddispstress for forward models
 export quadstack
 function quadstack(vec)
     stack = transpose(reshape(vec, 3, Int(length(vec) / 3)))
