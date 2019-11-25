@@ -12,26 +12,19 @@ function derivsconst(u, p, t)
     vyglobal = u[2:3:end]
     theta = @. abs(u[3:3:end])
     dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-    vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
-    dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[1:els.endidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+    vx, vy = multmatvec(els.rotmat[intidx, :, :], vxglobal, vyglobal)
+    dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
 
     dthetadt = zeros(nintidx)
     dvxdt = zeros(nintidx)
     dvydt = zeros(nintidx)
-    # for i in 1:els.endidx
-    #     dthetadt[i] = thetalaw(vx[i], theta[i], dc)
-    #     dvxdt[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[i] - els.b[i] * dthetadt[i] / theta[i])
-    #     dvydt[i] = 0
-    # end
-
-    for i in 1:length(intidx) # intidx[i]
+    for i in 1:length(intidx)
         dthetadt[i] = thetalaw(vx[i], theta[i], dc)
-        dvxdt[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[i] - els.b[i] * dthetadt[i] / theta[i])
+        dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / theta[i])
         dvydt[i] = 0
     end
-
     
-    dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[1:els.endidx, :, :], dvxdt, dvydt)
+    dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
     dudt = zeros(3 * nintidx)
     dudt[1:3:end] = dvxglobaldt
     dudt[2:3:end] = dvyglobaldt
