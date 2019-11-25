@@ -5,7 +5,7 @@ using Dates
 using Infiltrator
 using Bem2d
 
-function derivsconst(u, p, t)
+function derivsconst!(dudt, u, p, t)
     intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
     nintidx = length(intidx)
     vxglobal = @. abs(u[1:3:end])
@@ -25,43 +25,42 @@ function derivsconst(u, p, t)
     end
     
     dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
-    dudt = zeros(3 * nintidx)
     dudt[1:3:end] = dvxglobaldt
     dudt[2:3:end] = dvyglobaldt
     dudt[3:3:end] = dthetadt
-    return dudt
+    return nothing
 end
 
-function derivsquad(u, p, t)
-    partials, els, eta, dc, blockvxglobal, blockvyglobal = p
-    vxglobal = u[1:3:end]
-    vyglobal = u[2:3:end]
-    theta = u[3:3:end]
-    @infiltrate
-    println("here - 1")
-    vx, vy = multmatvec(repeat(els.rotmat[1:els.endidx, :, :], 3, 1, 1), vxglobal, vyglobal)
-    println("here - 2")
-    dt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-    println("here - 3")
-    dtx, dty = multmatvec(repeat(els.rotmat[1:els.endidx, :, :], 3, 1, 1), dt[1:2:end], dt[2:2:end])
-    println("here - 4")
-    dtheta, dvx, dvy = zeros(3*els.endidx), zeros(3*els.endidx), zeros(3*els.endidx)
-    vx = @. abs(vx)
-    theta = @. abs(theta)
+# function derivsquad(u, p, t)
+#     partials, els, eta, dc, blockvxglobal, blockvyglobal = p
+#     vxglobal = u[1:3:end]
+#     vyglobal = u[2:3:end]
+#     theta = u[3:3:end]
+#     @infiltrate
+#     println("here - 1")
+#     vx, vy = multmatvec(repeat(els.rotmat[1:els.endidx, :, :], 3, 1, 1), vxglobal, vyglobal)
+#     println("here - 2")
+#     dt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
+#     println("here - 3")
+#     dtx, dty = multmatvec(repeat(els.rotmat[1:els.endidx, :, :], 3, 1, 1), dt[1:2:end], dt[2:2:end])
+#     println("here - 4")
+#     dtheta, dvx, dvy = zeros(3*els.endidx), zeros(3*els.endidx), zeros(3*els.endidx)
+#     vx = @. abs(vx)
+#     theta = @. abs(theta)
 
-    for i in 1:3*els.endidx
-        dtheta[i] = 1 - theta[i] * vx[i] / dc
-        dvx[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtx[i] / els.normalstress[i] - els.b[i] * dtheta[i] / theta[i])
-        dvy[i] = 0
-    end
+#     for i in 1:3*els.endidx
+#         dtheta[i] = 1 - theta[i] * vx[i] / dc
+#         dvx[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtx[i] / els.normalstress[i] - els.b[i] * dtheta[i] / theta[i])
+#         dvy[i] = 0
+#     end
 
-    dvxglobal, dvyglobal = multmatvec(repeat(els.rotmatinv[1:els.endidx, :, :], 3, 1, 1), dvx, dvy)
-    dudt = zeros(9 * els.endidx)
-    dudt[1:3:end] = dvxglobal
-    dudt[2:3:end] = dvyglobal
-    dudt[3:3:end] = dtheta
-    return dudt
-end
+#     dvxglobal, dvyglobal = multmatvec(repeat(els.rotmatinv[1:els.endidx, :, :], 3, 1, 1), dvx, dvy)
+#     dudt = zeros(9 * els.endidx)
+#     dudt[1:3:end] = dvxglobal
+#     dudt[2:3:end] = dvyglobal
+#     dudt[3:3:end] = dtheta
+#     return dudt
+# end
 
 
 function ex_qdstepandsave()
@@ -119,7 +118,7 @@ function ex_qdstepandsave()
     ics[3:3:end] = 1e8 * ones(nnodes)
     intidx = collect(1:1:els.endidx) # indices of elements to integrate
     p = (intidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely)
-    prob = ODEProblem(derivsconst, ics, tspan, p)
+    prob = ODEProblem(derivsconst!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
         step!(integrator)
