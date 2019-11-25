@@ -6,27 +6,33 @@ using Infiltrator
 using Bem2d
 
 function derivsconst(u, p, t)
-    partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
+    intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
+    nintidx = length(intidx)
     vxglobal = @. abs(u[1:3:end])
     vyglobal = u[2:3:end]
     theta = @. abs(u[3:3:end])
     dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-
     vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
     dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[1:els.endidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
 
-    dthetadt = zeros(els.endidx)
-    dvxdt = zeros(els.endidx)
-    dvydt = zeros(els.endidx)    
-    for i in 1:els.endidx
-        # dthetadt[i] = 1 - theta[i] * vx[i] / dc
+    dthetadt = zeros(nintidx)
+    dvxdt = zeros(nintidx)
+    dvydt = zeros(nintidx)
+    # for i in 1:els.endidx
+    #     dthetadt[i] = thetalaw(vx[i], theta[i], dc)
+    #     dvxdt[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[i] - els.b[i] * dthetadt[i] / theta[i])
+    #     dvydt[i] = 0
+    # end
+
+    for i in 1:length(intidx) # intidx[i]
         dthetadt[i] = thetalaw(vx[i], theta[i], dc)
         dvxdt[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[i] - els.b[i] * dthetadt[i] / theta[i])
         dvydt[i] = 0
     end
 
+    
     dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[1:els.endidx, :, :], dvxdt, dvydt)
-    dudt = zeros(3 * els.endidx)
+    dudt = zeros(3 * nintidx)
     dudt[1:3:end] = dvxglobaldt
     dudt[2:3:end] = dvyglobaldt
     dudt[3:3:end] = dthetadt
@@ -118,7 +124,8 @@ function ex_qdstepandsave()
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
-    p = (partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely)
+    intidx = collect(1:1:els.endidx) # indices of elements to integrate
+    p = (intidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely)
     prob = ODEProblem(derivsconst, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
