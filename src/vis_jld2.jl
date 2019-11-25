@@ -6,9 +6,10 @@ using Bem2d
 
 PyPlot.close("all")
 
-function plottimeseries()
-    filename = "2019-10-18T14:40:57.735.jld2"
-    JLD2.@load filename sol
+export plotqdtimeseries
+function plotqdtimeseries(sol)
+    # filename = "2019-10-18T14:40:57.735.jld2"
+    # JLD2.@load filename sol
 
     siay = 365.25 * 24 * 60 * 60
     nfault = Int(size(sol.u[1])[1] / 3)
@@ -61,7 +62,7 @@ function plottimeseries()
     PyPlot.ylabel("element index")
     PyPlot.show()
 end
-# plottimeseries()
+# plotqdtimeseries()
 
 function plotvelocities()
     filename = "2019-10-18T14:40:57.735.jld2"
@@ -130,4 +131,4 @@ function plotvelocities()
     PyPlot.show()
 
 end
-plotvelocities()
+# plotvelocities()

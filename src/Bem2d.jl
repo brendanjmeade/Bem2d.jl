@@ -4,6 +4,7 @@ using Colors
 using ColorSchemes
 using PyCall
 using PyPlot
+using Infiltrator
 
 export interleave
 function interleave(vec1::AbstractArray, vec2::AbstractArray)
@@ -647,5 +648,61 @@ function quadstack(vec)
     return stack
 end
 
+# Utility function for plotting qd results. Can run out of memory :(
+export plotqdtimeseries
+function plotqdtimeseries(sol, stridesize, nels)
+    siay = 365.25 * 24 * 60 * 60
+    t = [x / siay for x in sol.t]
+    theta = zeros(length(t), nels)
+    vx = zeros(length(t), nels)
+    vy = zeros(length(t), nels)
+    for i in 1:length(t)
+        vx[i, :] = sol.u[i][1:stridesize:end]
+        vy[i, :] = sol.u[i][2:stridesize:end]
+        theta[i, :] = sol.u[i][3:stridesize:end]
+    end
+
+    figure(figsize = (15, 8))
+    subplot(3, 2, 1)
+    plot(t, vx, "-", linewidth = 0.5)
+    yscale("log")
+    ylabel(L"v_x")
+
+    subplot(3, 2, 3)
+    plot(t, vy, "-", linewidth = 0.5)
+    yscale("log")
+    ylabel(L"v_y")
+
+    subplot(3, 2, 5)
+    plot(t, theta, "-", linewidth = 0.5)
+    yscale("log")
+    xlabel("t (years)")
+    ylabel(L"\theta")
+
+    subplot(3, 2, 2)
+    plot(1:1:length(t), vx, "-", linewidth = 0.5)
+    yscale("log")
+    ylabel(L"v_x")
+
+    subplot(3, 2, 4)
+    plot(1:1:length(t), vy, "-", linewidth = 0.5)
+    yscale("log")
+    ylabel(L"v_y")
+
+    subplot(3, 2, 6)
+    plot(1:1:length(t), theta, "-", linewidth = 0.5)
+    yscale("log")
+    xlabel("time step #")
+    ylabel(L"\theta")
+
+    figure(figsize = (15, 5))
+    plotme = log10.(vx')
+    contourf(plotme, 200, cmap = get_cmap("plasma"))
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
+    contour(plotme, 20, linewidths = 0.5, linestyles = "solid", colors = "k")
+    xlabel("time step")
+    ylabel("element index")
+    show()
+end
 
 end
