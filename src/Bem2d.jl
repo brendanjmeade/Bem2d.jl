@@ -705,4 +705,14 @@ function plotqdtimeseries(sol, stridesize, nels)
     show()
 end
 
+export thetaaginglaw
+function thetaaginglaw(v, theta, dc)
+    return @. 1 - theta * v / dc
+end
+
+export thetasliplaw
+function thetasliplaw(v, theta, dc)
+    return @. -v * theta / dc * log(v * theta / dc)
+end
+
 end

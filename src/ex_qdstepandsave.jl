@@ -6,7 +6,7 @@ using Infiltrator
 using Bem2d
 
 function derivsconst(u, p, t)
-    partials, els, eta, dc, blockvxglobal, blockvyglobal = p
+    partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
     vxglobal = @. abs(u[1:3:end])
     vyglobal = u[2:3:end]
     theta = @. abs(u[3:3:end])
@@ -19,7 +19,8 @@ function derivsconst(u, p, t)
     dvxdt = zeros(els.endidx)
     dvydt = zeros(els.endidx)    
     for i in 1:els.endidx
-        dthetadt[i] = 1 - theta[i] * vx[i] / dc
+        # dthetadt[i] = 1 - theta[i] * vx[i] / dc
+        dthetadt[i] = thetalaw(vx[i], theta[i], dc)
         dvxdt[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[i] - els.b[i] * dthetadt[i] / theta[i])
         dvydt[i] = 0
     end
@@ -117,7 +118,7 @@ function ex_qdstepandsave()
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
-    p = (partialsconst, els, eta, dc, blockvelx, blockvely)
+    p = (partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely)
     prob = ODEProblem(derivsconst, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
