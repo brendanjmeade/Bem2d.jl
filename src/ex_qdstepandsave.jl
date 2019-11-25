@@ -5,29 +5,30 @@ using Dates
 using Infiltrator
 using Bem2d
 
-function derivs(u, p, t)
+function derivsconst(u, p, t)
     partials, els, eta, dc, blockvxglobal, blockvyglobal = p
-    vxglobal = u[1:3:end]
+    vxglobal = @. abs(u[1:3:end])
     vyglobal = u[2:3:end]
-    theta = u[3:3:end]
-    vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
-    dt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-    dtx, dty = multmatvec(els.rotmat[1:els.endidx, :, :], dt[1:2:end], dt[2:2:end])
-    dtheta, dvx, dvy = zeros(els.endidx), zeros(els.endidx), zeros(els.endidx)
-    vx = @. abs(vx)
-    theta = @. abs(theta)
+    theta = @. abs(u[3:3:end])
+    dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
 
+    vx, vy = multmatvec(els.rotmat[1:els.endidx, :, :], vxglobal, vyglobal)
+    dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[1:els.endidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+
+    dthetadt = zeros(els.endidx)
+    dvxdt = zeros(els.endidx)
+    dvydt = zeros(els.endidx)    
     for i in 1:els.endidx
-        dtheta[i] = 1 - theta[i] * vx[i] / dc
-        dvx[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtx[i] / els.normalstress[i] - els.b[i] * dtheta[i] / theta[i])
-        dvy[i] = 0
+        dthetadt[i] = 1 - theta[i] * vx[i] / dc
+        dvxdt[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[i] - els.b[i] * dthetadt[i] / theta[i])
+        dvydt[i] = 0
     end
 
-    dvxglobal, dvyglobal = multmatvec(els.rotmatinv[1:els.endidx, :, :], dvx, dvy)
+    dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[1:els.endidx, :, :], dvxdt, dvydt)
     dudt = zeros(3 * els.endidx)
-    dudt[1:3:end] = dvxglobal
-    dudt[2:3:end] = dvyglobal
-    dudt[3:3:end] = dtheta
+    dudt[1:3:end] = dvxglobaldt
+    dudt[2:3:end] = dvyglobaldt
+    dudt[3:3:end] = dthetadt
     return dudt
 end
 
@@ -36,6 +37,7 @@ function derivsquad(u, p, t)
     vxglobal = u[1:3:end]
     vyglobal = u[2:3:end]
     theta = u[3:3:end]
+    @infiltrate
     println("here - 1")
     vx, vy = multmatvec(repeat(els.rotmat[1:els.endidx, :, :], 3, 1, 1), vxglobal, vyglobal)
     println("here - 2")
@@ -65,6 +67,7 @@ end
 function ex_qdstepandsave()
     # Constants
     nsteps = 500
+    printstep = 100
     amplitude = 1.0
     nfault = 100
     outfilename = string(now()) * ".jld2"
@@ -105,7 +108,7 @@ function ex_qdstepandsave()
     # Calculate slip to traction partials on the fault
     println("Calculating velocity to traction matrix")
     @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    @time _, _, partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    # @time _, _, partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
     #
     # CS elements - Euler style stress integration
@@ -115,32 +118,34 @@ function ex_qdstepandsave()
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
     p = (partialsconst, els, eta, dc, blockvelx, blockvely)
-    prob = ODEProblem(derivs, ics, tspan, p)
+    prob = ODEProblem(derivsconst, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
         step!(integrator)
-        # println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
+        if mod(i, printstep) == 0
+            println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
+        end    
     end
-    @show integrator.sol.t
-    # plotqdtimeseries(integrator.sol, 3, nfault)
+    # @show integrator.sol.t
+    plotqdtimeseries(integrator.sol, 3, nfault)
 
     
     #
     # 3QN elements - Euler style stress integration
     #
-    nnodes = 3 * nfault
-    ics = zeros(3 * nnodes)
-    ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
-    ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
-    ics[3:3:end] = 1e8 * ones(nnodes)
-    p = (partialsquad, els, eta, dc, blockvelx, blockvely)
-    prob = ODEProblem(derivsquad, ics, tspan, p)
-    integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
-    @time for i in 1:nsteps
-        step!(integrator)
-        # println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
-    end
-    @show integrator.sol.t
+    # nnodes = 3 * nfault
+    # ics = zeros(3 * nnodes)
+    # ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
+    # ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
+    # ics[3:3:end] = 1e8 * ones(nnodes)
+    # p = (partialsquad, els, eta, dc, blockvelx, blockvely)
+    # prob = ODEProblem(derivsquad, ics, tspan, p)
+    # integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
+    # @time for i in 1:nsteps
+    #     step!(integrator)
+    #     # println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
+    # end
+    # @show integrator.sol.t
     # plotqdtimeseries(integrator.sol, 3, nfault)
 
     # @time @save outfilename integrator.sol
