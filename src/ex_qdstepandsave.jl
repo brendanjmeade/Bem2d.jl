@@ -112,6 +112,7 @@ function ex_qdstepandsave()
     #
     # CS elements - Euler style stress integration
     #
+    # TODO: start integrating.
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
