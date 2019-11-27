@@ -32,18 +32,16 @@ function derivsconst!(dudt, u, p, t)
 end
 
 function derivsconstinplace!(dudt, u, p, t)
-    intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt = p
-    vx, vy = @views multmatvec(els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
+    intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
+    vx, vy = @views multmatvecpermutedims(els.rotmat[:, :, intidx], u[1:3:end], u[2:3:end])
     dtracglobaldt = @views partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
-    dtracxglobaldt, dtracyglobaldt = @views multmatvec(els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
-    
-    for i in 1:length(intidx)
+    dtracxglobaldt, dtracyglobaldt = @views multmatvecpermutedims(els.rotmat[:, :, intidx], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+    for i in 1:nintidx
         dthetadt[i] = @views thetalaw(abs(vx[i]), u[3:3:end][i], dc)
         dvxdt[i] = @views 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
-
-    dudt[1:3:end], dudt[2:3:end] = @views multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
+    dudt[1:3:end], dudt[2:3:end] = @views multmatvecpermutedims(els.rotmatinv[:, :, intidx], dvxdt, dvydt)
     dudt[3:3:end] = dthetadt
     return nothing
 end
@@ -129,8 +127,6 @@ function ex_qdstepandsave()
     #
     # CS elements - Euler style stress integration
     #
-
-    # Reshape els.rotmat
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
@@ -149,7 +145,7 @@ function ex_qdstepandsave()
 
 
     #
-    # Very inplace
+    # Very inplace, with views, and reshaped stack of rotation matrices
     # CS elements - Euler style stress integration
     #
     ics = zeros(3 * nnodes)
@@ -161,10 +157,14 @@ function ex_qdstepandsave()
     dthetadt = zeros(nintidx)
     dvxdt = zeros(nintidx)
     dvydt = zeros(nintidx)
-    
-    # els.rotmat = permutedims(els.rotmat, [2, 3, 1])
-    # els.rotmatinv = permutedims(els.rotmatinv, [2, 3, 1])
-    p = (intidx, nintidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt)
+    vx = zeros(nintidx)
+    vy = zeros(nintidx)
+    dtracxglobaldt = zeros(nintidx)
+    dtracyglobaldt = zeros(nintidx)
+    dtracglobaldt = zeros(2 * nintidx)
+    els.rotmat = permutedims(els.rotmat, [2, 3, 1])
+    els.rotmatinv = permutedims(els.rotmatinv, [2, 3, 1])
+    p = (intidx, nintidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
     prob = ODEProblem(derivsconstinplace!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
