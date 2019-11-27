@@ -32,22 +32,18 @@ function derivsconst!(dudt, u, p, t)
 end
 
 function derivsconstinplace!(dudt, u, p, t)
-    intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
-    nintidx = length(intidx) # Pass me
-    dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:] # Pass me
-    vx, vy = multmatvec(els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end]) # Pass me
-    dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end]) # Pass me
-
-    dthetadt = zeros(nintidx) # Pass me
-    dvxdt = zeros(nintidx) # Pass me
-    dvydt = zeros(nintidx) # Pass me
+    intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt = p
+    vx, vy = @views multmatvec(els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
+    dtracglobaldt = @views partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
+    dtracxglobaldt, dtracyglobaldt = @views multmatvec(els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+    
     for i in 1:length(intidx)
-        dthetadt[i] = thetalaw(abs(vx[i]), u[3:3:end][i], dc)
-        dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dudt[3:3:end][i] / u[3:3:end][i])
+        dthetadt[i] = @views thetalaw(abs(vx[i]), u[3:3:end][i], dc)
+        dvxdt[i] = @views 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
-    
-    dudt[1:3:end], dudt[2:3:end] = multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
+
+    dudt[1:3:end], dudt[2:3:end] = @views multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
     dudt[3:3:end] = dthetadt
     return nothing
 end
@@ -133,7 +129,8 @@ function ex_qdstepandsave()
     #
     # CS elements - Euler style stress integration
     #
-    # TODO: start integrating.
+
+    # Reshape els.rotmat
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
@@ -148,9 +145,35 @@ function ex_qdstepandsave()
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
         end    
     end
-    # @show integrator.sol.t
     plotqdtimeseries(integrator.sol, 3, nfault)
 
+
+    #
+    # Very inplace
+    # CS elements - Euler style stress integration
+    #
+    ics = zeros(3 * nnodes)
+    ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
+    ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
+    ics[3:3:end] = 1e8 * ones(nnodes)
+    intidx = collect(1:1:els.endidx) # indices of elements to integrate
+    nintidx = length(intidx)
+    dthetadt = zeros(nintidx)
+    dvxdt = zeros(nintidx)
+    dvydt = zeros(nintidx)
+    
+    # els.rotmat = permutedims(els.rotmat, [2, 3, 1])
+    # els.rotmatinv = permutedims(els.rotmatinv, [2, 3, 1])
+    p = (intidx, nintidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt)
+    prob = ODEProblem(derivsconstinplace!, ics, tspan, p)
+    integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
+    @time for i in 1:nsteps
+        step!(integrator)
+        if mod(i, printstep) == 0
+            println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
+        end    
+    end
+    plotqdtimeseries(integrator.sol, 3, nfault)
     
     #
     # 3QN elements - Euler style stress integration
