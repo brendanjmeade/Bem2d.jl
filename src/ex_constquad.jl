@@ -2,25 +2,30 @@ using Revise
 using Bem2d
 
 function ex_constquad()
-    μ, ν = 3e10, 0.25
+    mu = 3e10
+    nu = 0.25
 
     # Create a flat fault
     els = Elements(Int(1e5))
     nels = 20
     x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, nels)
-    els.x1[els.endidx + 1:els.endidx + nels] = x1
-    els.y1[els.endidx + 1:els.endidx + nels] = y1
-    els.x2[els.endidx + 1:els.endidx + nels] = x2
-    els.y2[els.endidx + 1:els.endidx + nels] = y2
-    els.name[els.endidx + 1:els.endidx + nels] .= "fault"
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "fault"
+    end
     standardize_elements!(els)
+
+    # Convenience dictionary for element names
+    idx = getidxdict(els)
 
     # Set fault slip
     xcenters = els.xcenter[1:els.endidx]
     ycenters = els.ycenter[1:els.endidx]
     xnodes = sort(els.xnodes[1:els.endidx, :][:])
     ynodes = sort(els.ynodes[1:els.endidx, :][:])
-    srcidx = findall(x->x == "fault", els.name)
 
     # # Constant x-slip only
     # constxslip = ones(nels)
@@ -36,21 +41,22 @@ function ex_constquad()
     quadyslip = zeros(size(quadxslip))
 
     # Observation coordinates for far-field calculation
-    npts = 100; obswidth = 3e3
+    npts = 100
+    obswidth = 3e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Displacements and stresses
-    uconst, σconst = constuσ(slip2uσ, xobs, yobs, els, srcidx, constxslip, constyslip, μ, ν)
-    uquad, σquad = quaduσ(slip2uσ, xobs, yobs, els, srcidx, quadxslip, quadyslip, μ, ν)
+    dispconst, stressconst = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], constxslip, constyslip, mu, nu)
+    dispquad, stressquad = quaddispstress(slip2dispstress, xobs, yobs, els, idx["fault"], quadxslip, quadyslip, mu, nu)
 
     # Plot
     close("all")
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        uconst, σconst, "constant slip - constant slip element")
+               dispconst, stressconst, "constant slip - constant slip element")
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        uquad, σquad, "constant slip - quadratic slip element")
+               dispquad, stressquad, "constant slip - quadratic slip element")
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-        uconst - uquad, σconst - σquad, "residuals")
+               dispconst - dispquad, stressconst - stressquad, "residuals")
     show()
 
     return nothing
