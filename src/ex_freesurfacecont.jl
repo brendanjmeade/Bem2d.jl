@@ -63,11 +63,11 @@ function ex_freesurface()
     xokada = collect(LinRange(-50e3, 50e3, 1000))
     offset = abs(els.xnodes[1, 2] - els.xnodes[1, 1])
     yokada = -offset * ones(size(xokada))
-    uxokada = zeros(length(xokada))
-    uyokada = zeros(length(xokada))
-    σxxokada = zeros(length(xokada))
-    σyyokada = zeros(length(xokada))
-    σxyokada = zeros(length(xokada))
+    dispxokada = zeros(length(xokada))
+    dispyokada = zeros(length(xokada))
+    stressxxokada = zeros(length(xokada))
+    stressyyokada = zeros(length(xokada))
+    stressxyokada = zeros(length(xokada))
 
     for i in 1:length(xokada)
         # Fault dipping at 45 degrees
@@ -80,8 +80,8 @@ function ex_freesurface()
             [-10e3*sqrt(2) / 2, 10e3*sqrt(2) / 2],
             [0.0, 1.0, 0.0],
         )
-        uxokada[i] = u[2]
-        uyokada[i] = u[3]
+        dispxokada[i] = u[2]
+        dispyokada[i] = u[3]
         dgtxx = s[2, 2]
         dgtyy = s[3, 3]
         dgtxy = s[3, 2]
@@ -92,26 +92,23 @@ function ex_freesurface()
         sxx = μ * (exx + eyy) + 2 * μ * exx
         syy = μ * (exx + eyy) + 2 * μ * eyy
         sxy = 2 * μ * exy
-        σxxokada[i] = sxx
-        σyyokada[i] = syy
-        σxyokada[i] = sxy
+        stressxxokada[i] = sxx
+        stressyyokada[i] = syy
+        stressxyokada[i] = sxy
     end
 
-    # Off-fault stresses
-    faultidx = getidx("fault", els)
-    freesurfidx = getidx("freesurf", els)
+    # Off-fault displacements and stresses
+    dispfaultconstvol, stressfaultconstvol = constdispstress(slip2dispstress, xokada, yokada, els, idx["fault"], faultslipconst[1:2:end], faultslipconst[2:2:end], mu, nu)
+    dispfreesurfaceconstvol, stressfreesurfaceconstvol = constdispstress(slip2dispstress, xokada, yokada, els, idx["freesurf"], dispfreesurfaceconst[1:2:end], dispfreesurfaceconst[2:2:end], mu, nu)
+    dispconst = dispfaultconstvol - dispfreesurfaceconstvol # Note negative sign
+    stressconst = stressfaultconstvol - stressfreesurfaceconstvol # Note negative sign
 
-    ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xokada, yokada, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], mu, nu)
-    ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xokada, yokada, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], mu, nu)
-    uconst = ufaultconstvol - ufreesurfaceconstvol # Note negative sign
-    σconst = σfaultconstvol - σfreesurfaceconstvol # Note negative sign
-
-    qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
-    quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
-    ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xokada, yokada, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), mu, nu)
-    ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xokada, yokada, els, freesurfidx, qux, quy, mu, nu)
-    uquad = ufaultquadvol - ufreesurfacequadvol # Note negative sign
-    σquad = σfaultquadvol - σfreesurfacequadvol # Note negative sign
+    qux = transpose(reshape(dispfreesurfacequad[1:2:end], 3, nfreesurf))
+    quy = transpose(reshape(dispfreesurfacequad[2:2:end], 3, nfreesurf))
+    dispfaultquadvol, stressfaultquadvol = quaddispstress(slip2dispstress, xokada, yokada, els, idx["fault"], transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), mu, nu)
+    stressfreesurfacequadvol, stressfreesurfacequadvol = quaddispstress(slip2dispstress, xokada, yokada, els, idx["freesurf"], qux, quy, mu, nu)
+    dispquad = dispfaultquadvol - dispfreesurfacequadvol # Note negative sign
+    stressquad = stressfaultquadvol - stressfreesurfacequadvol # Note negative sign
 
     # Plot ux and uy profiles
     fontsize = 24
@@ -121,9 +118,9 @@ function ex_freesurface()
     figure(figsize = (30, 15))
 
     ax = subplot(2, 3, 1)
-    plot(xokada, log10.(abs.(σconst[:, 1])), "-c", linewidth=linewidth, label="CS BEM")
-    plot(xokada, log10.(abs.(σquad[:, 1])), "-r", linewidth=linewidth, label="3QN BEM")
-    plot(xokada, log10.(abs.(σxxokada[:, 1])), ":k", linewidth=2.0, label="Okada")
+    plot(xokada, log10.(abs.(stressconst[:, 1])), "-c", linewidth=linewidth, label="CS BEM")
+    plot(xokada, log10.(abs.(stressquad[:, 1])), "-r", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(stressxxokada[:, 1])), ":k", linewidth=2.0, label="Okada")
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([0, 8])
     gca().set_xticks([])
@@ -134,36 +131,34 @@ function ex_freesurface()
     ylabel(L"$\log \, \sigma_{xx}$ (Pa)", fontsize=fontsize)
 
     ax = subplot(2, 3, 2)
-    plot(xokada, log10.(abs.(σconst[:, 2])), "-c", linewidth=linewidth, label="CS BEM")
-    plot(xokada, log10.(abs.(σquad[:, 2])), "-r", linewidth=linewidth, label="3QN BEM")
-    plot(xokada, log10.(abs.(σyyokada[:, 1])), ":k", linewidth=2.0, label="Okada")
+    plot(xokada, log10.(abs.(stressconst[:, 2])), "-c", linewidth=linewidth, label="CS BEM")
+    plot(xokada, log10.(abs.(stressquad[:, 2])), "-r", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(stressyyokada[:, 1])), ":k", linewidth=2.0, label="Okada")
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([0, 8])
     gca().set_xticks([])
     gca().set_yticks([0, 4, 8])
     legend(fontsize=fontsize, frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
-    # xlabel(L"$x$ (m)", fontsize=fontsize)
     ylabel(L"$\log \, \sigma_{yy}$ (Pa)", fontsize=fontsize)
 
     ax = subplot(2, 3, 3)
-    plot(xokada, log10.(abs.(σconst[:, 3])), "-c", linewidth=linewidth, label="CS BEM")
-    plot(xokada, log10.(abs.(σquad[:, 3])), "-r", linewidth=linewidth, label="3QN BEM")
-    plot(xokada, log10.(abs.(σxyokada[:, 1])), ":k", linewidth=2.0, label="Okada")
+    plot(xokada, log10.(abs.(stressconst[:, 3])), "-c", linewidth=linewidth, label="CS BEM")
+    plot(xokada, log10.(abs.(stressquad[:, 3])), "-r", linewidth=linewidth, label="3QN BEM")
+    plot(xokada, log10.(abs.(stressxyokada[:, 1])), ":k", linewidth=2.0, label="Okada")
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([0, 8])
     gca().set_xticks([])
     gca().set_yticks([0, 4, 8])
     legend(fontsize=fontsize,frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
-    # xlabel(L"$x$ (m)", fontsize=fontsize)
     ylabel(L"$\log \, \sigma_{xy}$ (Pa)", fontsize=fontsize)
 
     ax = subplot(2, 3, 4)
-    σxxconsterror = 100 * (σconst[:, 1] - σxxokada[:, 1]) ./ σxxokada[:, 1]
-    σxxquaderror = 100 * (σquad[:, 1] - σxxokada[:, 1]) ./ σxxokada[:, 1]
-    plot(xokada, log10.(abs.(σxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxxconsterror)))
-    plot(xokada, log10.(abs.(σxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxxquaderror)))
+    stressxxconsterror = 100 * (stressconst[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
+    stressxxquaderror = 100 * (stressquad[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
+    plot(xokada, log10.(abs.(stressxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxxconsterror)))
+    plot(xokada, log10.(abs.(stressxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxxquaderror)))
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-50e3, 0, 50e3])
@@ -174,10 +169,10 @@ function ex_freesurface()
     ylabel(L"$\log \, \sigma_{xx} \, \%$ error", fontsize=fontsize)
 
     ax = subplot(2, 3, 5)
-    σyyconsterror = 100 * (σconst[:, 2] - σyyokada[:, 1]) ./ σyyokada[:, 1]
-    σyyquaderror = 100 * (σquad[:, 2] - σyyokada[:, 1]) ./ σyyokada[:, 1]
-    plot(xokada, log10.(abs.(σyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σyyconsterror)))
-    plot(xokada, log10.(abs.(σyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σyyquaderror)))
+    stressyyconsterror = 100 * (stressconst[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
+    stressyyquaderror = 100 * (stressquad[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
+    plot(xokada, log10.(abs.(stressyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σyyconsterror)))
+    plot(xokada, log10.(abs.(stressyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σyyquaderror)))
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-50e3, 0, 50e3])
