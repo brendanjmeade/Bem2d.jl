@@ -182,10 +182,10 @@ function ex_freesurface()
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{yy} \, \%$ error", fontsize=fontsize)
 
     ax = subplot(2, 3, 6)
-    σxyconsterror = 100 * (σconst[:, 3] - σxyokada[:, 1]) ./ σxyokada[:, 1]
-    σxyquaderror = 100 * (σquad[:, 3] - σxyokada[:, 1]) ./ σxyokada[:, 1]
-    plot(xokada, log10.(abs.(σxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxyconsterror)))
-    plot(xokada, log10.(abs.(σxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxyquaderror)))
+    stressxyconsterror = 100 * (stressconst[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
+    stressxyquaderror = 100 * (stressquad[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
+    plot(xokada, log10.(abs.(stressxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxyconsterror)))
+    plot(xokada, log10.(abs.(stressxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxyquaderror)))
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-50e3, 0, 50e3])
