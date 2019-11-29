@@ -89,9 +89,9 @@ function ex_freesurface()
         exx = dgtxx
         eyy = dgtyy
         exy = 0.5 * (dgtyx + dgtxy)
-        sxx = μ * (exx + eyy) + 2 * μ * exx
-        syy = μ * (exx + eyy) + 2 * μ * eyy
-        sxy = 2 * μ * exy
+        sxx = mu * (exx + eyy) + 2 * mu * exx
+        syy = mu * (exx + eyy) + 2 * mu * eyy
+        sxy = 2 * mu * exy
         stressxxokada[i] = sxx
         stressyyokada[i] = syy
         stressxyokada[i] = sxy
@@ -106,7 +106,7 @@ function ex_freesurface()
     qux = transpose(reshape(dispfreesurfacequad[1:2:end], 3, nfreesurf))
     quy = transpose(reshape(dispfreesurfacequad[2:2:end], 3, nfreesurf))
     dispfaultquadvol, stressfaultquadvol = quaddispstress(slip2dispstress, xokada, yokada, els, idx["fault"], transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), mu, nu)
-    stressfreesurfacequadvol, stressfreesurfacequadvol = quaddispstress(slip2dispstress, xokada, yokada, els, idx["freesurf"], qux, quy, mu, nu)
+    dispfreesurfacequadvol, stressfreesurfacequadvol = quaddispstress(slip2dispstress, xokada, yokada, els, idx["freesurf"], qux, quy, mu, nu)
     dispquad = dispfaultquadvol - dispfreesurfacequadvol # Note negative sign
     stressquad = stressfaultquadvol - stressfreesurfacequadvol # Note negative sign
 
@@ -157,8 +157,8 @@ function ex_freesurface()
     ax = subplot(2, 3, 4)
     stressxxconsterror = 100 * (stressconst[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
     stressxxquaderror = 100 * (stressquad[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
-    plot(xokada, log10.(abs.(stressxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxxconsterror)))
-    plot(xokada, log10.(abs.(stressxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxxquaderror)))
+    plot(xokada, log10.(abs.(stressxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressxxconsterror)))
+    plot(xokada, log10.(abs.(stressxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressxxquaderror)))
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-50e3, 0, 50e3])
@@ -171,8 +171,8 @@ function ex_freesurface()
     ax = subplot(2, 3, 5)
     stressyyconsterror = 100 * (stressconst[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
     stressyyquaderror = 100 * (stressquad[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
-    plot(xokada, log10.(abs.(stressyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σyyconsterror)))
-    plot(xokada, log10.(abs.(stressyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σyyquaderror)))
+    plot(xokada, log10.(abs.(stressyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressyyconsterror)))
+    plot(xokada, log10.(abs.(stressyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressyyquaderror)))
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-50e3, 0, 50e3])
@@ -184,8 +184,8 @@ function ex_freesurface()
     ax = subplot(2, 3, 6)
     stressxyconsterror = 100 * (stressconst[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
     stressxyquaderror = 100 * (stressquad[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
-    plot(xokada, log10.(abs.(stressxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(σxyconsterror)))
-    plot(xokada, log10.(abs.(stressxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(σxyquaderror)))
+    plot(xokada, log10.(abs.(stressxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressxyconsterror)))
+    plot(xokada, log10.(abs.(stressxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressxyquaderror)))
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([-3, 6])
     gca().set_xticks([-50e3, 0, 50e3])
