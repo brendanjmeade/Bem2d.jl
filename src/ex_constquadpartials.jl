@@ -60,23 +60,29 @@ end
 
 function ex_constquadpartials()
     # Material and geometric constants
-    μ = 3e10
-    ν = 0.25
+    mu = 3e10
+    nu = 0.25
     nels = 5
     els = Elements(Int(1e5))
     L = 5000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
-    els.x1[els.endidx + 1:els.endidx + nels] = x1
-    els.y1[els.endidx + 1:els.endidx + nels] = y1
-    els.x2[els.endidx + 1:els.endidx + nels] = x2
-    els.y2[els.endidx + 1:els.endidx + nels] = y2
-    els.name[els.endidx + 1:els.endidx + nels] .= "fault"
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "fault"
+    end
     standardize_elements!(els)
 
-    srcidx = findall(x->x == "fault", els.name)
-    obsidx = findall(x->x == "fault", els.name)
-    ∂uconst, ∂σconst, ∂tconst = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
-    ∂uquad, ∂σquad, ∂tquad = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
+    # Convenience structures
+    idx = getidxdict(els)
+    partialsconst = initpartials(els)
+    partialsquad = initpartials(els)
+
+    # Partial derivatves
+    partialsconst["disp"]["fault"]["fault"], partialsconst["stress"]["fault"]["fault"], partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    partialsquad["disp"]["fault"]["fault"], partialsquad["stress"]["fault"]["fault"], partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
     # Evaluation points and slip
     xcenters = els.xcenter[1:els.endidx]
@@ -100,13 +106,13 @@ function ex_constquadpartials()
     # Predict on-fault displacements, stresses, and tractions
     close("all")
     for i in 1:size(slipconst)[1]
-        uconst = ∂uconst * slipconst[i, :]
-        σconst = ∂σconst * slipconst[i, :]
-        tconst = ∂tconst * slipconst[i, :]
-        uquad = ∂uquad * slipquad[i, :]
-        σquad = ∂σquad * slipquad[i, :]
-        tquad = ∂tquad * slipquad[i, :]
-        plotpartials(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad)
+        dispconst = partialsconst["disp"]["fault"]["fault"] * slipconst[i, :]
+        stressconst = partialsconst["stress"]["fault"]["fault"] * slipconst[i, :]
+        tracconst = partialsconst["trac"]["fault"]["fault"] * slipconst[i, :]
+        dispquad = partialsquad["disp"]["fault"]["fault"] * slipquad[i, :]
+        stressquad = partialsquad["stress"]["fault"]["fault"] * slipquad[i, :]
+        tracquad = partialsquad["trac"]["fault"]["fault"] * slipquad[i, :]
+        plotpartials(els, xcenters, ycenters, xnodes, ynodes, dispconst, stressconst, tracconst, dispquad, stressquad, tracquad)
     end
 end
 ex_constquadpartials()
