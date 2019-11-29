@@ -6,8 +6,8 @@ using Statistics
 using Bem2d
 
 function ex_freesurface()
-    μ = 30e9
-    ν = 0.25
+    mu = 30e9
+    nu = 0.25
 
     # Free surface
     els = Elements(Int(1e5))
@@ -36,21 +36,27 @@ function ex_freesurface()
     end
     standardize_elements!(els)
 
+    # Convience data structures
+    idx = getidxdict(els)
+    partialsconst = initpartials(els)
+    partialsquad = initpartials(els)
+    # _, _, partialsconst["trac"]["fault"]["freesurfflat"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurfflat"], mu, nu)
+
     # Constant slip fault
-    ∂u1const, ∂σ1const, ∂t1const = ∂constuσ(slip2uσ, els, getidx("fault", els), getidx("freesurf", els), μ, ν)
-    ∂u2const, ∂σ2const, ∂t2const = ∂constuσ(slip2uσ, els, getidx("freesurf", els), getidx("freesurf", els), μ, ν)
+    ∂u1const, _, ∂t1const = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
+    ∂u2const, _, ∂t2const = partialsconstdispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
     faultslipconst = sqrt(2) / 2 * [1 ; 1]
-    ufullspaceconst = ∂u1const * faultslipconst
-    ufreesurfaceconst = inv(∂t2const) * (∂t1const * faultslipconst)
-    xplotconst = els.xcenter[getidx("freesurf", els)]
+    dispfullspaceconst = ∂u1const * faultslipconst
+    dispfreesurfaceconst = inv(∂t2const) * (∂t1const * faultslipconst)
+    xplotconst = els.xcenter[idx["freesurf"]]
 
     # Quadratic slip fault
-    ∂u1quad, ∂σ1quad, ∂t1quad = ∂quaduσ(slip2uσ, els, getidx("fault", els), getidx("freesurf", els), μ, ν)
-    ∂u2quad, ∂σ2quad, ∂t2quad = ∂quaduσ(slip2uσ, els, getidx("freesurf", els), getidx("freesurf", els), μ, ν)
-    xplotquad = sort(els.xnodes[getidx("freesurf", els), :][:])
+    ∂u1quad, _, ∂t1quad = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
+    ∂u2quad, _, ∂t2quad = partialsquaddispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
+    xplotquad = sort(els.xnodes[idx["freesurf"], :][:])
     faultslipquad = sqrt(2) ./ 2 * ones(6)
-    ufullspacequad = ∂u1quad * faultslipquad
-    ufreesurfacequad = inv(∂t2quad) * (∂t1quad * faultslipquad)
+    dispfullspacequad = ∂u1quad * faultslipquad
+    dispfreesurfacequad = inv(∂t2quad) * (∂t1quad * faultslipquad)
 
     # Okada solution
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
@@ -95,15 +101,15 @@ function ex_freesurface()
     faultidx = getidx("fault", els)
     freesurfidx = getidx("freesurf", els)
 
-    ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xokada, yokada, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], μ, ν)
-    ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xokada, yokada, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], μ, ν)
+    ufaultconstvol, σfaultconstvol = constuσ(slip2uσ, xokada, yokada, els, faultidx, faultslipconst[1:2:end], faultslipconst[2:2:end], mu, nu)
+    ufreesurfaceconstvol, σfreesurfaceconstvol = constuσ(slip2uσ, xokada, yokada, els, freesurfidx, ufreesurfaceconst[1:2:end], ufreesurfaceconst[2:2:end], mu, nu)
     uconst = ufaultconstvol - ufreesurfaceconstvol # Note negative sign
     σconst = σfaultconstvol - σfreesurfaceconstvol # Note negative sign
 
     qux = transpose(reshape(ufreesurfacequad[1:2:end], 3, nfreesurf))
     quy = transpose(reshape(ufreesurfacequad[2:2:end], 3, nfreesurf))
-    ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xokada, yokada, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), μ, ν)
-    ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xokada, yokada, els, freesurfidx, qux, quy, μ, ν)
+    ufaultquadvol, σfaultquadvol = quaduσ(slip2uσ, xokada, yokada, els, faultidx, transpose(faultslipquad[1:2:end]), transpose(faultslipquad[2:2:end]), mu, nu)
+    ufreesurfacequadvol, σfreesurfacequadvol = quaduσ(slip2uσ, xokada, yokada, els, freesurfidx, qux, quy, mu, nu)
     uquad = ufaultquadvol - ufreesurfacequadvol # Note negative sign
     σquad = σfaultquadvol - σfreesurfacequadvol # Note negative sign
 
