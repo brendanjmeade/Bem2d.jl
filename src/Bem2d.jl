@@ -119,7 +119,8 @@ end
 export multmatvecpermutedims!
 function multmatvecpermutedims!(vx, vy, mats, vec1, vec2)
     @inbounds for i in 1:length(vec1)
-        vx[i], vy[i] = mats[:, :, i] * [vec1[i] ; vec2[i]]
+        vx[i] = mats[1, 1, i] * vec1[i] + mats[1, 2, i] * vec2[i]
+        vy[i] = mats[2, 1, i] * vec1[i] + mats[2, 2, i] * vec2[i]
     end
     return nothing
 end
