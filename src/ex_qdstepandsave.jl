@@ -33,12 +33,12 @@ end
 
 function derivsconstinplace!(dudt, u, p, t)
     intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
-    vx, vy = @views multmatvecpermutedims(els.rotmat[:, :, intidx], u[1:3:end], u[2:3:end])
-    dtracglobaldt = @views partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
-    dtracxglobaldt, dtracyglobaldt = @views multmatvecpermutedims(els.rotmat[:, :, intidx], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+    @views vx, vy = multmatvecpermutedims(els.rotmat[:, :, intidx], u[1:3:end], u[2:3:end])
+    @views dtracglobaldt = partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
+    @views dtracxglobaldt, dtracyglobaldt = multmatvecpermutedims(els.rotmat[:, :, intidx], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
     for i in 1:nintidx
-        dthetadt[i] = @views thetalaw(abs(vx[i]), u[3:3:end][i], dc)
-        dvxdt[i] = @views 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
+        @views dthetadt[i] = thetalaw(abs(vx[i]), u[3:3:end][i], dc)
+        @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
     dudt[1:3:end], dudt[2:3:end] = @views multmatvecpermutedims(els.rotmatinv[:, :, intidx], dvxdt, dvydt)
