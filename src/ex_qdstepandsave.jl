@@ -33,17 +33,15 @@ end
 
 function derivsconstinplace!(dudt, u, p, t)
     intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
-    @views vx, vy = multmatvecpermutedims(els.rotmat[:, :, intidx], u[1:3:end], u[2:3:end])
-    # @views multmatvecpermutedims!(vx, vy, els.rotmat[:, :, intidx], u[1:3:end], u[2:3:end])
-
+    @views multmatvecpermutedims!(vx, vy, els.rotmat[:, :, intidx], u[1:3:end], u[2:3:end])
     @views dtracglobaldt = partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
-    @views dtracxglobaldt, dtracyglobaldt = multmatvecpermutedims(els.rotmat[:, :, intidx], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+    @views multmatvecpermutedims!(dtracxglobaldt, dtracyglobaldt, els.rotmat[:, :, intidx], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
     for i in 1:nintidx
         @views dthetadt[i] = thetalaw(abs(vx[i]), u[3:3:end][i], dc)
         @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
-    dudt[1:3:end], dudt[2:3:end] = @views multmatvecpermutedims(els.rotmatinv[:, :, intidx], dvxdt, dvydt)
+    @views multmatvecpermutedims!(dudt[1:3:end], dudt[2:3:end], els.rotmatinv[:, :, intidx], dvxdt, dvydt)
     dudt[3:3:end] = dthetadt
     return nothing
 end
@@ -79,13 +77,12 @@ end
 #     return dudt
 # end
 
-
 function ex_qdstepandsave()
     # Constants
     nsteps = 500
+    nfault = 100
     printstep = 100
     amplitude = 1.0
-    nfault = 100
     outfilename = string(now()) * ".jld2"
     siay = 365.25 * 24 * 60 * 60
     tspan = (0, siay * 1000)
