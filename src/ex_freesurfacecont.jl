@@ -40,24 +40,23 @@ function ex_freesurface()
     idx = getidxdict(els)
     partialsconst = initpartials(els)
     partialsquad = initpartials(els)
-    # _, _, partialsconst["trac"]["fault"]["freesurfflat"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurfflat"], mu, nu)
 
     # Constant slip fault
-    ∂u1const, _, ∂t1const = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
-    ∂u2const, _, ∂t2const = partialsconstdispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
+    partialsconst["disp"]["fault"]["freesurf"], _, partialsconst["trac"]["fault"]["freesurf"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
+    partialsconst["disp"]["freesurf"]["freesurf"], _, partialsconst["trac"]["freesurf"]["freesurf"] = partialsconstdispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
     faultslipconst = sqrt(2) / 2 * [1 ; 1]
-    dispfullspaceconst = ∂u1const * faultslipconst
-    dispfreesurfaceconst = inv(∂t2const) * (∂t1const * faultslipconst)
+    dispfullspaceconst = partialsconst["disp"]["fault"]["freesurf"] * faultslipconst
+    dispfreesurfaceconst = inv(partialsconst["trac"]["freesurf"]["freesurf"]) * (partialsconst["trac"]["fault"]["freesurf"] * faultslipconst)
     xplotconst = els.xcenter[idx["freesurf"]]
 
     # Quadratic slip fault
-    ∂u1quad, _, ∂t1quad = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
-    ∂u2quad, _, ∂t2quad = partialsquaddispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
+    partialsquad["disp"]["fault"]["freesurf"], _, partialsquad["trac"]["fault"]["freesurf"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
+    partialsquad["disp"]["freesurf"]["freesurf"], _, partialsquad["trac"]["freesurf"]["freesurf"] = partialsquaddispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
     xplotquad = sort(els.xnodes[idx["freesurf"], :][:])
     faultslipquad = sqrt(2) ./ 2 * ones(6)
-    dispfullspacequad = ∂u1quad * faultslipquad
-    dispfreesurfacequad = inv(∂t2quad) * (∂t1quad * faultslipquad)
-
+    dispfullspacequad = partialsquad["disp"]["fault"]["freesurf"] * faultslipquad
+    dispfreesurfacequad = inv(partialsquad["trac"]["freesurf"]["freesurf"]) * (partialsquad["trac"]["fault"]["freesurf"] * faultslipquad)
+    
     # Okada solution
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
     xokada = collect(LinRange(-50e3, 50e3, 1000))
