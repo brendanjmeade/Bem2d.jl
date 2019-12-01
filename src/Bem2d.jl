@@ -106,21 +106,11 @@ function multmatvec(mats, vec1, vec2)
     return newvec1, newvec2
 end
 
-export multmatvecpermutedims
-function multmatvecpermutedims(mats, vec1, vec2)
-    newvec1 = zeros(size(vec1))
-    newvec2 = zeros(size(vec2))
-    for i in 1:length(vec1)
-        newvec1[i], newvec2[i] = mats[:, :, i] * [vec1[i] ; vec2[i]]
-    end
-    return newvec1, newvec2
-end
-
-export multmatvecpermutedims!
-function multmatvecpermutedims!(vx, vy, mats, vec1, vec2)
+export multmatvec!
+function multmatvec!(vx, vy, mats, vec1, vec2)
     @inbounds for i in 1:length(vec1)
-        vx[i] = mats[1, 1, i] * vec1[i] + mats[1, 2, i] * vec2[i]
-        vy[i] = mats[2, 1, i] * vec1[i] + mats[2, 2, i] * vec2[i]
+        @views vx[i] = mats[i, 1, 1] * vec1[i] + mats[i, 1, 2] * vec2[i]
+        @views vy[i] = mats[i, 2, 1] * vec1[i] + mats[i, 2, 2] * vec2[i]
     end
     return nothing
 end

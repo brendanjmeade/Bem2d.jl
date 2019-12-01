@@ -33,15 +33,15 @@ end
 
 function derivsconstinplace!(dudt, u, p, t)
     intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
-    @views multmatvecpermutedims!(vx, vy, els.rotmat[:, :, intidx], u[1:3:end], u[2:3:end])
+    @views multmatvec!(vx, vy, els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
     @views dtracglobaldt = partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
-    @views multmatvecpermutedims!(dtracxglobaldt, dtracyglobaldt, els.rotmat[:, :, intidx], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+    @views multmatvec!(dtracxglobaldt, dtracyglobaldt, els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
     for i in 1:nintidx
         @views dthetadt[i] = thetalaw(abs(vx[i]), u[3:3:end][i], dc)
         @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
-    @views multmatvecpermutedims!(dudt[1:3:end], dudt[2:3:end], els.rotmatinv[:, :, intidx], dvxdt, dvydt)
+    @views multmatvec!(dudt[1:3:end], dudt[2:3:end], els.rotmatinv[intidx, :, :], dvxdt, dvydt)
     dudt[3:3:end] = dthetadt
     return nothing
 end
@@ -144,7 +144,7 @@ function ex_qdstepandsave()
 
 
     #
-    # Very inplace, with views, and reshaped stack of rotation matrices
+    # Very inplace with @views
     # CS elements - Euler style stress integration
     #
     ics = zeros(3 * nnodes)
@@ -161,8 +161,6 @@ function ex_qdstepandsave()
     dtracxglobaldt = zeros(nintidx)
     dtracyglobaldt = zeros(nintidx)
     dtracglobaldt = zeros(2 * nintidx)
-    els.rotmat = permutedims(els.rotmat, [2, 3, 1])
-    els.rotmatinv = permutedims(els.rotmatinv, [2, 3, 1])
     p = (intidx, nintidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
     prob = ODEProblem(derivsconstinplace!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
