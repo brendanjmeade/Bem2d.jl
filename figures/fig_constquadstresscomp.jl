@@ -104,29 +104,34 @@ end
 
 function fig_constquadstresscomp()
     # Material and geometric constants
-    μ = 3e10
-    ν = 0.25
+    mu = 3e10
+    nu = 0.25
     nels = 20
     els = Elements(Int(1e5))
     L = 10000
     x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
     x2[11] = 500.0
     x1[12] = 500.0
-
-    els.x1[els.endidx + 1:els.endidx + nels] = x1
-    els.y1[els.endidx + 1:els.endidx + nels] = y1
-    els.x2[els.endidx + 1:els.endidx + nels] = x2
-    els.y2[els.endidx + 1:els.endidx + nels] = y2
-    els.name[els.endidx + 1:els.endidx + nels] .= "fault"
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "fault"
+    end
     standardize_elements!(els)
 
-    srcidx = findall(x->x == "fault", els.name)
-    obsidx = findall(x->x == "fault", els.name)
-    ∂uconst, ∂σconst, ∂tconst = ∂constuσ(slip2uσ, els, srcidx, obsidx, μ, ν)
-    ∂uquad, ∂σquad, ∂tquad = ∂quaduσ(slip2uσ, els, srcidx, obsidx, μ, ν)
+    # Convenience data structures
+    idx = getidxdict(els)
+    partialsconst = initpartials(els)
+    partialsquad = initpartials(els)
+
+    partialsconst["disp"]["fault"]["fault"], partialsconst["stress"]["fault"]["fault"], partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    partialsquad["disp"]["fault"]["fault"], partialsquad["stress"]["fault"]["fault"], partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
     # Observation coordinates for plotting
-    npts = 100; obswidth = 5e3
+    npts = 100
+    obswidth = 5e3
     xobs, yobs = obsgrid(-obswidth, -2.5e3, obswidth, 2.5e3, npts)
 
     # Evaluation points
@@ -163,19 +168,19 @@ function fig_constquadstresscomp()
     close("all")
     for i in 1:size(slipconst)[1]
         # On fault evaluation
-        uconst = ∂uconst * slipconst[i, :]
-        σconst = ∂σconst * slipconst[i, :]
-        tconst = ∂tconst * slipconst[i, :]
-        uquad = ∂uquad * slipquad[i, :]
-        σquad = ∂σquad * slipquad[i, :]
-        tquad = ∂tquad * slipquad[i, :]
+        dispconst = partialsconst["disp"]["fault"]["fault"] * slipconst[i, :]
+        stressconst = partialsconst["stress"]["fault"]["fault"] * slipconst[i, :]
+        tracconst = partialsconst["trac"]["fault"]["fault"] * slipconst[i, :]
+        dispquad = partialsquad["disp"]["fault"]["fault"] * slipquad[i, :]
+        stressquad = partialsquad["stress"]["fault"]["fault"] * slipquad[i, :]
+        tracquad = partialsquad["trac"]["fault"]["fault"] * slipquad[i, :]
 
         # Far-field evaluation
-        uconstfarfield, σconstfarfield = constuσ(slip2uσ, xobs, yobs, els, srcidx, constxslip[i, :], constyslip[i, :], μ, ν)
-        uquadfarfield, σquadfarfield = quaduσ(slip2uσ, xobs, yobs, els, srcidx, quadxslip[i, :, :], quadyslip[i, :, :], μ, ν)
+        dispconstfarfield, stressconstfarfield = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], constxslip[i, :], constyslip[i, :], mu, nu)
+        dispquadfarfield, stressquadfarfield = quaddispstress(slip2dispstress, xobs, yobs, els, idx["fault"], quadxslip[i, :, :], quadyslip[i, :, :], mu, nu)
 
         # Plot 9 panel results
-        plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad, reshape(xobs, npts, npts), reshape(yobs, npts, npts), uconstfarfield, σconstfarfield, uquadfarfield, σquadfarfield)
+        plotfunction(els, xcenters, ycenters, xnodes, ynodes, dispconst, stressconst, tracconst, dispquad, stressquad, tracquad, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconstfarfield, stressconstfarfield, dispquadfarfield, stressquadfarfield)
     end
 
 end

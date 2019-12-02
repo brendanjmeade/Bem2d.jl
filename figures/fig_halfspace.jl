@@ -24,11 +24,13 @@ function fig_halfspace()
     # 45 degree dipping fault
     nfault = 1
     x1, y1, x2, y2 = discretizedline(-1, -1, 0, 0, nfault)
-    els.x1[els.endidx + 1:els.endidx + nfault] = x1
-    els.y1[els.endidx + 1:els.endidx + nfault] = y1
-    els.x2[els.endidx + 1:els.endidx + nfault] = x2
-    els.y2[els.endidx + 1:els.endidx + nfault] = y2
-    els.name[els.endidx + 1:els.endidx + nfault] .= "fault"
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "fault"
+    end
     standardize_elements!(els)
 
     # Convenience data structures
