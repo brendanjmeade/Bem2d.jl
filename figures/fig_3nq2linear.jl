@@ -2,12 +2,12 @@ using Revise
 using PyCall
 using PyPlot
 
-function ϕcoef(x, y, a)
-    ∂ = zeros(length(x), 3)
-    ∂[:, 1] = @. (x / a) * (9 * (x / a) / 8 - 3 / 4)
-    ∂[:, 2] = @. (1 - 3 * (x / a) / 2) * (1 + 3 * (x / a) / 2)
-    ∂[:, 3] = @. (x / a) * (9 * (x / a) / 8 + 3 / 4)
-    return inv(∂) * y
+function phicoef(x, y, a)
+    mat = zeros(length(x), 3)
+    mat[:, 1] = @. (x / a) * (9 * (x / a) / 8 - 3 / 4)
+    mat[:, 2] = @. (1 - 3 * (x / a) / 2) * (1 + 3 * (x / a) / 2)
+    mat[:, 3] = @. (x / a) * (9 * (x / a) / 8 + 3 / 4)
+    return inv(mat) * y
 end
 
 function fig_3nq2linear()
@@ -18,19 +18,19 @@ function fig_3nq2linear()
     x = LinRange(-a, a, n)
 
     # ϕ shape functions and coefficients
-    ϕ1 = @. (x / a) * (9 * (x / a) / 8 - 3 / 4)
-    ϕ2 = @. (1 - 3 * (x / a) / 2) * (1 + 3 * (x / a) / 2)
-    ϕ3 = @. (x / a) * (9 * (x / a) / 8 + 3 / 4)
+    phi1 = @. (x / a) * (9 * (x / a) / 8 - 3 / 4)
+    phi2 = @. (1 - 3 * (x / a) / 2) * (1 + 3 * (x / a) / 2)
+    phi3 = @. (x / a) * (9 * (x / a) / 8 + 3 / 4)
     xvals = [-1.0 ; 0.0 ; 1.0]
     yvals = @. [-1.0 ; 0.5 ; 2.0] + 1.25 # linear slip
-    coef = ϕcoef(xvals, yvals, a)
+    coef = phicoef(xvals, yvals, a)
 
     close("all")
     figure(figsize=(3, 3))
-    plot(x, coef[1] * ϕ1, "--k", color="blue", linewidth=linewidth)
-    plot(x, coef[2] * ϕ2, "--k", color="blue", linewidth=linewidth)
-    plot(x, coef[3] * ϕ3, "--k", color="blue", linewidth=linewidth)
-    plot(x, coef[1] * ϕ1 + coef[2] * ϕ2 + coef[3] * ϕ3, "-r", linewidth=linewidth)
+    plot(x, coef[1] * phi1, "--k", color="blue", linewidth=linewidth)
+    plot(x, coef[2] * phi2, "--k", color="blue", linewidth=linewidth)
+    plot(x, coef[3] * phi3, "--k", color="blue", linewidth=linewidth)
+    plot(x, coef[1] * phi1 + coef[2] * phi2 + coef[3] * phi3, "-r", linewidth=linewidth)
     xticks([-1, 0, 1])
     yticks([-4, 0, 4])
     xlim([-1, 1])
