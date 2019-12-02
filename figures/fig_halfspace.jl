@@ -1,6 +1,7 @@
 using Revise
 using PyCall
 using PyPlot
+using Infiltrator
 using Bem2d
 
 function fig_halfspace()
@@ -11,7 +12,7 @@ function fig_halfspace()
     els = Elements(Int(1e5))
     nfreesurf = 120
     x1, y1, x2, y2 = discretizedline(-50, 0, 50, 0, nfreesurf)
-    for i in length(x1)
+    for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
         els.x2[els.endidx + i] = x2[i]
@@ -67,8 +68,7 @@ function fig_halfspace()
     markersize = 4
     linewidth = 0.5
     close("all")
-    figure(figsize = (5, 7))
-
+    figure(figsize = (4, 4))
     ax = subplot(2, 1, 1)
     plot(xokada, dispxokada, "-r", linewidth=linewidth, label="Okada", zorder=1)
     plot(xplotconst, dispfreesurfaceconst[1:2:end], ".k", markeredgewidth=linewidth, markersize=markersize, label = "CS BEM", zorder=3)
