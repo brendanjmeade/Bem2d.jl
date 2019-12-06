@@ -5,31 +5,31 @@ using Dates
 using Infiltrator
 using Bem2d
 
-function derivsconst!(dudt, u, p, t)
-    intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
-    nintidx = length(intidx)
-    vxglobal = @. abs(u[1:3:end])
-    vyglobal = u[2:3:end]
-    theta = @. abs(u[3:3:end])
-    dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-    vx, vy = multmatvec(els.rotmat[intidx, :, :], vxglobal, vyglobal)
-    dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+# function derivsconst!(dudt, u, p, t)
+#     intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
+#     nintidx = length(intidx)
+#     vxglobal = @. abs(u[1:3:end])
+#     vyglobal = u[2:3:end]
+#     theta = @. abs(u[3:3:end])
+#     dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
+#     vx, vy = multmatvec(els.rotmat[intidx, :, :], vxglobal, vyglobal)
+#     dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
 
-    dthetadt = zeros(nintidx)
-    dvxdt = zeros(nintidx)
-    dvydt = zeros(nintidx)
-    for i in 1:length(intidx)
-        dthetadt[i] = thetalaw(vx[i], theta[i], dc)
-        dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / theta[i])
-        dvydt[i] = 0
-    end
+#     dthetadt = zeros(nintidx)
+#     dvxdt = zeros(nintidx)
+#     dvydt = zeros(nintidx)
+#     for i in 1:length(intidx)
+#         dthetadt[i] = thetalaw(vx[i], theta[i], dc)
+#         dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / theta[i])
+#         dvydt[i] = 0
+#     end
 
-    dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
-    dudt[1:3:end] = dvxglobaldt
-    dudt[2:3:end] = dvyglobaldt
-    dudt[3:3:end] = dthetadt
-    return nothing
-end
+#     dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
+#     dudt[1:3:end] = dvxglobaldt
+#     dudt[2:3:end] = dvyglobaldt
+#     dudt[3:3:end] = dthetadt
+#     return nothing
+# end
 
 function derivsconstinplace!(dudt, u, p, t)
     intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
@@ -126,21 +126,21 @@ function ex_qdstepandsave()
     #
     # CS elements - Euler style stress integration
     #
-    ics = zeros(3 * nnodes)
-    ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
-    ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
-    ics[3:3:end] = 1e8 * ones(nnodes)
-    intidx = collect(1:1:els.endidx) # indices of elements to integrate
-    p = (intidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely)
-    prob = ODEProblem(derivsconst!, ics, tspan, p)
-    integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
-    @time for i in 1:nsteps
-        step!(integrator)
-        if mod(i, printstep) == 0
-            println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
-        end    
-    end
-    plotqdtimeseries(integrator.sol, 3, nfault)
+    # ics = zeros(3 * nnodes)
+    # ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
+    # ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
+    # ics[3:3:end] = 1e8 * ones(nnodes)
+    # intidx = collect(1:1:els.endidx) # indices of elements to integrate
+    # p = (intidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely)
+    # prob = ODEProblem(derivsconst!, ics, tspan, p)
+    # integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
+    # @time for i in 1:nsteps
+    #     step!(integrator)
+    #     if mod(i, printstep) == 0
+    #         println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
+    #     end    
+    # end
+    # plotqdtimeseries(integrator.sol, 3, nfault)
 
 
     #
