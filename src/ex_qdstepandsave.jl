@@ -5,33 +5,7 @@ using Dates
 using Infiltrator
 using Bem2d
 
-# function derivsconst!(dudt, u, p, t)
-#     intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
-#     nintidx = length(intidx)
-#     vxglobal = @. abs(u[1:3:end])
-#     vyglobal = u[2:3:end]
-#     theta = @. abs(u[3:3:end])
-#     dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-#     vx, vy = multmatvec(els.rotmat[intidx, :, :], vxglobal, vyglobal)
-#     dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
-
-#     dthetadt = zeros(nintidx)
-#     dvxdt = zeros(nintidx)
-#     dvydt = zeros(nintidx)
-#     for i in 1:length(intidx)
-#         dthetadt[i] = thetalaw(vx[i], theta[i], dc)
-#         dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / theta[i])
-#         dvydt[i] = 0
-#     end
-
-#     dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
-#     dudt[1:3:end] = dvxglobaldt
-#     dudt[2:3:end] = dvyglobaldt
-#     dudt[3:3:end] = dthetadt
-#     return nothing
-# end
-
-function derivsconstinplace!(dudt, u, p, t)
+function derivsconst!(dudt, u, p, t)
     intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
     @views multmatvec!(vx, vy, els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
     @views dtracglobaldt = partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
@@ -45,37 +19,6 @@ function derivsconstinplace!(dudt, u, p, t)
     dudt[3:3:end] = dthetadt
     return nothing
 end
-
-# function derivsquad(u, p, t)
-#     partials, els, eta, dc, blockvxglobal, blockvyglobal = p
-#     vxglobal = u[1:3:end]
-#     vyglobal = u[2:3:end]
-#     theta = u[3:3:end]
-#     @infiltrate
-#     println("here - 1")
-#     vx, vy = multmatvec(repeat(els.rotmat[1:els.endidx, :, :], 3, 1, 1), vxglobal, vyglobal)
-#     println("here - 2")
-#     dt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-#     println("here - 3")
-#     dtx, dty = multmatvec(repeat(els.rotmat[1:els.endidx, :, :], 3, 1, 1), dt[1:2:end], dt[2:2:end])
-#     println("here - 4")
-#     dtheta, dvx, dvy = zeros(3*els.endidx), zeros(3*els.endidx), zeros(3*els.endidx)
-#     vx = @. abs(vx)
-#     theta = @. abs(theta)
-
-#     for i in 1:3*els.endidx
-#         dtheta[i] = 1 - theta[i] * vx[i] / dc
-#         dvx[i] = 1 / (eta / els.normalstress[i] + els.a[i] / vx[i]) * (dtx[i] / els.normalstress[i] - els.b[i] * dtheta[i] / theta[i])
-#         dvy[i] = 0
-#     end
-
-#     dvxglobal, dvyglobal = multmatvec(repeat(els.rotmatinv[1:els.endidx, :, :], 3, 1, 1), dvx, dvy)
-#     dudt = zeros(9 * els.endidx)
-#     dudt[1:3:end] = dvxglobal
-#     dudt[2:3:end] = dvyglobal
-#     dudt[3:3:end] = dtheta
-#     return dudt
-# end
 
 function ex_qdstepandsave()
     # Constants
@@ -126,27 +69,6 @@ function ex_qdstepandsave()
     #
     # CS elements - Euler style stress integration
     #
-    # ics = zeros(3 * nnodes)
-    # ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
-    # ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
-    # ics[3:3:end] = 1e8 * ones(nnodes)
-    # intidx = collect(1:1:els.endidx) # indices of elements to integrate
-    # p = (intidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely)
-    # prob = ODEProblem(derivsconst!, ics, tspan, p)
-    # integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
-    # @time for i in 1:nsteps
-    #     step!(integrator)
-    #     if mod(i, printstep) == 0
-    #         println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
-    #     end    
-    # end
-    # plotqdtimeseries(integrator.sol, 3, nfault)
-
-
-    #
-    # Very inplace with @views
-    # CS elements - Euler style stress integration
-    #
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
@@ -162,7 +84,7 @@ function ex_qdstepandsave()
     dtracyglobaldt = zeros(nintidx)
     dtracglobaldt = zeros(2 * nintidx)
     p = (intidx, nintidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
-    prob = ODEProblem(derivsconstinplace!, ics, tspan, p)
+    prob = ODEProblem(derivsconst!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
         step!(integrator)
@@ -187,7 +109,6 @@ function ex_qdstepandsave()
     #     step!(integrator)
     #     # println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
     # end
-    # @show integrator.sol.t
     # plotqdtimeseries(integrator.sol, 3, nfault)
 
     # @time @save outfilename integrator.sol
