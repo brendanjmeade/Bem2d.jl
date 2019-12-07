@@ -26,21 +26,22 @@ function derivsquad!(dudt, u, p, t)
     @views dtracglobaldt = partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
     @views multmatvecquad!(dtracxglobaldt, dtracyglobaldt, els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
     for i in 1:nintidx
-        println("Need propagate elidx through for the 1:3 exchange")
         elidx = Int64(floor((i - 1) / 3) + 1) # Change w/ every 3rd node
+        @show i, dthetadt[i]
         @views dthetadt[i] = thetalaw(abs(vx[i]), u[3:3:end][i], dc)
+        @show i, dthetadt[i]
         # @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
-        @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[elidx]] + els.a[intidx[elidx]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[elidx]] - els.b[intidx[elidx]] * dthetadt[i] / u[3:3:end][i])
+        # @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[elidx]] + els.a[intidx[elidx]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[elidx]] - els.b[intidx[elidx]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
     @views multmatvecquad!(dudt[1:3:end], dudt[2:3:end], els.rotmatinv[intidx, :, :], dvxdt, dvydt)
-    dudt[3:3:end] = dthetadt
+    # dudt[3:3:end] = dthetadt
     return nothing
 end
 
 function ex_qdstepandsave()
     # Constants
-    nsteps = 500
+    nsteps = 200
     nfault = 50
     printstep = 100
     amplitude = 1.0
@@ -59,7 +60,6 @@ function ex_qdstepandsave()
 
     # Create fault elements
     els = Elements(Int(1e5))
-    nnodes = 1 * nfault
     faultwidth = 10000
     x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
     for i in 1:length(x1)
@@ -84,9 +84,8 @@ function ex_qdstepandsave()
     @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     @time _, _, partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
-    #
     # CS elements - Euler style stress integration
-    #
+    nnodes = 1 * nfault
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
@@ -134,10 +133,11 @@ function ex_qdstepandsave()
     prob = ODEProblem(derivsquad!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
+        @show i
         step!(integrator)
         if mod(i, printstep) == 0
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
-        end    
+        end
     end
     # plotqdtimeseries(integrator.sol, 3, nfault)
     
