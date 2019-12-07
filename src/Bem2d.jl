@@ -115,12 +115,12 @@ function multmatvec!(vx, vy, mats, vec1, vec2)
     return nothing
 end
 
-export multquadmatvec!
-function multquadmatvec!(vx, vy, mats, vec1, vec2)
-    println("Need to write me!!! Another for loop should do it?")
+export multmatvecquad!
+function multmatvecquad!(vx, vy, mats, vec1, vec2)
     @inbounds for i in 1:length(vec1)
-        @views vx[i] = mats[i, 1, 1] * vec1[i] + mats[i, 1, 2] * vec2[i]
-        @views vy[i] = mats[i, 2, 1] * vec1[i] + mats[i, 2, 2] * vec2[i]
+        matidx = Int64(floor((i - 1) / 3)) # Change w/ every 3rd node
+        @views vx[i] = mats[matidx, 1, 1] * vec1[i] + mats[matidx, 1, 2] * vec2[i]
+        @views vy[i] = mats[matidx, 2, 1] * vec1[i] + mats[matidx, 2, 2] * vec2[i]
     end
     return nothing
 end
