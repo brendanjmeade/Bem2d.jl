@@ -90,7 +90,6 @@ function ex_qdstepandsave()
     intidx = collect(1:1:els.endidx) # indices of elements to integrate
     nintidx = length(intidx)
     dthetadt = zeros(nintidx)
-    @show size(dthetadt)
     dvxdt = zeros(nintidx)
     dvydt = zeros(nintidx)
     vx = zeros(nintidx)
