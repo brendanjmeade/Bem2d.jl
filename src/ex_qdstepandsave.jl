@@ -27,11 +27,12 @@ function derivsquad!(dudt, u, p, t)
     @views multmatvecquad!(dtracxglobaldt, dtracyglobaldt, els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
     for i in 1:nintidx
         elidx = Int64(floor((i - 1) / 3) + 1) # Change w/ every 3rd node
-        @show i, dthetadt[i]
+        @show i, dthetadt[i], vx[i], u[3:3:end][i], dc
         @views dthetadt[i] = thetalaw(abs(vx[i]), u[3:3:end][i], dc)
+        @show i, dthetadt[i], vx[i], u[3:3:end][i], dc
         @show i, dthetadt[i]
         # @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
-        # @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[elidx]] + els.a[intidx[elidx]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[elidx]] - els.b[intidx[elidx]] * dthetadt[i] / u[3:3:end][i])
+        @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[elidx]] + els.a[intidx[elidx]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[elidx]] - els.b[intidx[elidx]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
     @views multmatvecquad!(dudt[1:3:end], dudt[2:3:end], els.rotmatinv[intidx, :, :], dvxdt, dvydt)
@@ -93,6 +94,7 @@ function ex_qdstepandsave()
     intidx = collect(1:1:els.endidx) # indices of elements to integrate
     nintidx = length(intidx)
     dthetadt = zeros(nintidx)
+    @show size(dthetadt)
     dvxdt = zeros(nintidx)
     dvydt = zeros(nintidx)
     vx = zeros(nintidx)
@@ -111,29 +113,26 @@ function ex_qdstepandsave()
     end
     plotqdtimeseries(integrator.sol, 3, nfault)
     
-    #
     # 3QN elements - Euler style stress integration
-    #
     nnodes = 3 * nfault
     ics = zeros(3 * nnodes)
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
     intidx = collect(1:1:els.endidx) # indices of elements to integrate
-    nintidx = 3 * length(intidx)
-    dthetadt = zeros(nintidx)
-    dvxdt = zeros(nintidx)
-    dvydt = zeros(nintidx)
-    vx = zeros(nintidx)
-    vy = zeros(nintidx)
-    dtracxglobaldt = zeros(nintidx)
-    dtracyglobaldt = zeros(nintidx)
-    dtracglobaldt = zeros(2 * nintidx)
+    nintidx = length(intidx)
+    dthetadt = zeros(3 * nintidx)
+    dvxdt = zeros(3 * nintidx)
+    dvydt = zeros(3 * nintidx)
+    vx = zeros(3 * nintidx)
+    vy = zeros(3 * nintidx)
+    dtracxglobaldt = zeros(3 * nintidx)
+    dtracyglobaldt = zeros(3 * nintidx)
+    dtracglobaldt = zeros(2 * 3 * nintidx)
     p = (intidx, nintidx, partialsquad, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
     prob = ODEProblem(derivsquad!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
-        @show i
         step!(integrator)
         if mod(i, printstep) == 0
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))

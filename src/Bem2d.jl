@@ -117,8 +117,8 @@ end
 
 export multmatvecquad!
 function multmatvecquad!(vx, vy, mats, vec1, vec2)
-    @inbounds for i in 1:length(vec1)
-        matidx = Int64(floor((i - 1) / 3)) # Change w/ every 3rd node
+    for i in 1:length(vec1)
+        matidx = Int64(floor((i - 1) / 3) + 1) # Change w/ every 3rd node
         @views vx[i] = mats[matidx, 1, 1] * vec1[i] + mats[matidx, 1, 2] * vec2[i]
         @views vy[i] = mats[matidx, 2, 1] * vec1[i] + mats[matidx, 2, 2] * vec2[i]
     end
