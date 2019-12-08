@@ -27,11 +27,7 @@ function derivsquad!(dudt, u, p, t)
     @views multmatvecquad!(dtracxglobaldt, dtracyglobaldt, els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
     for i in 1:3*nintidx
         elidx = Int64(floor((i - 1) / 3) + 1) # Change w/ every 3rd node
-        # @show i, dthetadt[i], vx[i], u[3:3:end][i], dc
         @views dthetadt[i] = thetalaw(abs(vx[i]), u[3:3:end][i], dc)
-        # @show i, dthetadt[i], vx[i], u[3:3:end][i], dc
-        # @show i, dthetadt[i]
-        # @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
         @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[elidx]] + els.a[intidx[elidx]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[elidx]] - els.b[intidx[elidx]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
