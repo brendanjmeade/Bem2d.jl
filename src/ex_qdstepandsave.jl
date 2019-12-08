@@ -38,7 +38,7 @@ end
 
 function ex_qdstepandsave()
     # Constants
-    nsteps = 200
+    nsteps = 500
     nfault = 50
     printstep = 100
     amplitude = 1.0
@@ -133,7 +133,7 @@ function ex_qdstepandsave()
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
         end
     end
-    # plotqdtimeseries(integrator.sol, 3, nfault)
+    plotqdtimeseriesquad(integrator.sol, 3, nfault)
     
     # @time @save outfilename integrator.sol
     # println("Wrote integration results to:")
