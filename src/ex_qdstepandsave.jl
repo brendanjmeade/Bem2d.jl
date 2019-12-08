@@ -25,18 +25,18 @@ function derivsquad!(dudt, u, p, t)
     @views multmatvecquad!(vx, vy, els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
     @views dtracglobaldt = partials["trac"]["fault"]["fault"] * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
     @views multmatvecquad!(dtracxglobaldt, dtracyglobaldt, els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
-    for i in 1:nintidx
+    for i in 1:3*nintidx
         elidx = Int64(floor((i - 1) / 3) + 1) # Change w/ every 3rd node
-        @show i, dthetadt[i], vx[i], u[3:3:end][i], dc
+        # @show i, dthetadt[i], vx[i], u[3:3:end][i], dc
         @views dthetadt[i] = thetalaw(abs(vx[i]), u[3:3:end][i], dc)
-        @show i, dthetadt[i], vx[i], u[3:3:end][i], dc
-        @show i, dthetadt[i]
+        # @show i, dthetadt[i], vx[i], u[3:3:end][i], dc
+        # @show i, dthetadt[i]
         # @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
         @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[elidx]] + els.a[intidx[elidx]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[elidx]] - els.b[intidx[elidx]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
     @views multmatvecquad!(dudt[1:3:end], dudt[2:3:end], els.rotmatinv[intidx, :, :], dvxdt, dvydt)
-    # dudt[3:3:end] = dthetadt
+    dudt[3:3:end] = dthetadt
     return nothing
 end
 
