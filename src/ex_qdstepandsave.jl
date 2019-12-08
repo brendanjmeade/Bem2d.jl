@@ -38,8 +38,8 @@ end
 
 function ex_qdstepandsave()
     # Constants
-    nsteps = 1000
-    nfault = 50
+    nsteps = 5000
+    nfault = 200
     printstep = 100
     amplitude = 1.0
     outfilename = string(now()) * ".jld2"
@@ -97,7 +97,7 @@ function ex_qdstepandsave()
     dtracxglobaldt = zeros(nintidx)
     dtracyglobaldt = zeros(nintidx)
     dtracglobaldt = zeros(2 * nintidx)
-    p = (intidx, nintidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
+    p = (intidx, nintidx, partialsconst, els, eta, thetasliplaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
     prob = ODEProblem(derivsconst!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
@@ -124,7 +124,7 @@ function ex_qdstepandsave()
     dtracxglobaldt = zeros(3 * nintidx)
     dtracyglobaldt = zeros(3 * nintidx)
     dtracglobaldt = zeros(2 * 3 * nintidx)
-    p = (intidx, nintidx, partialsquad, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
+    p = (intidx, nintidx, partialsquad, els, eta, thetasliplaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
     prob = ODEProblem(derivsquad!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
