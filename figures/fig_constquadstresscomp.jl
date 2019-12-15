@@ -3,104 +3,130 @@ using PyCall
 using PyPlot
 using Bem2d
 
+
 function plotfunction(els, xcenters, ycenters, xnodes, ynodes, uconst, σconst, tconst, uquad, σquad, tquad, xobs, yobs, uconstfarfield, σconstfarfield, uquadfarfield, σquadfarfield)
     scalestress = 1e6
-    ncontours = 30
-    fontsize = 5
+    contourlevels = 5
+    contourlevels = collect(LinRange(4, 7, 6))
+    fontsize = 7
     xmin = -5e3
     xmax = 5e3
     cmap = rycroftcmap()
 
     figure(figsize = (6, 5), dpi=300)
     ax = subplot(3, 3, 1)
-    contourf(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    mat = reshape(log10.(abs.(σconstfarfield[:, 1])), size(xobs))
+    mat[findall(x -> x < minimum(contourlevels), mat)] .= minimum(contourlevels)
+    mat[findall(x -> x > maximum(contourlevels), mat)] .= maximum(contourlevels)
+    contourf(xobs, yobs, mat, contourlevels, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize)
     cbar.set_label(label = L"$\sigma_{xx}$ CS (MPa)", fontsize = fontsize)
-    contour(xobs, yobs, reshape(σconstfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
+    contour(xobs, yobs, mat, contourlevels, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     ylabel(L"$y$ (m)", fontsize = fontsize); xlim([xmin, xmax]); xticks([])
     yticks([-2500, 0, 2500]);
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(3, 3, 2)
-    contourf(xobs, yobs, reshape(σconstfarfield[:, 2] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    mat = reshape(log10.(abs.(σconstfarfield[:, 2])), size(xobs))
+    mat[findall(x -> x < minimum(contourlevels), mat)] .= minimum(contourlevels)
+    mat[findall(x -> x > maximum(contourlevels), mat)] .= maximum(contourlevels)
+    contourf(xobs, yobs, mat, contourlevels, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize)
     cbar.set_label(label = L"$\sigma_{yy}$ CS (MPa)", fontsize = fontsize)
-    contour(xobs, yobs, reshape(σconstfarfield[:, 2] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
+    contour(xobs, yobs, mat, contourlevels, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     xlim([xmin, xmax]); xticks([]); yticks([])
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(3, 3, 3)
-    contourf(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    mat = reshape(log10.(abs.(σconstfarfield[:, 3])), size(xobs))
+    mat[findall(x -> x < minimum(contourlevels), mat)] .= minimum(contourlevels)
+    mat[findall(x -> x > maximum(contourlevels), mat)] .= maximum(contourlevels)
+    contourf(xobs, yobs, mat, contourlevels, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize)
     cbar.set_label(label = L"$\sigma_{xy}$ CS (MPa)", fontsize = fontsize)
-    contour(xobs, yobs, reshape(σconstfarfield[:, 3] ./ scalestress, size(xobs)), ncontours,  linewidths = 0.25, colors = "k", linestyles = "-")
+    contour(xobs, yobs, mat, contourlevels, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     xlim([xmin, xmax]); xticks([]); yticks([])
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(3, 3, 4)
-    contourf(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    mat = reshape(log10.(abs.(σquadfarfield[:, 1])), size(xobs))
+    mat[findall(x -> x < minimum(contourlevels), mat)] .= minimum(contourlevels)
+    mat[findall(x -> x > maximum(contourlevels), mat)] .= maximum(contourlevels)
+    contourf(xobs, yobs, mat, contourlevels, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize)
-    cbar.set_label(label = L"$\sigma_{xx}$ 3NQ (MPa)", fontsize = fontsize)
-    contour(xobs, yobs, reshape(σquadfarfield[:, 1] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
+    cbar.set_label(label = L"$\sigma_{xx}$ 3QN (MPa)", fontsize = fontsize)
+    contour(xobs, yobs, mat, contourlevels, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     ylabel(L"$y$ (m)", fontsize = fontsize); xlim([xmin, xmax]); xticks([])
     yticks([-2500, 0, 2500]);
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(3, 3, 5)
-    contourf(xobs, yobs, reshape(σquadfarfield[:, 2] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    mat = reshape(log10.(abs.(σquadfarfield[:, 2])), size(xobs))
+    mat[findall(x -> x < minimum(contourlevels), mat)] .= minimum(contourlevels)
+    mat[findall(x -> x > maximum(contourlevels), mat)] .= maximum(contourlevels)
+    contourf(xobs, yobs, mat, contourlevels, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize)
-    cbar.set_label(label = L"$\sigma_{yy}$ 3NQ (MPa)", fontsize = fontsize)
-    contour(xobs, yobs, reshape(σquadfarfield[:, 2] ./ scalestress, size(xobs)), ncontours, linewidths = 0.25, colors = "k", linestyles = "-")
+    cbar.set_label(label = L"$\sigma_{yy}$ 3QN (MPa)", fontsize = fontsize)
+    contour(xobs, yobs, mat, contourlevels, linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     xlim([xmin, xmax]); xticks([]); yticks([])
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(3, 3, 6)
-    contourf(xobs, yobs, reshape(σquadfarfield[:, 3] ./ scalestress, size(xobs)), ncontours, cmap = cmap)
+    mat = reshape(log10.(abs.(σquadfarfield[:, 3])), size(xobs))
+    mat[findall(x -> x < minimum(contourlevels), mat)] .= minimum(contourlevels)
+    mat[findall(x -> x > maximum(contourlevels), mat)] .= maximum(contourlevels)
+    contourf(xobs, yobs, mat, contourlevels, cmap = cmap)
     cbar = colorbar(orientation = "horizontal", fraction = 0.20, pad = 0.05, extend = "both")
     cbar.ax.tick_params(labelsize = fontsize)
-    cbar.set_label(label = L"$\sigma_{xy}$ 3NQ (MPa)", fontsize = fontsize)
-    contour(xobs, yobs, reshape(σquadfarfield[:, 3] ./ scalestress, size(xobs)), ncontours,  linewidths = 0.25, colors = "k", linestyles = "-")
+    cbar.set_label(label = L"$\sigma_{xy}$ 3QN (MPa)", fontsize = fontsize)
+    contour(xobs, yobs, mat, contourlevels,  linewidths = 0.25, colors = "k", linestyles = "-")
     gca().set_aspect("equal")
     xlim([xmin, xmax]); xticks([]); yticks([])
     ax.tick_params(labelsize = fontsize)
 
     ax = subplot(3, 3, 7)
-    plot(xcenters, σconst[1:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{xx}$ CS", zorder = 2)
-    plot(xnodes, σquad[1:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{xx}$ 3NQ", zorder = 1)
-    legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
-    xlabel(L"$x$ (m)", fontsize = fontsize); ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
+    plot(xcenters, σconst[1:3:end] ./ scalestress, ".k", markerfacecolor = "blue", markeredgewidth = 0.0, label = L"$σ_{xx}$ CS", zorder = 2)
+    plot(xnodes, σquad[1:3:end] ./ scalestress, "ok", markerfacecolor = "red", markeredgewidth = 0.25, label = L"$σ_{xx}$ 3QN", zorder = 1)
+    legend(loc = "lower right", fontsize = fontsize, frameon=false)
+    xlim([xmin, xmax]); xticks([xmin, 0, xmax])
+    xlabel(L"$x$ (m)", fontsize = fontsize)
+    ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax.tick_params(labelsize = fontsize)
-    yticks([-10, 0, 10]);
+    yticks([-10, 0, 10])
     ylim([-1e7 / scalestress, 1e7 / scalestress])
 
     ax = subplot(3, 3, 8)
-    plot(xcenters, σconst[2:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{yy}$ CS", zorder = 2)
-    plot(xnodes, σquad[2:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{yy}$ 3NQ", zorder = 1)
-    legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
-    xlabel(L"$x$ (m)", fontsize = fontsize);
+    plot(xcenters, σconst[2:3:end] ./ scalestress, ".k", markerfacecolor = "blue", markeredgewidth = 0.0, label = L"$σ_{yy}$ CS", zorder = 2)
+    plot(xnodes, σquad[2:3:end] ./ scalestress, "ok", markerfacecolor = "red", markeredgewidth = 0.25, label = L"$σ_{yy}$ 3QN", zorder = 1)
+    legend(loc = "lower right", fontsize = fontsize, frameon=false)
+    xlim([xmin, xmax]); xticks([xmin, 0, xmax])
+    xlabel(L"$x$ (m)", fontsize = fontsize)
     ax.tick_params(labelsize = fontsize)
     ylim([-1e7 / scalestress, 1e7 / scalestress]); yticks([])
 
     ax = subplot(3, 3, 9)
-    plot(xcenters, σconst[3:3:end] ./ scalestress, ".k", markerfacecolor = "k", markeredgewidth = 0.0, label = L"$σ_{xy}$ CS", zorder = 2)
-    plot(xnodes, σquad[3:3:end] ./ scalestress, "ok", markerfacecolor = "lightgray", markeredgewidth = 0.25, label = L"$σ_{xy}$ 3NQ", zorder = 1)
-    legend(loc = "lower right", fontsize = fontsize); xlim([xmin, xmax]); xticks([xmin, 0, xmax])
-    xlabel(L"$x$ (m)", fontsize = fontsize);    # ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
+    plot(xcenters, σconst[3:3:end] ./ scalestress, ".k", markerfacecolor = "blue", markeredgewidth = 0.0, label = L"$σ_{xy}$ CS", zorder = 2)
+    plot(xnodes, σquad[3:3:end] ./ scalestress, "ok", markerfacecolor = "red", markeredgewidth = 0.25, label = L"$σ_{xy}$ 3QN", zorder = 1)
+    legend(loc = "lower right", fontsize = fontsize, frameon=false)
+    xlim([xmin, xmax]); xticks([xmin, 0, xmax])
+    xlabel(L"$x$ (m)", fontsize = fontsize)    # ylabel(L"$\sigma$ (MPa)", fontsize = fontsize)
     ax.tick_params(labelsize = fontsize)
     ylim([-1e7 / scalestress, 1e7 / scalestress]); yticks([])
     tight_layout()
     show()
 end
+
+
 
 function fig_constquadstresscomp()
     # Material and geometric constants
@@ -166,7 +192,7 @@ function fig_constquadstresscomp()
 
     # Predict on-fault displacements, stresses, and tractions
     close("all")
-    for i in 1:size(slipconst)[1]
+    for i in 2:size(slipconst)[1]
         # On fault evaluation
         dispconst = partialsconst["disp"]["fault"]["fault"] * slipconst[i, :]
         stressconst = partialsconst["stress"]["fault"]["fault"] * slipconst[i, :]
