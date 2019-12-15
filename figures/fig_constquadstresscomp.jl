@@ -156,7 +156,7 @@ function fig_constquadstresscomp()
     partialsquad["disp"]["fault"]["fault"], partialsquad["stress"]["fault"]["fault"], partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
     # Observation coordinates for plotting
-    npts = 100
+    npts = 300
     obswidth = 5e3
     xobs, yobs = obsgrid(-obswidth, -2.5e3, obswidth, 2.5e3, npts)
 
