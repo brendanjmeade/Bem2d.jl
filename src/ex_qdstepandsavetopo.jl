@@ -81,6 +81,17 @@ function ex_qdstepandsave()
     @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     # @time _, _, partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
+    #
+    # Put thrust and topo elements here
+    #
+
+    #
+    # Solve the BEM problem once so that it can be passed to the solver
+    # and we only have to do the matrix-vector multiply in solver
+    # Note that we need both the fault and surface contribution to stress
+    # on the fault.
+    #
+    
     # CS elements - Euler style stress integration
     nnodes = 1 * nfault
     ics = zeros(3 * nnodes)
