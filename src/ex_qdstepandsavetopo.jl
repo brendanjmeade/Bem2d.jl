@@ -38,7 +38,7 @@ end
 
 function ex_qdstepandsave()
     # Constants
-    nsteps = 5000
+    nsteps = 500
     nfreesurf = 100
     nfault = 200
     printstep = 100
@@ -100,13 +100,31 @@ function ex_qdstepandsave()
     # Calculate slip to traction partials on the fault
     println("Calculating velocity to traction matrix")
     @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-
+    @time _, _, partialsconst["trac"]["fault"]["freesurftopo"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurftopo"], mu, nu)
+    @time _, _, partialsconst["trac"]["freesurftopo"]["freesurftopo"] = partialsconstdispstress(slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
+    @time _, _, partialsconst["trac"]["freesurftopo"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
+    
+    #
+    # Just trying out some new notation...need to think about it.
+    # parCS["T"]["fault"]["fault"]
+    # parQN["S"]["fault"]["fault"]
+    #
+    
     #
     # Solve the BEM problem once so that it can be passed to the solver
     # and we only have to do the matrix-vector multiply in solver
     # Note that we need both the fault and surface contribution to stress
     # on the fault.
     #
+
+    # This matrix allows us to go from fault slip to surface displacements
+    # We then need to go from surface displacements to tractions on the fault
+    # Do we need tractions on the surface too to go to fault tractions?  No because it's a free surface.
+    @time faultsliptosurfacedispmat = inv(partialsconst["trac"]["freesurftopo"]["freesurftopo"]) * partialsconst["trac"]["fault"]["freesurftopo"]
+    thisiswhatIwant = partialsconst["trac"]["freesurftopo"]["fault"] * faultsliptosurfacedispmat
+    
+    
+    # Surface displacements to -> fault tractions 
     
     # CS elements - Euler style stress integration
     nnodes = 1 * nfault
