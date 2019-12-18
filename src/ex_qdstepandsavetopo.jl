@@ -3,6 +3,7 @@ using DifferentialEquations
 using JLD2
 using Dates
 using Infiltrator
+using PyPlot
 using Bem2d
 
 function derivsconst!(dudt, u, p, t)
@@ -102,7 +103,7 @@ function ex_qdstepandsave()
     @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     @time _, _, partialsconst["trac"]["fault"]["freesurftopo"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurftopo"], mu, nu)
     @time _, _, partialsconst["trac"]["freesurftopo"]["freesurftopo"] = partialsconstdispstress(slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
-    @time _, _, partialsconst["trac"]["freesurftopo"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
+    @time _, _, partialsconst["trac"]["freesurftopo"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["freesurftopo"], idx["fault"], mu, nu)
     
     #
     # Just trying out some new notation...need to think about it.
@@ -121,8 +122,23 @@ function ex_qdstepandsave()
     # We then need to go from surface displacements to tractions on the fault
     # Do we need tractions on the surface too to go to fault tractions?  No because it's a free surface.
     @time faultsliptosurfacedispmat = inv(partialsconst["trac"]["freesurftopo"]["freesurftopo"]) * partialsconst["trac"]["fault"]["freesurftopo"]
-    thisiswhatIwant = partialsconst["trac"]["freesurftopo"]["fault"] * faultsliptosurfacedispmat
+    iswhatiwant = partialsconst["trac"]["freesurftopo"]["fault"] * faultsliptosurfacedispmat
+
+    matshow(log10.(abs.(iswhatiwant)))
+    colorbar()
+    title("fault (slip) -> surface (displacements) -> fault (tractions)", fontsize=16)
     
+    matshow(log10.(abs.(partialsconst["trac"]["fault"]["fault"])))
+    colorbar()
+    title("fault (slip) to fault (tractions)", fontsize=16)
+
+    matshow(log10.(abs.(partialsconst["trac"]["fault"]["fault"] + iswhatiwant)))
+    colorbar()
+    title("TOTAL: fault (slip) to fault (tractions)", fontsize=16)
+
+    
+    @infiltrate
+    return
     
     # Surface displacements to -> fault tractions 
     
