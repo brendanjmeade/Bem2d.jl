@@ -39,6 +39,7 @@ end
 function ex_qdstepandsave()
     # Constants
     nsteps = 5000
+    nfreesurf = 100
     nfault = 200
     printstep = 100
     amplitude = 1.0
@@ -58,7 +59,11 @@ function ex_qdstepandsave()
     # Create fault elements
     els = Elements(Int(1e5))
     faultwidth = 10000
-    x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
+    
+    # Curved fault
+    x1, y1, x2, y2 = discretizedline(-7e3, 0e3, 0, 0, nfault)
+    y1 = 3e3 * atan.(x1 / 1e3)
+    y2 = 3e3 * atan.(x2 / 1e3)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -66,25 +71,39 @@ function ex_qdstepandsave()
         els.y2[els.endidx + i] = y2[i]
         els.a[els.endidx + i] = 0.015
         els.b[els.endidx + i] = 0.020
-        els.normalstress[els.endidx + i] = 50e6
+        els.normalstress[els.endidx + i] = 50e7
         els.name[els.endidx + i] = "fault"
     end
     standardize_elements!(els)
 
+    # Topographic free surface
+    x1, y1, x2, y2 = discretizedline(-20e3, 0, 20e3, 0, nfreesurf)
+    y1 = -1e3 * atan.(x1 / 1e3)
+    y2 = -1e3 * atan.(x2 / 1e3)
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "freesurftopo"
+        els.a[els.endidx + i] = 0.015
+        els.b[els.endidx + i] = 0.020
+        els.normalstress[els.endidx + i] = 0e6
+    end
+    standardize_elements!(els)
+    
+
     # Create convience tools
     idx = getidxdict(els)
     partialsconst = initpartials(els)
-    partialsquad = initpartials(els)
     
     # Calculate slip to traction partials on the fault
     println("Calculating velocity to traction matrix")
     @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    # @time _, _, partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
-    #
-    # Put thrust and topo elements here
-    #
-
+    @show nfault
+    @show els.endidx
+    @show idx["fault"]
     #
     # Solve the BEM problem once so that it can be passed to the solver
     # and we only have to do the matrix-vector multiply in solver
@@ -98,7 +117,7 @@ function ex_qdstepandsave()
     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
     ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
     ics[3:3:end] = 1e8 * ones(nnodes)
-    intidx = collect(1:1:els.endidx) # indices of elements to integrate
+    intidx = idx["fault"] # indices of elements to integrate
     nintidx = length(intidx)
     dthetadt = zeros(nintidx)
     dvxdt = zeros(nintidx)
@@ -108,7 +127,7 @@ function ex_qdstepandsave()
     dtracxglobaldt = zeros(nintidx)
     dtracyglobaldt = zeros(nintidx)
     dtracglobaldt = zeros(2 * nintidx)
-    p = (intidx, nintidx, partialsconst, els, eta, thetasliplaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
+    p = (intidx, nintidx, partialsconst, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
     prob = ODEProblem(derivsconst!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
