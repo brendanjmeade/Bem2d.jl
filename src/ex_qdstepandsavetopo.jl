@@ -101,9 +101,6 @@ function ex_qdstepandsave()
     println("Calculating velocity to traction matrix")
     @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
-    @show nfault
-    @show els.endidx
-    @show idx["fault"]
     #
     # Solve the BEM problem once so that it can be passed to the solver
     # and we only have to do the matrix-vector multiply in solver
