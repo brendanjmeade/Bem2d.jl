@@ -107,8 +107,8 @@ function ex_qdstepandsave()
     
     #
     # Just trying out some new notation...need to think about it.
-    # parCS["T"]["fault"]["fault"]
-    # parQN["S"]["fault"]["fault"]
+    # parC["T"]["fault"]["fault"]
+    # parQ["S"]["fault"]["fault"]
     #
     
     #
@@ -121,26 +121,9 @@ function ex_qdstepandsave()
     # This matrix allows us to go from fault slip to surface displacements
     # We then need to go from surface displacements to tractions on the fault
     # Do we need tractions on the surface too to go to fault tractions?  No because it's a free surface.
-    @time faultsliptosurfacedispmat = inv(partialsconst["trac"]["freesurftopo"]["freesurftopo"]) * partialsconst["trac"]["fault"]["freesurftopo"]
-    iswhatiwant = partialsconst["trac"]["freesurftopo"]["fault"] * faultsliptosurfacedispmat
-
-    matshow(log10.(abs.(iswhatiwant)))
-    colorbar()
-    title("fault (slip) -> surface (displacements) -> fault (tractions)", fontsize=16)
-    
-    matshow(log10.(abs.(partialsconst["trac"]["fault"]["fault"])))
-    colorbar()
-    title("fault (slip) to fault (tractions)", fontsize=16)
-
-    matshow(log10.(abs.(partialsconst["trac"]["fault"]["fault"] + iswhatiwant)))
-    colorbar()
-    title("TOTAL: fault (slip) to fault (tractions)", fontsize=16)
-
-    
-    @infiltrate
-    return
-    
-    # Surface displacements to -> fault tractions 
+    @time faultsliptosurfacedisp = inv(partialsconst["trac"]["freesurftopo"]["freesurftopo"]) * partialsconst["trac"]["fault"]["freesurftopo"]
+    faultsliptosurfacedisptofaulttraction = partialsconst["trac"]["freesurftopo"]["fault"] * faultsliptosurfacedisp
+    bemsliptotractotal = partialsconst["trac"]["fault"]["fault"] - faultsliptosurfacedisptofaulttraction
     
     # CS elements - Euler style stress integration
     nnodes = 1 * nfault
