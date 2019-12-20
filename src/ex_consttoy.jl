@@ -41,10 +41,20 @@ function ex_consttoy()
     show()
 
     ### Constant traction element
+    # TODO: Generate partials
+    # _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    # TODO: Solve BEM problem
+    # TODO: Forward model for volume
 
     ### Constant displacement element
+    # TODO: Generate partials
+    # TODO: Solve BEM problem
+    # TODO: Forward model for volume
 
     ### Displacement discontinuity element
+    # TODO: Generate partials
+    # TODO: Solve BEM problem
+    # TODO: Forward model for volume
     
     return nothing
 end
