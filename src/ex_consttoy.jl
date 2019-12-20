@@ -20,36 +20,32 @@ function ex_consttoy()
 
     # Convenience dictionary for element names
     idx = getidxdict(els)
-
-    # Set fault slip
-    xcenters = els.xcenter[1:els.endidx]
-    ycenters = els.ycenter[1:els.endidx]
-    xnodes = sort(els.xnodes[1:els.endidx, :][:])
-    ynodes = sort(els.ynodes[1:els.endidx, :][:])
-
-    # Constant x-slip only
+    par = initpartials(els)
+    
+    # Set fault forcing
     constxslip = ones(nels)
     constyslip = zeros(nels)
-    quadxslip = repeat(constxslip, 1, 3)
-    quadyslip = repeat(constyslip, 1, 3)
 
     # Observation coordinates for far-field calculation
     npts = 100
     obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
-    # Displacements and stresses
+    ### Show Crouch and Starfield (1983) kernels
     dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], constxslip, constyslip, mu, nu)
-    dispconsttrac, stressconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], quadxslip, quadyslip, mu, nu)
-
-    # Plot
-    close("all")
+    dispconsttrac, stressconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], constxslip, constyslip, mu, nu)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
                dispconstslip, stressconstslip, "constant slip - constant slip element")
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
                dispconsttrac, stressconsttrac, "constant traction - constant slip element")
     show()
 
+    ### Constant traction element
+
+    ### Constant displacement element
+
+    ### Displacement discontinuity element
+    
     return nothing
 end
 ex_consttoy()
