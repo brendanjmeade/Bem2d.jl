@@ -179,8 +179,8 @@ function ex_qdstepandsave()
     # end
     # plotqdtimeseriesquad(integrator.sol, 3, nfault)
     
-    # @time @save outfilename integrator.sol
-    # println("Wrote integration results to:")
-    # println(outfilename)
+    @time @save outfilename integrator.sol els mu nu
+    println("Wrote integration results to:")
+    println(outfilename)
 end
 ex_qdstepandsave()
