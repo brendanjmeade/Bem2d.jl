@@ -35,9 +35,9 @@ function ex_consttoy()
     dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], constxslip, constyslip, mu, nu)
     dispconsttrac, stressconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], constxslip, constyslip, mu, nu)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-               dispconstslip, stressconstslip, "constant slip - constant slip element")
+               dispconstslip, stressconstslip, "CS slip kernel only")
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-               dispconsttrac, stressconsttrac, "constant traction - constant slip element")
+               dispconsttrac, stressconsttrac, "CS stress/traction kernel only")
     show()
 
     ### Constant traction element
