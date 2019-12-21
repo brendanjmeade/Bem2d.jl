@@ -1,4 +1,5 @@
 using Revise
+using LinearAlgebra
 using Bem2d
 
 function ex_consttoy()
@@ -22,9 +23,9 @@ function ex_consttoy()
     idx = getidxdict(els)
     par = initpartials(els)
     
-    # Set fault forcing
-    constxslip = ones(nels)
-    constyslip = zeros(nels)
+    # Set driving traction / slip
+    xdrive = ones(nels)
+    ydrive = zeros(nels)
 
     # Observation coordinates for far-field calculation
     npts = 100
@@ -32,18 +33,21 @@ function ex_consttoy()
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     ### Show Crouch and Starfield (1983) kernels
-    dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], constxslip, constyslip, mu, nu)
-    dispconsttrac, stressconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], constxslip, constyslip, mu, nu)
-    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-               dispconstslip, stressconstslip, "CS slip kernel only")
-    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
-               dispconsttrac, stressconsttrac, "CS stress/traction kernel only")
+    dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
+    dispconsttrac, stressconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconstslip, stressconstslip, "CS slip kernel only")
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconsttrac, stressconsttrac, "CS stress/traction kernel only")
     show()
 
     ### Constant traction element
-    # TODO: Generate partials
-    # _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    # TODO: Solve BEM problem
+    # Generate partials
+    T, _, _ = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    
+    # Solve BEM problem for slip on fault resulting from unit traction
+    u = (I(size(T)[1]) - T * inv(T - I(size(T)[1]))) * U * [xdrive; ydrive]
+    @show u
+    
     # TODO: Forward model for volume
 
     ### Constant displacement element
