@@ -515,6 +515,34 @@ function partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
     return partialsdisp, partialsstress, partialstrac
 end
 
+# This is for partials at observation coordinates thare are *not*
+# Element centroids or nodes.  This is used for volume calculations
+#
+# TODO: Tractions are not a good concept here because there is not
+# necessarily a normal vector at an arbitrary observation point.  There
+# always is for an observation point on an element but not necessarily
+# the area/volume around it which is not meshed.  Is this reight???
+export partialsconst
+function partialsconst(fun2dispstress, els, srcidx, xobs, yobs, mu, nu)
+    nobs = length(xobs)
+    nsrc = length(srcidx)
+    partialsdisp, partialsstress, partialstrac = zeros(2 * nobs, 2 * nsrc), zeros(3 * nobs, 2 * nsrc), zeros(2 * nobs, 2 * nsrc)
+    _partialsdisp, _partialsstress, _partialstrac = zeros(2, 2), zeros(3, 2), zeros(2, 2)
+    for isrc in 1:nsrc
+        for iobs in 1:nobs
+            _partialsdisp[:, 1], _partialsstress[:, 1] = constdispstress(fun2dispstress, xobs[iobs], yobs[iobs], els, srcidx[isrc], 1, 0, mu, nu)
+            _partialsdisp[:, 2], _partialsstress[:, 2] = constdispstress(fun2dispstress, xobs[iobs], yobs[iobs], els, srcidx[isrc], 0, 1, mu, nu)
+            # _partialstrac[:, 1] = stress2trac(_partialsstress[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            # _partialstrac[:, 2] = stress2trac(_partialsstress[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            partialsdisp[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsdisp
+            partialsstress[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsstress
+            # partialstrac[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialstrac
+        end
+    end
+    return partialsdisp, partialsstress, partialstrac
+end
+
+
 # This is small helper function to return interleaved displacements
 # and stresses rather than the stacked columns
 export quaddispstressinterleaved

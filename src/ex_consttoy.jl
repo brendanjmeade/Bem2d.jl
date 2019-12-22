@@ -53,9 +53,10 @@ function ex_consttoy()
     # TODO: Forward model for volume
     # TODO: Do I need a new partials calculator for arbitrary x, y obs
     # rather than for els nodes only?
-    for i in 1:length(xobs)
-        
-    end
+    # for i in 1:length(xobs)
+    #     T, S, H = partialsconst(slip2dispstress, els, idx["fault"], xobs, yobs, mu, nu)
+    #     U, A, D = partialsconst(trac2dispstress, els, idx["fault"], xobs, yobs, mu, nu)
+    # end
     
     
     ### Constant displacement element
