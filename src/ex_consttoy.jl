@@ -45,11 +45,19 @@ function ex_consttoy()
     U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     
     # Solve BEM problem for slip on fault resulting from unit traction
+    # This is for the element midpoint...do I have to do this for every
+    # observation point too?  I think so.
     u = (I(size(T)[1]) - T * inv(T - I(size(T)[1]))) * U * [xdrive; ydrive]
     @show u
     
     # TODO: Forward model for volume
-
+    # TODO: Do I need a new partials calculator for arbitrary x, y obs
+    # rather than for els nodes only?
+    for i in 1:length(xobs)
+        
+    end
+    
+    
     ### Constant displacement element
     # TODO: Generate partials
     # TODO: Solve BEM problem
