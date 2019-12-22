@@ -7,12 +7,12 @@ using PyPlot
 using Infiltrator
 
 export interleave
-function interleave(vec1::AbstractArray, vec2::AbstractArray)
+function interleave(vec1, vec2)
     return transpose([vec1 vec2])[:]
 end
 
 export meshgrid
-function meshgrid(xs::AbstractArray, ys::AbstractArray)
+function meshgrid(xs, ys)
     xmat = repeat(xs, 1, length(ys))
     ymat = transpose(repeat(ys, 1, length(xs)))
     return xmat, ymat
@@ -20,7 +20,7 @@ end
 
 # Create regular grid for plotting simple models
 export obsgrid
-function obsgrid(xmin::AbstractFloat, ymin::AbstractFloat, xmax::AbstractFloat, ymax::AbstractFloat, npts::Int)
+function obsgrid(xmin, ymin, xmax, ymax, npts)
     T = typeof(xmin)
     xobs, yobs = meshgrid(LinRange(T(xmin), T(xmax), npts), LinRange(T(ymin), T(ymax), npts))    
     return xobs[:], yobs[:]
@@ -79,8 +79,8 @@ mutable struct Elements
 end
 
 export updateendidx!
-function updateendidx!(elements::Elements)
-    elements.endidx = findall(isnan, elements.x1)[1] - 1
+function updateendidx!(els)
+    els.endidx = findall(isnan, els.x1)[1] - 1
     return nothing
 end
 
@@ -147,7 +147,7 @@ end
 
 # Calculate displacements and stress for constant slip/traction elements
 export constdispstress
-function constdispstress(fun2dispstress::Function, x, y, els::Elements, idx, xcomp, ycomp, mu, nu)
+function constdispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
     disp, stress = zeros(length(x), 2), zeros(length(x), 3)
     _x, _y = zeros(length(x)), zeros(length(x))
     _xcomp, _ycomp = zeros(1), zeros(1)
