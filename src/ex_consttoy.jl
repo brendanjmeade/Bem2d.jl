@@ -32,42 +32,45 @@ function ex_consttoy()
     obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
+    #
     ### Show Crouch and Starfield (1983) kernels
+    #
     dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
     dispconsttrac, stressconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
-    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconstslip, stressconstslip, "CS slip kernel only")
-    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconsttrac, stressconsttrac, "CS stress/traction kernel only")
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconstslip, stressconstslip, "T, S (CS displacement kernels)")
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconsttrac, stressconsttrac, "U, D (CS stress kernesl)")
     show()
 
-    ### Constant traction element
+    #
+    ### Constant traction element (ALMOST DEFINITELY WRONG)
+    #
     # Generate partials
     T, _, _ = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     
     # Solve BEM problem for slip on fault resulting from unit traction
-    # This is for the element midpoint...do I have to do this for every
-    # observation point too?  I think so.
-    u = (I(size(T)[1]) - T * inv(T - I(size(T)[1]))) * U * [xdrive; ydrive]
-    @show u
-    
+    u = (inv(T + 0.5 * I(size(T)[1]))) * U * [xdrive; ydrive]
+
     # TODO: Forward model for volume
-    # TODO: Do I need a new partials calculator for arbitrary x, y obs
-    # rather than for els nodes only?
-    # for i in 1:length(xobs)
-    #     T, S, H = partialsconst(slip2dispstress, els, idx["fault"], xobs, yobs, mu, nu)
-    #     U, A, D = partialsconst(trac2dispstress, els, idx["fault"], xobs, yobs, mu, nu)
-    # end
-    
-    
+    uconstslip, sconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], u[1], u[2], mu, nu)
+    uconsttrac, sconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+               uconsttrac + uconstslip, sconsttrac + sconstslip,
+               "Constant traction element (Probably not right)")
+
+    #
     ### Constant displacement element
+    #
     # TODO: Generate partials
     # TODO: Solve BEM problem
     # TODO: Forward model for volume
 
-    ### Displacement discontinuity element
-    # TODO: Generate partials
-    # TODO: Solve BEM problem
-    # TODO: Forward model for volume
+    #
+    ### Displacement discontinuity element (LOOKS CORRECT)
+    #
+    dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconstslip, stressconstslip, "Displacement discontinuity element")
+    show()
     
     return nothing
 end
