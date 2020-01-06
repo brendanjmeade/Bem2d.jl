@@ -37,9 +37,9 @@ function derivsquad!(dudt, u, p, t)
     return nothing
 end
 
-function ex_qdstepandflat()
+function ex_qdstepandsaveflat()
     # Constants
-    nsteps = 3000
+    nsteps = 5000
     nfreesurf = 100
     nfault = 200
     printstep = 100
