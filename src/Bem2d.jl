@@ -449,9 +449,7 @@ function plotfields_contours(els, xobs, yobs, idx, field, title)
     xlim = [minimum(xobs) maximum(xobs)]
     ylim = [minimum(yobs) maximum(yobs)]
     subplot(2, 3, idx)
-    # scale = 5e-1
     scale = 1.0
-    
     fieldmax = maximum(@.abs(field))
     contourf(xobs, yobs, reshape(field, size(xobs)), ncontours,
         vmin = -scale * fieldmax, vmax = scale * fieldmax, cmap = rycroftcmap())
@@ -478,8 +476,7 @@ function plotfields(els, xobs, yobs, disp, stress, suptitle)
     plotfields_contours(els, xobs, yobs, 4, stress[:, 1], L"\sigma_{xx}")
     plotfields_contours(els, xobs, yobs, 5, stress[:, 2], L"\sigma_{yy}")
     plotfields_contours(els, xobs, yobs, 6, stress[:, 3], L"\sigma_{xy}")
-    PyPlot.suptitle(suptitle)
-    tight_layout()
+    PyPlot.suptitle(suptitle, fontsize=20)
     show()
     return nothing
 end
