@@ -113,8 +113,8 @@ function ex_qdstepandsaveplanar()
 
     # Create new folder and save timestamped .jld2 file to that folder
     basename = string(now())
-    outfoldername = "~/Desktop/data/qdvis/" * basename
-    outfilename =  outfoldername * ".jld2"
+    outfoldername = "/home/meade/Desktop/data/qdvis/" * basename
+    outfilename =  outfoldername * "/" * basename * ".jld2"
     mkpath(outfoldername)
     @time @save outfilename integrator.sol els mu nu
     println("Wrote integration results to:")
