@@ -22,7 +22,7 @@ end
 export obsgrid
 function obsgrid(xmin, ymin, xmax, ymax, npts)
     T = typeof(xmin)
-    xobs, yobs = meshgrid(LinRange(T(xmin), T(xmax), npts), LinRange(T(ymin), T(ymax), npts))    
+    xobs, yobs = meshgrid(LinRange(T(xmin), T(xmax), npts), LinRange(T(ymin), T(ymax), npts))
     return xobs[:], yobs[:]
 end
 
@@ -156,7 +156,7 @@ function constdispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
     @inbounds @simd for j in 1:length(idx)
         @views _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
         @views _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
-        @views f = constkernel(_x, _y, els.halflength[idx[j]], nu)        
+        @views f = constkernel(_x, _y, els.halflength[idx[j]], nu)
         _disp, _stress = fun2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
         @views _disp, _stress = rotdispstress(_disp, _stress, els.rotmat[idx[j], :, :])
         disp += _disp
@@ -416,7 +416,7 @@ end
 export rotdispstress # rotdispstress
 function rotdispstress(disp, stress, rotmat)
     # TODO: If this is slow hand expand the matrix vector mulltiplies
-    # inplace for speed.  Some benchmarks suggest 50x speedup!
+    # TODO: inplace for speed.  Some benchmarks suggest 50x speedup!
     _disp = zeros(size(disp))
     _stress = zeros(size(stress))
     for i in 1:size(stress)[1]
@@ -711,7 +711,7 @@ function plotqdtimeseries(sol, stridesize, nels)
         theta[i, :] = sol.u[i][3:stridesize:end]
     end
 
-    figure(figsize = (15, 8))
+    figure(1, figsize = (15, 8))
     subplot(3, 2, 1)
     plot(t, vx, "-", linewidth = 0.5)
     yscale("log")
@@ -744,7 +744,7 @@ function plotqdtimeseries(sol, stridesize, nels)
     xlabel("time step #")
     ylabel(L"\theta")
 
-    figure(figsize = (15, 5))
+    figure(2, figsize = (15, 5))
     plotme = log10.(vx')
     contourf(plotme, 5, cmap = rycroftcmap())
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
