@@ -40,7 +40,7 @@ end
 function ex_qdstepandsaveplanar()
     # Constants
     norml = sqrt(2.0) / 2.0
-    nsteps = 5000
+    nsteps = 2000
     nfreesurf = 100
     nfault = 200
     printstep = 100
@@ -55,14 +55,15 @@ function ex_qdstepandsaveplanar()
     eta = mu / (2.0 * sqrt(mu / rho))
     dc = 0.05
     blockvelx = 1e-9 * norml
-    blockvely = 1e-9 * norml
+    blockvely = 0e-9 * norml
 
     # Create fault elements
     els = Elements(Int(1e5))
     faultwidth = 10000
     
     # 45 degree fault
-    x1, y1, x2, y2 = discretizedline(-5e3*norml, -5e3*norml, 5.0e3*norml, 4.0e3*norml, nfault)
+    # x1, y1, x2, y2 = discretizedline(-5e3*norml, -5e3*norml, 5.0e3*norml, 5.0e3*norml, nfault)
+    x1, y1, x2, y2 = discretizedline(-5e3*norml, 0.0e3*norml, 5.0e3*norml, 0.0e3*norml, nfault)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -109,15 +110,22 @@ function ex_qdstepandsaveplanar()
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
         end    
     end
-    plotqdtimeseries(integrator.sol, 3, nfault)
 
     # Create new folder and save timestamped .jld2 file to that folder
     basename = string(now())
     outfoldername = "/home/meade/Desktop/data/qdvis/" * basename
-    outfilename =  outfoldername * "/" * basename * ".jld2"
+    basefilename = outfoldername * "/" * basename
+    outfilename = basefilename * ".jld2"
     mkpath(outfoldername)
     @time @save outfilename integrator.sol els mu nu
+
+    # Plot and dave basic time series information
+    close("all")
+    plotqdtimeseries(integrator.sol, 3, nfault)
+    figure(1); savefig(basefilename * "_timeseries.pdf")
+    figure(2); savefig(basefilename * "_contours.pdf")
+
     println("Wrote integration results to:")
-    println(outfilename)
+    println(outfoldername)
 end
 ex_qdstepandsaveplanar()
