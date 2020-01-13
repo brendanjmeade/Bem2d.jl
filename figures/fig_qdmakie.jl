@@ -75,8 +75,8 @@ function fig_qdmakie()
     els = Elements(Int(1e5))
     nnodes = 1 * nfault
     faultwidth = 10000
-    # x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
-    x1, y1, x2, y2 = discretizedline(-faultwidth, -faultwidth, faultwidth, faultwidth, nfault)
+    x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
+    # x1, y1, x2, y2 = discretizedline(-faultwidth, -faultwidth, faultwidth, faultwidth, nfault)
 
     # Spatially variable properties
     avec = collect(LinRange(0.010, 0.020, nfault))
