@@ -53,12 +53,14 @@ function ex_qdstepandsave()
     eta = mu / (2.0 * sqrt(mu / rho))
     dc = 0.05
     blockvelx = 1e-9
-    blockvely = 0.0
+    blockvely = 1e-9
 
     # Create fault elements
     els = Elements(Int(1e5))
     faultwidth = 10000
-    x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
+    # x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
+    x1, y1, x2, y2 = discretizedline(-faultwidth, -faultwidth, faultwidth, faultwidth, nfault)
+    
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
