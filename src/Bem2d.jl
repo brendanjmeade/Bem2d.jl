@@ -745,7 +745,7 @@ function plotqdtimeseries(sol, stridesize, nels)
     ylabel(L"\theta")
 
     figure(2, figsize = (15, 5))
-    plotme = log10.(vx')
+    plotme = log10.(ifelse.(vx' .< 0, NaN, vx'))
     contourf(plotme, 5, cmap = rycroftcmap())
     colorbar(fraction = 0.020, pad = 0.05, extend = "both", label = L"$\log_{10}v$ (m/s)")
     contour(plotme, 5, linewidths = 0.5, linestyles = "solid", colors = "k")
