@@ -26,6 +26,70 @@ function obsgrid(xmin, ymin, xmax, ymax, npts)
     return xobs[:], yobs[:]
 end
 
+export Element
+struct Element
+    x1::Float64
+    y1::Float64
+    x2::Float64
+    y2::Float64
+    a::Float64
+    b::Float64
+    normalstress::Float64
+    # The following are derived properties (could be dynamic)
+    angle::Float64
+    length::Float64
+    halflength::Float64
+    xcenter::Float64
+    ycenter::Float64
+    rotmat::Array{Float64,2}
+    rotmatinv::Array{Float64,2}
+    xnormal::Float64
+    ynormal::Float64
+    xnodes::Array{Float64,1}
+    ynodes::Array{Float64,1}
+    # These are unused?
+    # uxconst::Float64
+    # uyconst::Float64
+    # uxquad::Array{Float64,1}
+    # uyquad::Array{Float64,1}
+end
+function Element(; x1, y1, x2, y2, a, b, normalstress)
+    dx = x2 - x1
+    dy = y2 - y1
+    magnitude = sqrt(dx^2 + dy^2)
+    angle = atan(dy, dx)
+    length = magnitude
+    halflength = 0.5 * length
+    xcenter = 0.5 * (x2 + x1)
+    ycenter = 0.5 * (y2 + y1)
+    rotmat = [cos(angle) -sin(angle) ; sin(angle) cos(angle)]
+    rotmatinv = [cos(-angle) -sin(-angle) ; sin(-angle) cos(-angle)]
+    xnormal = dy / magnitude
+    ynormal = -dx / magnitude
+    xnodes = [xcenter - (2 / 3 * dx / 2), xcenter, xcenter + (2 / 3 * dx / 2)]
+    ynodes = [ycenter - (2 / 3 * dy / 2), ycenter, ycenter + (2 / 3 * dy / 2)]
+    return Element(
+        x1,
+        y1,
+        x2,
+        y2,
+        a,
+        b,
+        normalstress,
+        angle,
+        length,
+        halflength,
+        xcenter,
+        ycenter,
+        rotmat,
+        rotmatinv,
+        xnormal,
+        ynormal,
+        xnodes,
+        ynodes,
+    )
+end
+
 export Elements
 mutable struct Elements
     x1::Array{Float64,1}
@@ -33,10 +97,10 @@ mutable struct Elements
     x2::Array{Float64,1}
     y2::Array{Float64,1}
     name::Array{String,1}
-    uxconst::Array{Float64,1}
-    uyconst::Array{Float64,1}
-    uxquad::Array{Float64,2}
-    uyquad::Array{Float64,2}
+    uxconst::Array{Float64,1} # unused??
+    uyconst::Array{Float64,1} # unused??
+    uxquad::Array{Float64,2}  # unused??
+    uyquad::Array{Float64,2}  # unused??
     angle::Array{Float64,1}
     length::Array{Float64,1}
     halflength::Array{Float64,1}
@@ -147,22 +211,13 @@ end
 
 # Calculate displacements and stress for constant slip/traction elements
 export constdispstress
-function constdispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
-    disp, stress = zeros(length(x), 2), zeros(length(x), 3)
-    _x, _y = zeros(length(x)), zeros(length(x))
-    _xcomp, _ycomp = zeros(1), zeros(1)
-    f = zeros(length(x), 7)
-    _disp, _stress = zeros(length(x), 2), zeros(length(x), 3)
-    @inbounds @simd for j in 1:length(idx)
-        @views _x, _y = multmatsinglevec(els.rotmatinv[idx[j], :, :], x .- els.xcenter[idx[j]], y .- els.ycenter[idx[j]])
-        @views _xcomp, _ycomp = els.rotmatinv[idx[j], :, :] * [xcomp[j] ; ycomp[j]]
-        @views f = constkernel(_x, _y, els.halflength[idx[j]], nu)
-        _disp, _stress = fun2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
-        @views _disp, _stress = rotdispstress(_disp, _stress, els.rotmat[idx[j], :, :])
-        disp += _disp
-        stress += _stress
-    end
-    return disp, stress
+function constdispstress(fun2dispstress, x, y, src, xcomp, ycomp, mu, nu)
+    _x, _y = multmatsinglevec(src.rotmatinv, x - src.xcenter, y - src.ycenter) #15%
+    _xcomp, _ycomp = src.rotmatinv * [xcomp ; ycomp] # 15%
+    f = constkernel(_x, _y, src.halflength, nu)
+    _disp, _stress = fun2dispstress(_xcomp, _ycomp, f, _y, mu, nu)
+    _disp, _stress = rotdispstress(_disp, _stress, src.rotmat) # 25%
+    return _disp, _stress
 end
 
 # Far-field displacements and stresses for constant quadratic elements
@@ -496,16 +551,21 @@ function rycroftcmap()
 end
 
 export partialsconstdispstress
-function partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
-    nobs, nsrc = length(obsidx), length(srcidx)
+"""
+    partialsconstdispstress
+
+first set of indices are sources, second set are observers
+"""
+function partialsconstdispstress(fun2dispstress, sources, observers, mu, nu)
+    nobs, nsrc = length(observers), length(sources)
     partialsdisp, partialsstress, partialstrac = zeros(2 * nobs, 2 * nsrc), zeros(3 * nobs, 2 * nsrc), zeros(2 * nobs, 2 * nsrc)
     _partialsdisp, _partialsstress, _partialstrac = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-    for isrc in 1:nsrc
-        for iobs in 1:nobs
-            _partialsdisp[:, 1], _partialsstress[:, 1] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 1, 0, mu, nu)
-            _partialsdisp[:, 2], _partialsstress[:, 2] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 0, 1, mu, nu)
-            _partialstrac[:, 1] = stress2trac(_partialsstress[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-            _partialstrac[:, 2] = stress2trac(_partialsstress[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+    for (isrc, src) in enumerate(sources)
+        for (iobs, obs) in enumerate(observers)
+            _partialsdisp[:, 1], _partialsstress[:, 1] = constdispstress(fun2dispstress, obs.xcenter, obs.ycenter, src, 1, 0, mu, nu) # 50%
+            _partialsdisp[:, 2], _partialsstress[:, 2] = constdispstress(fun2dispstress, obs.xcenter, obs.ycenter, src, 0, 1, mu, nu)
+            _partialstrac[:, 1] = stress2trac(_partialsstress[:, 1], [obs.xnormal ; obs.ynormal])
+            _partialstrac[:, 2] = stress2trac(_partialsstress[:, 2], [obs.xnormal ; obs.ynormal])
             partialsdisp[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsdisp
             partialsstress[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsstress
             partialstrac[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialstrac
@@ -670,13 +730,29 @@ end
 
 # Create a nested dictionary for storing partial derivatives
 export initpartials
-function initpartials(els)
+function initpartials(els::Elements)
     partials = Dict()
     partials["disp"] = Dict()
     partials["stress"] = Dict()
     partials["trac"] = Dict()
     fieldnames = collect(keys(partials))
     elnames = collect(keys(getidxdict(els)))
+    for iname in 1:length(fieldnames)
+        for i in 1:length(elnames)
+            partials[fieldnames[iname]][elnames[i]] = Dict()
+            for j in 1:length(elnames)
+                partials[fieldnames[iname]][elnames[i]][elnames[j]] = []
+            end
+        end
+    end
+    return partials
+end
+function initpartials(elnames...)
+    partials = Dict()
+    partials["disp"] = Dict()
+    partials["stress"] = Dict()
+    partials["trac"] = Dict()
+    fieldnames = collect(keys(partials))
     for iname in 1:length(fieldnames)
         for i in 1:length(elnames)
             partials[fieldnames[iname]][elnames[i]] = Dict()
