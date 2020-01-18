@@ -6,62 +6,20 @@ using Infiltrator
 using PyPlot
 using Bem2d
 
-# function derivsconst(u, p, t)
-#     intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
-#     nintidx = length(intidx)
-#     vxglobal = @. abs(u[1:3:end])
-#     vyglobal = u[2:3:end]
-#     theta = @. abs(u[3:3:end])
-#     dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-#     vx, vy = multmatvec(els.rotmatinv[intidx, :, :], vxglobal, vyglobal)
-#     dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmatinv[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
-    
-#     dthetadt = zeros(nintidx)
-#     dvxdt = zeros(nintidx)
-#     dvydt = zeros(nintidx)
-#     for i in 1:length(intidx)
-#         dthetadt[i] = thetalaw(vx[i], theta[i], dc)
-#         dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / theta[i])
-#         dvydt[i] = 0
-#     end
-
-#     dvxglobaldt, dvyglobaldt = multmatvec(els.rotmat[intidx, :, :], dvxdt, dvydt)
-#     dudt = zeros(length(u))
-#     dudt[1:3:end] = dvxglobaldt
-#     dudt[2:3:end] = dvyglobaldt
-#     dudt[3:3:end] = dthetadt
-#     return dudt
-# end
-
 function derivsconst!(dudt, u, p, t)
     intidx, nintidx, bemsliptotractotal, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
-    @views multmatvec!(vx, vy, els.rotmatinv[intidx, :, :], u[1:3:end], u[2:3:end])
+    @views Bem2d.multmatvec!(vx, vy, els.rotmatinv[intidx, :, :], u[1:3:end], u[2:3:end])
     @views dtracglobaldt = bemsliptotractotal * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
-    @views multmatvec!(dtracxglobaldt, dtracyglobaldt, els.rotmatinv[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
+    @views Bem2d.multmatvec!(dtracxglobaldt, dtracyglobaldt, els.rotmatinv[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
     for i in 1:nintidx
         @views dthetadt[i] = thetalaw(abs(vx[i]), abs(u[3:3:end][i]), dc)
         @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
         dvydt[i] = 0
     end
-    @views multmatvec!(dudt[1:3:end], dudt[2:3:end], els.rotmat[intidx, :, :], dvxdt, dvydt)
+    @views Bem2d.multmatvec!(dudt[1:3:end], dudt[2:3:end], els.rotmat[intidx, :, :], dvxdt, dvydt)
     dudt[3:3:end] = dthetadt
     return nothing
 end
-
-# function derivsconst!(dudt, u, p, t)
-#     intidx, nintidx, bemsliptotractotal, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
-#     @views multmatvec!(vx, vy, els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
-#     @views dtracglobaldt = bemsliptotractotal * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
-#     @views multmatvec!(dtracxglobaldt, dtracyglobaldt, els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
-#     for i in 1:nintidx
-#         @views dthetadt[i] = thetalaw(abs(vx[i]), abs(u[3:3:end][i]), dc)
-#         @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
-#         dvydt[i] = 0
-#     end
-#     @views multmatvec!(dudt[1:3:end], dudt[2:3:end], els.rotmatinv[intidx, :, :], dvxdt, dvydt)
-#     dudt[3:3:end] = dthetadt
-#     return nothing
-# end
 
 function derivsquad!(dudt, u, p, t)
     intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
@@ -81,7 +39,7 @@ end
 
 function ex_qdstepandsave()
     # Constants
-    nsteps = 5000
+    nsteps = 10000
     nfreesurf = 100
     nfault = 200
     printstep = 100
@@ -100,11 +58,11 @@ function ex_qdstepandsave()
     blockvely = 0.0
 
     # Create fault elements
-    els = Elements(Int(1e5))
+    els = Bem2d.Elements(Int(1e5))
     faultwidth = 10000
     
     # Curved fault
-    x1, y1, x2, y2 = discretizedline(-7e3, 0e3, 0, 0, nfault)
+    x1, y1, x2, y2 = Bem2d.discretizedline(-7e3, 0e3, 0, 0, nfault)
     y1 = 3e3 * atan.(x1 / 1e3)
     y2 = 3e3 * atan.(x2 / 1e3)
     for i in 1:length(x1)
@@ -117,10 +75,10 @@ function ex_qdstepandsave()
         els.normalstress[els.endidx + i] = 50e7
         els.name[els.endidx + i] = "fault"
     end
-    standardize_elements!(els)
+    Bem2d.standardize_elements!(els)
 
     # Topographic free surface
-    x1, y1, x2, y2 = discretizedline(-20e3, 0, 20e3, 0, nfreesurf)
+    x1, y1, x2, y2 = Bem2d.discretizedline(-20e3, 0, 20e3, 0, nfreesurf)
     y1 = -1e3 * atan.(x1 / 1e3)
     y2 = -1e3 * atan.(x2 / 1e3)
     for i in 1:length(x1)
@@ -129,23 +87,22 @@ function ex_qdstepandsave()
         els.x2[els.endidx + i] = x2[i]
         els.y2[els.endidx + i] = y2[i]
         els.name[els.endidx + i] = "freesurftopo"
-        els.a[els.endidx + i] = 0.015
-        els.b[els.endidx + i] = 0.020
+        els.a[els.endidx + i] = 0.000
+        els.b[els.endidx + i] = 0.000
         els.normalstress[els.endidx + i] = 0e6
     end
-    standardize_elements!(els)
+    Bem2d.standardize_elements!(els)
     
-
     # Create convience tools
-    idx = getidxdict(els)
-    partialsconst = initpartials(els)
+    idx = Bem2d.getidxdict(els)
+    partialsconst = Bem2d.initpartials(els)
     
     # Calculate slip to traction partials on the fault
     println("Calculating velocity to traction matrix")
-    @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    @time _, _, partialsconst["trac"]["fault"]["freesurftopo"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurftopo"], mu, nu)
-    @time _, _, partialsconst["trac"]["freesurftopo"]["freesurftopo"] = partialsconstdispstress(slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
-    @time _, _, partialsconst["trac"]["freesurftopo"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["freesurftopo"], idx["fault"], mu, nu)
+    @time _, _, partialsconst["trac"]["fault"]["fault"] = Bem2d.partialsconstdispstress(Bem2d.slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    @time _, _, partialsconst["trac"]["fault"]["freesurftopo"] = Bem2d.partialsconstdispstress(Bem2d.slip2dispstress, els, idx["fault"], idx["freesurftopo"], mu, nu)
+    @time _, _, partialsconst["trac"]["freesurftopo"]["freesurftopo"] = Bem2d.partialsconstdispstress(Bem2d.slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
+    @time _, _, partialsconst["trac"]["freesurftopo"]["fault"] = Bem2d.partialsconstdispstress(Bem2d.slip2dispstress, els, idx["freesurftopo"], idx["fault"], mu, nu)
     
     #
     # Just trying out some new notation...need to think about it.
@@ -153,13 +110,6 @@ function ex_qdstepandsave()
     # parQ["S"]["fault"]["fault"]
     #
     
-    #
-    # Solve the BEM problem once so that it can be passed to the solver
-    # and we only have to do the matrix-vector multiply in solver
-    # Note that we need both the fault and surface contribution to stress
-    # on the fault.
-    #
-
     # This matrix allows us to go from fault slip to surface displacements
     # We then need to go from surface displacements to tractions on the fault
     # Do we need tractions on the surface too to go to fault tractions?  No because it's a free surface.
@@ -183,16 +133,17 @@ function ex_qdstepandsave()
     dtracxglobaldt = zeros(nintidx)
     dtracyglobaldt = zeros(nintidx)
     dtracglobaldt = zeros(2 * nintidx)
-    p = (intidx, nintidx, bemsliptotractotal, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
+    p = (intidx, nintidx, bemsliptotractotal, els, eta, Bem2d.thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
     prob = DifferentialEquations.ODEProblem(derivsconst!, ics, tspan, p)
     integrator = DifferentialEquations.init(prob, Vern7(), abstol = abstol, reltol = reltol)
     @time for i in 1:nsteps
         DifferentialEquations.step!(integrator)
         if mod(i, printstep) == 0
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
-        end    
+        end
     end
-    plotqdtimeseries(integrator.sol, 3, nfault)
+    PyPlot.close("all")
+    Bem2d.plotqdtimeseries(integrator.sol, 3, nfault)
     
     # 3QN elements - Euler style stress integration
     # nnodes = 3 * nfault
