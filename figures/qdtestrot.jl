@@ -24,33 +24,6 @@ function plotelementsmakie(els, subscene)
     return nothing
 end
 
-# function derivsconst(u, p, t)
-#     intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
-#     nintidx = length(intidx)
-#     vxglobal = @. abs(u[1:3:end])
-#     vyglobal = u[2:3:end]
-#     theta = @. abs(u[3:3:end])
-#     dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
-#     vx, vy = multmatvec(els.rotmat[intidx, :, :], vxglobal, vyglobal)
-#     dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
-
-#     dthetadt = zeros(nintidx)
-#     dvxdt = zeros(nintidx)
-#     dvydt = zeros(nintidx)
-#     for i in 1:length(intidx)
-#         dthetadt[i] = thetalaw(vx[i], theta[i], dc)
-#         dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / vx[i]) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / theta[i])
-#         dvydt[i] = 0
-#     end
-
-#     dvxglobaldt, dvyglobaldt = multmatvec(els.rotmatinv[intidx, :, :], dvxdt, dvydt)
-#     dudt = zeros(length(u))
-#     dudt[1:3:end] = dvxglobaldt
-#     dudt[2:3:end] = dvyglobaldt
-#     dudt[3:3:end] = dthetadt
-#     return dudt
-# end
-
 
 function derivsconst(u, p, t)
     intidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal = p
@@ -61,8 +34,6 @@ function derivsconst(u, p, t)
     dtracglobaldt =  partials["trac"]["fault"]["fault"] * [blockvxglobal .- vxglobal blockvyglobal .- vyglobal]'[:]
     vx, vy = multmatvec(els.rotmatinv[intidx, :, :], vxglobal, vyglobal)
     dtracxglobaldt, dtracyglobaldt = multmatvec(els.rotmatinv[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
-    # @show vxglobal[100]
-    # @show vx[100]
     
     dthetadt = zeros(nintidx)
     dvxdt = zeros(nintidx)
@@ -84,7 +55,7 @@ end
 
 function fig_qdmakie()
     # Fun things to play with
-    nsteps = 5000
+    nsteps = 2000
     amplitude = 1.0
     nfault = 200
     @show nfault
@@ -107,8 +78,8 @@ function fig_qdmakie()
     els = Elements(Int(1e5))
     nnodes = 1 * nfault
     faultwidth = 10000
-    # x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
-    x1, y1, x2, y2 = discretizedline(-faultwidth, -faultwidth, faultwidth, faultwidth, nfault)
+    x1, y1, x2, y2 = discretizedline(-faultwidth, 0, faultwidth, 0, nfault)
+    # x1, y1, x2, y2 = discretizedline(-faultwidth, -faultwidth, faultwidth, faultwidth, nfault)
 
     # Spatially variable properties
     avec = collect(LinRange(0.010, 0.020, nfault))
