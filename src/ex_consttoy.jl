@@ -2,6 +2,7 @@ using Revise
 using LinearAlgebra
 using Bem2d
 
+
 function ex_consttoy()
     mu = 3e10
     nu = 0.25
