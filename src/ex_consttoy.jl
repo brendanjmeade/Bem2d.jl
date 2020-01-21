@@ -23,7 +23,7 @@ function ex_consttoy()
     # Convenience dictionary for element names
     idx = getidxdict(els)
     par = initpartials(els)
-    
+
     # Set driving traction / slip
     xdrive = ones(nels)
     ydrive = zeros(nels)
@@ -33,7 +33,6 @@ function ex_consttoy()
     obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
-    #
     ### Show Crouch and Starfield (1983) kernels
     #
     dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
@@ -48,7 +47,7 @@ function ex_consttoy()
     # Generate partials
     T, _, _ = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    
+
     # Solve BEM problem for slip on fault resulting from unit traction
     u = (inv(T + 0.5 * I(size(T)[1]))) * U * [xdrive; ydrive]
 
@@ -72,7 +71,7 @@ function ex_consttoy()
     dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconstslip, stressconstslip, "Displacement discontinuity element")
     show()
-    
+
     return nothing
 end
 ex_consttoy()
