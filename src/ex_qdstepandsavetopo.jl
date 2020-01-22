@@ -59,11 +59,11 @@ end
 
 using Serialization
 
-function ex_qdstepandsave()
+# function ex_qdstepandsave()
     # Constants
     nsteps = 5000
     nfreesurf = 100
-    nfault = 200 # can increase to 100k. When done single-threaded on CPU, take 3-10 days.
+    nfault = 2000 # can increase to 100k. When done single-threaded on CPU, take 3-10 days.
     printstep = 100
     amplitude = 1.0
     outfilename = string(now()) * ".jld2"
@@ -173,8 +173,9 @@ function ex_qdstepandsave()
         if mod(i, printstep) == 0
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
         end
+        break
     end
-    plotqdtimeseries(integrator.sol, 3, nfault)
+    # plotqdtimeseries(integrator.sol, 3, nfault)
 
     # 3QN elements - Euler style stress integration
     # nnodes = 3 * nfault
@@ -203,8 +204,8 @@ function ex_qdstepandsave()
     # end
     # plotqdtimeseriesquad(integrator.sol, 3, nfault)
 
-    @time @save outfilename integrator.sol els mu nu
-    println("Wrote integration results to:")
-    println(outfilename)
-end
-ex_qdstepandsave()
+    # @time @save outfilename integrator.sol els mu nu
+    # println("Wrote integration results to:")
+    # println(outfilename)
+# end
+# ex_qdstepandsave()
