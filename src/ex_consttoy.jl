@@ -31,7 +31,7 @@ function ex_consttoy()
     ydrive = zeros(nels)
 
     # Observation coordinates for far-field calculation
-    npts = 100
+    npts = 20
     obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
