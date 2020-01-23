@@ -1,9 +1,11 @@
 using Revise
 using LinearAlgebra
+using PyPlot
 using Bem2d
 
 
 function ex_consttoy()
+    PyPlot.close("all")
     mu = 3e10
     nu = 0.25
 
@@ -33,17 +35,15 @@ function ex_consttoy()
     obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
-    ### Show Crouch and Starfield (1983) kernels
-    #
+
+    # Volume evalattion of Crouch and Starfield (1983) kernels
     dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
     dispconsttrac, stressconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconstslip, stressconstslip, "T, S (CS displacement kernels)")
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconsttrac, stressconsttrac, "U, D (CS stress kernesl)")
     show()
 
-    #
-    ### Constant traction element (ALMOST DEFINITELY WRONG)
-    #
+    # Constant traction element
     # Generate partials
     T, _, _ = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["fault"], idx["fault"], mu, nu)
@@ -51,26 +51,33 @@ function ex_consttoy()
     # Solve BEM problem for slip on fault resulting from unit traction
     u = (inv(T + 0.5 * I(size(T)[1]))) * U * [xdrive; ydrive]
 
-    # TODO: Forward model for volume
+    # Forward model for volume
     uconstslip, sconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], u[1], u[2], mu, nu)
     uconsttrac, sconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
                uconsttrac + uconstslip, sconsttrac + sconstslip,
-               "Constant traction element (Probably not right)")
+               "constant traction element")
 
-    #
-    ### Constant displacement element
-    #
-    # TODO: Generate partials
-    # TODO: Solve BEM problem
-    # TODO: Forward model for volume
+    # Constant displacement element
+    # Generate partials - same as above
+    # Solve BEM problem for slip on fault resulting from unit traction
+    t = inv(U) * (T + 0.5 * I(size(T)[1])) * [xdrive; ydrive]
 
-    #
-    ### Displacement discontinuity element (LOOKS CORRECT)
-    #
+    # Forward model for volume
+    # uconstslip, sconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], t[1], t[2], mu, nu)
+    # uconsttrac, sconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
+    uconstslip, sconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
+    uconsttrac, sconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], t[1], t[2], mu, nu)
+
+    plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts),
+               uconsttrac + uconstslip, sconsttrac + sconstslip,
+               "constant displacement element")
+
+
+    ### Displacement discontinuity element
     dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
     plotfields(els, reshape(xobs, npts, npts), reshape(yobs, npts, npts), dispconstslip, stressconstslip, "Displacement discontinuity element")
-    show()
+    PyPlot.show()
 
     return nothing
 end
