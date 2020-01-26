@@ -12,7 +12,7 @@ function ex_consttoy()
     # Create a flat fault
     els = Elements(Int(1e5))
     nels = 1
-    x1, y1, x2, y2 = discretizedline(-10e3, 0, 10e3, 0, nels)
+    x1, y1, x2, y2 = discretizedline(-5e3, 0, 5e3, 0, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -31,7 +31,7 @@ function ex_consttoy()
     ydrive = zeros(nels)
 
     # Observation coordinates for far-field calculation
-    npts = 20
+    npts = 200
     obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
