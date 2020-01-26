@@ -445,7 +445,7 @@ function stylesubplots(xlim, ylim)
 end
 
 function plotfields_contours(els, xobs, yobs, idx, field, title)
-    ncontours = 20
+    ncontours = 40
     xlim = [minimum(xobs) maximum(xobs)]
     ylim = [minimum(yobs) maximum(yobs)]
     subplot(2, 3, idx)
@@ -465,7 +465,7 @@ end
 
 export plotfields
 function plotfields(els, xobs, yobs, disp, stress, suptitle)
-    figure(figsize = (16, 8))
+    figure(figsize = (25, 15))
     subplot(2, 3, 1)
     quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units = "width", color = "b")
     stylesubplots([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
