@@ -7,7 +7,7 @@ using Bem2d
 function ex_cylinder()
     # Observation coordinates for far-field calculation
     npts = 200
-    obswidth = 2e3
+    obswidth = 1e3
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Convert Cartesian to cylindrical coordinates
@@ -19,7 +19,7 @@ function ex_cylinder()
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
     p = 1.0e5 # Applied radial pressure over arc
-    θ0 = 10.0 # Arc length over which pressure is applied
+    θ0 = 70.0 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
     mmax = 10 # Max number of terms in Hondros series
 
@@ -36,7 +36,7 @@ function ex_cylinder()
     σrθ = @. leadingterm * σrθ
 
     # Convert cylindrical stresses to Cartesian
-    # http://solidmechanics.org/text/AppendixD/AppendixD.htm
+    # Swap the transpose to go from Cartesian to cylindrical
     σxx = zeros(length(x))
     σyy = zeros(length(x))
     σxy = zeros(length(x))
@@ -49,54 +49,66 @@ function ex_cylinder()
         σxy[i] = cartesian_stress_tensor[1, 2]
     end
 
+    # Try setting a few values to NaN and see if we can isolate the circle
+    to_nan_idx = findall(x -> x > R, r)
+    σrr[to_nan_idx] .= NaN
+    σθθ[to_nan_idx] .= NaN
+    σrθ[to_nan_idx] .= NaN
+    σxx[to_nan_idx] .= NaN
+    σyy[to_nan_idx] .= NaN
+    σxy[to_nan_idx] .= NaN
+
     # Plot contours with Makie/AbstractPlotting
     fontsize = 24
-    contour_levels = 20
+    contour_levels = 10
     contour_color = "black"
-    contour_linewidth = 1.0
+    contour_linewidth = 0.5
     PyPlot.close("all")
     PyPlot.figure(figsize=(30,15))
 
     PyPlot.subplot(2, 3, 1)
     PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrr, npts, npts), levels=contour_levels)
     PyPlot.colorbar()
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrr, npts, npts), levels=contour_levels, colors="black")
+    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrr, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(L"\sigma_{rr}", fontsize=fontsize)
     PyPlot.gca().set_aspect("equal")
-    PyPlot.colorbar()
 
     PyPlot.subplot(2, 3, 2)
     PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σθθ, npts, npts), levels=contour_levels)
     PyPlot.colorbar()
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σθθ, npts, npts), levels=contour_levels, colors="black")
+    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σθθ, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(L"\sigma_{\theta\theta}", fontsize=fontsize)
     PyPlot.gca().set_aspect("equal")
 
     PyPlot.subplot(2, 3, 3)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrθ, npts, npts), 20)
+    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrθ, npts, npts), levels=contour_levels)
+    PyPlot.colorbar()
+    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrθ, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(L"\sigma_{r\theta}", fontsize=fontsize)
     PyPlot.gca().set_aspect("equal")
-    PyPlot.colorbar()
 
     PyPlot.subplot(2, 3, 4)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxx, npts, npts), 20)
+    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxx, npts, npts), levels=contour_levels)
+    PyPlot.colorbar()
+    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxx, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(L"\sigma_{xx}", fontsize=fontsize)
     PyPlot.gca().set_aspect("equal")
-    PyPlot.colorbar()
 
     PyPlot.subplot(2, 3, 5)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σyy, npts, npts), 20)
+    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σyy, npts, npts), levels=contour_levels)
+    PyPlot.colorbar()
+    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σyy, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(L"\sigma_{yy}", fontsize=fontsize)
     PyPlot.gca().set_aspect("equal")
-    PyPlot.colorbar()
 
     PyPlot.subplot(2, 3, 6)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxy, npts, npts), 20)
+    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxy, npts, npts), levels=contour_levels)
+    PyPlot.colorbar()
+    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxy, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(L"\sigma_{xy}", fontsize=fontsize)
     PyPlot.gca().set_aspect("equal")
-    PyPlot.colorbar()
 
-    PyPlot.tight_layout()
+    # PyPlot.tight_layout()
     PyPlot.show()
 end
 ex_cylinder()
