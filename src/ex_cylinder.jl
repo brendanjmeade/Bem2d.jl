@@ -4,6 +4,18 @@ using PyPlot
 using Infiltrator
 using Bem2d
 
+function circle_subplot(x, y, mat, npts, title_string)
+    fontsize = 24
+    contour_levels = 10
+    contour_color = "black"
+    contour_linewidth = 0.5
+    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    PyPlot.colorbar()
+    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    PyPlot.title(title_string, fontsize=fontsize)
+    PyPlot.gca().set_aspect("equal")
+end
+
 function ex_cylinder()
     # Observation coordinates for far-field calculation
     npts = 200
@@ -58,57 +70,25 @@ function ex_cylinder()
     σyy[to_nan_idx] .= NaN
     σxy[to_nan_idx] .= NaN
 
-    # Plot contours with Makie/AbstractPlotting
+    # Plot contours with PyPlot
     fontsize = 24
     contour_levels = 10
     contour_color = "black"
     contour_linewidth = 0.5
     PyPlot.close("all")
     PyPlot.figure(figsize=(30,15))
-
     PyPlot.subplot(2, 3, 1)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrr, npts, npts), levels=contour_levels)
-    PyPlot.colorbar()
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrr, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    PyPlot.title(L"\sigma_{rr}", fontsize=fontsize)
-    PyPlot.gca().set_aspect("equal")
-
+    circle_subplot(x, y, σrr, npts, L"\sigma_{rr}")
     PyPlot.subplot(2, 3, 2)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σθθ, npts, npts), levels=contour_levels)
-    PyPlot.colorbar()
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σθθ, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    PyPlot.title(L"\sigma_{\theta\theta}", fontsize=fontsize)
-    PyPlot.gca().set_aspect("equal")
-
+    circle_subplot(x, y, σθθ, npts, L"\sigma_{\theta\theta}")
     PyPlot.subplot(2, 3, 3)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrθ, npts, npts), levels=contour_levels)
-    PyPlot.colorbar()
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σrθ, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    PyPlot.title(L"\sigma_{r\theta}", fontsize=fontsize)
-    PyPlot.gca().set_aspect("equal")
-
+    circle_subplot(x, y, σrθ, npts, L"\sigma_{r\theta}")
     PyPlot.subplot(2, 3, 4)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxx, npts, npts), levels=contour_levels)
-    PyPlot.colorbar()
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxx, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    PyPlot.title(L"\sigma_{xx}", fontsize=fontsize)
-    PyPlot.gca().set_aspect("equal")
-
+    circle_subplot(x, y, σxx, npts, L"\sigma_{xx}")
     PyPlot.subplot(2, 3, 5)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σyy, npts, npts), levels=contour_levels)
-    PyPlot.colorbar()
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σyy, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    PyPlot.title(L"\sigma_{yy}", fontsize=fontsize)
-    PyPlot.gca().set_aspect("equal")
-
+    circle_subplot(x, y, σyy, npts, L"\sigma_{yy}")
     PyPlot.subplot(2, 3, 6)
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxy, npts, npts), levels=contour_levels)
-    PyPlot.colorbar()
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(σxy, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    PyPlot.title(L"\sigma_{xy}", fontsize=fontsize)
-    PyPlot.gca().set_aspect("equal")
-
-    # PyPlot.tight_layout()
+    circle_subplot(x, y, σxy, npts, L"\sigma_{xy}")
     PyPlot.show()
 end
 ex_cylinder()
