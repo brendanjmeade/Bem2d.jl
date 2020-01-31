@@ -5,15 +5,27 @@ using Infiltrator
 using Bem2d
 
 function circle_subplot(x, y, mat, npts, title_string)
-    fontsize = 24
+    fontsize = 20
     contour_levels = 10
     contour_color = "black"
     contour_linewidth = 0.5
+    color_scale = 1e6
+    mat = @. mat / 1e6 # Convert from Pascals to mega Pascals
+
     PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    PyPlot.colorbar()
+    cbar = PyPlot.colorbar(fraction=0.020, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    cbar.set_label(label=title_string * " (MPa)", fontsize=fontsize)
     PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(title_string, fontsize=fontsize)
+    PyPlot.xlabel(L"x (m)", fontsize=fontsize)
+    PyPlot.ylabel(L"y (m)", fontsize=fontsize)
+    PyPlot.xlim([-1100, 1100])
+    PyPlot.ylim([-1100, 1100])
+    PyPlot.xticks([-1000, 0, 1000])
+    PyPlot.yticks([-1000, 0, 1000])
     PyPlot.gca().set_aspect("equal")
+    PyPlot.gca().tick_params(labelsize=fontsize)
 end
 
 function ex_cylinder()
@@ -89,6 +101,7 @@ function ex_cylinder()
     circle_subplot(x, y, σyy, npts, L"\sigma_{yy}")
     PyPlot.subplot(2, 3, 6)
     circle_subplot(x, y, σxy, npts, L"\sigma_{xy}")
+    PyPlot.tight_layout()
     PyPlot.show()
 end
 ex_cylinder()
