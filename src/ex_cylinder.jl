@@ -4,6 +4,18 @@ using PyPlot
 using Infiltrator
 using Bem2d
 
+function discretized_arc(arclen, n_pts)
+    # Create geometry of discretized arc
+    θrange = collect(LinRange(-arclen, arclen, n_pts))
+    x = @. radius * cosd(arclen)
+    y = @. radius * sind(arclen)
+    x1 = x[1:1:end-1]
+    x2 = x[2:1:end]
+    y1 = y[1:1:end-1]
+    y2 = y[2:1:end]
+    return x1, y1, x2, y2
+end
+
 function circle_subplot(x, y, mat, npts, title_string)
     fontsize = 20
     contour_levels = 10
@@ -39,14 +51,18 @@ function ex_cylinder()
     θ = @. rad2deg(atan(y, x))
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
-    σrr = zeros(length(x))
-    σθθ = zeros(length(x))
-    σrθ = zeros(length(x))
     p = 1.0e5 # Applied radial pressure over arc
     θ0 = 70.0 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
     mmax = 10 # Max number of terms in Hondros series
 
+    # Create arc lengths over which compressive boundary is applied.
+    n_arc = 10
+
+
+    σrr = zeros(length(x))
+    σθθ = zeros(length(x))
+    σrθ = zeros(length(x))
     σrrconstterm = 2.0 * θ0 * p / π
     σθθconstterm = 2.0 * θ0 * p / π
     leadingterm = 2.0 * p / π
