@@ -30,24 +30,26 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     cbar.set_label(label=title_string * " (MPa)", fontsize=fontsize)
     PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
 
+    # Draw enditre circle
     x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
     for i in 1:length(x1) # Draw arc where compression is being applied
         PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-k", linewidth=10)
     end
 
+    # Draw right-hand side of applied compression arc
     x1, y1, x2, y2 = discretized_arc(-θ0, θ0, R, 50)
     for i in 1:length(x1) # Draw arc where compression is being applied
         PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
     end
 
+    # Draw left-hand side of applied compression arc
     x1, y1, x2, y2 = discretized_arc(-θ0+180, θ0+180, R, 50)
     for i in 1:length(x1) # Draw arc where compression is being applied
         PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
     end
 
-    # PyPlot.title(title_string, fontsize=fontsize)
-    PyPlot.xlabel(L"x (m)", fontsize=fontsize)
-    PyPlot.ylabel(L"y (m)", fontsize=fontsize)
+    PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
+    PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
     PyPlot.xlim([-1100, 1100])
     PyPlot.ylim([-1100, 1100])
     PyPlot.xticks([-1000, 0, 1000])
@@ -117,12 +119,47 @@ function ex_cylinder()
 
     # Apply normal tractions everywhere
     # Convert from radial to Cartesian
+    xtrac = zeros(els.endidx)
+    ytrac = zeros(els.endidx)
+    θels = @. rad2deg(atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx]))
     for i in 1:els.endidx
         # Calculate angle to element centroid
         el_angle = rad2deg(atan(els.ycenter[i], els.xcenter[i]))
-        @show el_angle
 
+        # Calcuate the x and y components of the tractions
+        normalTractions = [0 p] # Pressure in fault normal component only.
+        temp = els.rotmat[i, :, :] * transpose(normalTractions)
+        xtrac[i] = temp[1]
+        ytrac[i] = temp[2]
     end
+
+    # Zero out the tractions on the area without contact
+    zeroidx = findall(x -> (x>θ0 && x<=90), θels)
+    xtrac[zeroidx] .= 0
+    ytrac[zeroidx] .= 0
+    zeroidx = findall(x -> (x<-θ0 && x>=-90), θels)
+    xtrac[zeroidx] .= 0
+    ytrac[zeroidx] .= 0
+
+
+    # What are the boundary conditions on the regions without contact?
+
+    # Plot tractions
+    fontsize = 20
+    PyPlot.close("all")
+    PyPlot.figure(figsize=(10, 10))
+    for i in 1:els.endidx
+        PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
+    end
+    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xtrac, ytrac)
+    PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
+    PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
+    PyPlot.xlim([-1100, 1100])
+    PyPlot.ylim([-1100, 1100])
+    PyPlot.xticks([-1000, 0, 1000])
+    PyPlot.yticks([-1000, 0, 1000])
+    PyPlot.gca().set_aspect("equal")
+    PyPlot.gca().tick_params(labelsize=fontsize)
 
     # Try setting a few values to NaN and see if we can isolate the circle
     to_nan_idx = findall(x -> x > R, r)
@@ -138,7 +175,6 @@ function ex_cylinder()
     contour_levels = 10
     contour_color = "black"
     contour_linewidth = 0.5
-    PyPlot.close("all")
     PyPlot.figure(figsize=(30,15))
     PyPlot.subplot(2, 3, 1)
     circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr}")
