@@ -4,11 +4,11 @@ using PyPlot
 using Infiltrator
 using Bem2d
 
-function discretized_arc(arclen, n_pts)
+function discretized_arc(θstart, θend, radius, n_pts)
     # Create geometry of discretized arc
-    θrange = collect(LinRange(-arclen, arclen, n_pts))
-    x = @. radius * cosd(arclen)
-    y = @. radius * sind(arclen)
+    θrange = collect(LinRange(θstart, θend, n_pts))
+    x = @. radius * cosd(θrange)
+    y = @. radius * sind(θrange)
     x1 = x[1:1:end-1]
     x2 = x[2:1:end]
     y1 = y[1:1:end-1]
@@ -16,7 +16,7 @@ function discretized_arc(arclen, n_pts)
     return x1, y1, x2, y2
 end
 
-function circle_subplot(x, y, mat, npts, title_string)
+function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     fontsize = 20
     contour_levels = 10
     contour_color = "black"
@@ -29,7 +29,23 @@ function circle_subplot(x, y, mat, npts, title_string)
     cbar.ax.tick_params(labelsize=fontsize)
     cbar.set_label(label=title_string * " (MPa)", fontsize=fontsize)
     PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    PyPlot.title(title_string, fontsize=fontsize)
+
+    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
+    for i in 1:length(x1) # Draw arc where compression is being applied
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-k", linewidth=10)
+    end
+
+    x1, y1, x2, y2 = discretized_arc(-θ0, θ0, R, 50)
+    for i in 1:length(x1) # Draw arc where compression is being applied
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=5)
+    end
+
+    x1, y1, x2, y2 = discretized_arc(-θ0+180, θ0+180, R, 50)
+    for i in 1:length(x1) # Draw arc where compression is being applied
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=5)
+    end
+
+    # PyPlot.title(title_string, fontsize=fontsize)
     PyPlot.xlabel(L"x (m)", fontsize=fontsize)
     PyPlot.ylabel(L"y (m)", fontsize=fontsize)
     PyPlot.xlim([-1100, 1100])
@@ -55,10 +71,6 @@ function ex_cylinder()
     θ0 = 70.0 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
     mmax = 10 # Max number of terms in Hondros series
-
-    # Create arc lengths over which compressive boundary is applied.
-    n_arc = 10
-
 
     σrr = zeros(length(x))
     σθθ = zeros(length(x))
@@ -106,17 +118,18 @@ function ex_cylinder()
     PyPlot.close("all")
     PyPlot.figure(figsize=(30,15))
     PyPlot.subplot(2, 3, 1)
-    circle_subplot(x, y, σrr, npts, L"\sigma_{rr}")
+    circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr}")
     PyPlot.subplot(2, 3, 2)
-    circle_subplot(x, y, σθθ, npts, L"\sigma_{\theta\theta}")
+    circle_subplot(x, y, σθθ, npts, R, θ0, L"\sigma_{\theta\theta}")
     PyPlot.subplot(2, 3, 3)
-    circle_subplot(x, y, σrθ, npts, L"\sigma_{r\theta}")
+    circle_subplot(x, y, σrθ, npts, R, θ0, L"\sigma_{r\theta}")
     PyPlot.subplot(2, 3, 4)
-    circle_subplot(x, y, σxx, npts, L"\sigma_{xx}")
+    circle_subplot(x, y, σxx, npts, R, θ0, L"\sigma_{xx}")
     PyPlot.subplot(2, 3, 5)
-    circle_subplot(x, y, σyy, npts, L"\sigma_{yy}")
+    circle_subplot(x, y, σyy, npts, R, θ0, L"\sigma_{yy}")
     PyPlot.subplot(2, 3, 6)
-    circle_subplot(x, y, σxy, npts, L"\sigma_{xy}")
+    circle_subplot(x, y, σxy, npts, R, θ0, L"\sigma_{xy}")
+    PyPlot.suptitle(string(θ0), fontsize=30)
     PyPlot.tight_layout()
     PyPlot.show()
 end
