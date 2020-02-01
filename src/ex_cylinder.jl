@@ -37,12 +37,12 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
 
     x1, y1, x2, y2 = discretized_arc(-θ0, θ0, R, 50)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=5)
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
     end
 
     x1, y1, x2, y2 = discretized_arc(-θ0+180, θ0+180, R, 50)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=5)
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
     end
 
     # PyPlot.title(title_string, fontsize=fontsize)
@@ -99,6 +99,29 @@ function ex_cylinder()
         σxx[i] = cartesian_stress_tensor[1, 1]
         σyy[i] = cartesian_stress_tensor[2, 2]
         σxy[i] = cartesian_stress_tensor[1, 2]
+    end
+
+    # Start of BEM solution
+    els = Bem2d.Elements(Int(1e5))
+    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "circle"
+    end
+    Bem2d.standardize_elements!(els)
+    idx = Bem2d.getidxdict(els)
+    partialsconst = Bem2d.initpartials(els)
+
+    # Apply normal tractions everywhere
+    # Convert from radial to Cartesian
+    for i in 1:els.endidx
+        # Calculate angle to element centroid
+        el_angle = rad2deg(atan(els.ycenter[i], els.xcenter[i]))
+        @show el_angle
+
     end
 
     # Try setting a few values to NaN and see if we can isolate the circle
