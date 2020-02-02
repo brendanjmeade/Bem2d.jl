@@ -1,6 +1,7 @@
 using Revise
 using LaTeXStrings
 using PyPlot
+using LinearAlgebra
 using Infiltrator
 using Bem2d
 
@@ -59,6 +60,9 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
 end
 
 function ex_cylinder()
+    mu = 3e10
+    nu = 0.25
+
     # Observation coordinates for far-field calculation
     npts = 200
     obswidth = 1e3
@@ -122,27 +126,32 @@ function ex_cylinder()
     xtrac = zeros(els.endidx)
     ytrac = zeros(els.endidx)
     θels = @. rad2deg(atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx]))
-    for i in 1:els.endidx
-        # Calculate angle to element centroid
-        el_angle = rad2deg(atan(els.ycenter[i], els.xcenter[i]))
-
-        # Calcuate the x and y components of the tractions
-        normalTractions = [0 p] # Pressure in fault normal component only.
-        temp = els.rotmat[i, :, :] * transpose(normalTractions)
-        xtrac[i] = temp[1]
-        ytrac[i] = temp[2]
+    for i in 1:els.endidx # Calcuate the x and y components of the tractions
+        normalTractions = [0; p] # Pressure in fault normal component only.
+        xtrac[i], ytrac[i] = els.rotmat[i, :, :] * normalTractions
     end
 
     # Zero out the tractions on the area without contact
-    zeroidx = findall(x -> (x>θ0 && x<=90), θels)
-    xtrac[zeroidx] .= 0
-    ytrac[zeroidx] .= 0
-    zeroidx = findall(x -> (x<-θ0 && x>=-90), θels)
-    xtrac[zeroidx] .= 0
-    ytrac[zeroidx] .= 0
-
-
     # What are the boundary conditions on the regions without contact?
+    deleteidx = findall(x -> (x>θ0 && x<180-θ0), θels)
+    xtrac[deleteidx] .= 0
+    ytrac[deleteidx] .= 0
+    deleteidx = findall(x -> (x<-θ0 && x>-180+θ0), θels)
+    xtrac[deleteidx] .= 0
+    ytrac[deleteidx] .= 0
+
+    # Given the traction boundary conditions calcuate the induced displacements on each element
+    xdisp = zeros(els.endidx)
+    ydisp = zeros(els.endidx)
+    for i in 1:els.endidx # Calcuate the x and y components of the tractions
+        T, _, _ = partialsconstdispstress(slip2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
+        U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
+        xdisp[i], ydisp[i] = (inv(T + 0.5 * I(size(T)[1]))) * U * [xtrac[i]; ytrac[i]]
+    end
+
+    # Forward model for volumetric stresses
+    for i in 1:els.endidx
+    end
 
     # Plot tractions
     fontsize = 20
