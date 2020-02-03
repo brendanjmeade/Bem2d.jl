@@ -74,7 +74,7 @@ function ex_cylinder()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = 1.0e5 # Applied radial pressure over arc
-    θ0 = 70.0 # Arc length over which pressure is applied
+    θ0 = 5.0 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
     mmax = 10 # Max number of terms in Hondros series
 
@@ -109,7 +109,7 @@ function ex_cylinder()
 
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
+    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 361)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -144,17 +144,16 @@ function ex_cylinder()
     xdisp = zeros(els.endidx)
     ydisp = zeros(els.endidx)
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
-        T, _, _ = partialsconstdispstress(slip2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
-        U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
-        xdisp[i], ydisp[i] = (inv(T + 0.5 * I(size(T)[1]))) * U * [xtrac[i]; ytrac[i]]
+        T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
+        U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
+        xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [xtrac[i]; ytrac[i]]
     end
 
-    # Forward model for volumetric stresses
-    for i in 1:els.endidx
-        # Streses from traction
-        
-        # Stresses from traction induced displacement
-    end
+    # Streses from tractions
+    _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtrac, ytrac, mu, nu)
+
+    # Stresses from traction induced displacements
+    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], xdisp, ydisp, mu, nu)
 
     # Plot tractions
     fontsize = 20
@@ -181,6 +180,12 @@ function ex_cylinder()
     σxx[to_nan_idx] .= NaN
     σyy[to_nan_idx] .= NaN
     σxy[to_nan_idx] .= NaN
+    stresstrac[to_nan_idx, 1] .= NaN
+    stresstrac[to_nan_idx, 2] .= NaN
+    stresstrac[to_nan_idx, 3] .= NaN
+    stressdisp[to_nan_idx, 1] .= NaN
+    stressdisp[to_nan_idx, 2] .= NaN
+    stressdisp[to_nan_idx, 3] .= NaN
 
     # Plot contours with PyPlot
     fontsize = 24
@@ -202,6 +207,29 @@ function ex_cylinder()
     circle_subplot(x, y, σxy, npts, R, θ0, L"\sigma_{xy}")
     PyPlot.suptitle(string(θ0), fontsize=30)
     PyPlot.tight_layout()
+
+    PyPlot.figure(figsize=(20, 20))
+    PyPlot.subplot(3, 3, 1)
+    circle_subplot(x, y, stresstrac[:, 1], npts, R, θ0, L"\sigma_{xx}")
+    PyPlot.subplot(3, 3, 2)
+    circle_subplot(x, y, stresstrac[:, 2], npts, R, θ0, L"\sigma_{yy}")
+    PyPlot.subplot(3, 3, 3)
+    circle_subplot(x, y, stresstrac[:, 3], npts, R, θ0, L"\sigma_{xy}")
+    PyPlot.subplot(3, 3, 4)
+    circle_subplot(x, y, stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx}")
+    PyPlot.subplot(3, 3, 5)
+    circle_subplot(x, y, stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy}")
+    PyPlot.subplot(3, 3, 6)
+    circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy}")
+    PyPlot.subplot(3, 3, 7)
+    circle_subplot(x, y, stresstrac[:, 1] - stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx}")
+    PyPlot.subplot(3, 3, 8)
+    circle_subplot(x, y, stresstrac[:, 2] - stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy}")
+    PyPlot.subplot(3, 3, 9)
+    circle_subplot(x, y, stresstrac[:, 3] - stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy}")
+    PyPlot.suptitle(string(θ0), fontsize=30)
+    PyPlot.tight_layout()
+
     PyPlot.show()
 end
 ex_cylinder()
