@@ -151,6 +151,9 @@ function ex_cylinder()
 
     # Forward model for volumetric stresses
     for i in 1:els.endidx
+        # Streses from traction
+        
+        # Stresses from traction induced displacement
     end
 
     # Plot tractions
