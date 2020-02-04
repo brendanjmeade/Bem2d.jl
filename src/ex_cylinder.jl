@@ -7,7 +7,7 @@ using Bem2d
 
 function discretized_arc(θstart, θend, radius, n_pts)
     # Create geometry of discretized arc
-    θrange = collect(LinRange(θstart, θend, n_pts))
+    θrange = collect(LinRange(θstart, θend, n_pts + 1))
     x = @. radius * cosd(θrange)
     y = @. radius * sind(θrange)
     x1 = x[1:1:end-1]
@@ -19,8 +19,8 @@ end
 
 function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     fontsize = 20
-    contour_levels = 10
-    contour_color = "black"
+    contour_levels = 60
+    contour_color = "white"
     contour_linewidth = 0.5
     color_scale = 1e6
     mat = @. mat / 1e6 # Convert from Pascals to mega Pascals
@@ -65,7 +65,7 @@ function ex_cylinder()
 
     # Observation coordinates for far-field calculation
     npts = 200
-    obswidth = 1e3
+    obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Convert Cartesian to cylindrical coordinates
@@ -74,23 +74,23 @@ function ex_cylinder()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = 1.0e5 # Applied radial pressure over arc
-    θ0 = 5.0 # Arc length over which pressure is applied
+    θ0 = 1 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
-    mmax = 10 # Max number of terms in Hondros series
+    mmax = 1000 # Max number of terms in Hondros series
 
     σrr = zeros(length(x))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
-    σrrconstterm = 2.0 * θ0 * p / π
-    σθθconstterm = 2.0 * θ0 * p / π
-    leadingterm = 2.0 * p / π
+    σrrconstterm = 2.0 * θ0 * p / 180
+    σθθconstterm = 2.0 * θ0 * p / 180
+    leadingterm = 2.0 * p / 180
     for m in 1:mmax
         σrr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sind(2*m*θ0) * cosd(2*m*θ)
         σθθ += @. (r/R)^(2*m-2) * (1-(1+1/m)*(r/R)^2) * sind(2*m*θ0) * cosd(2*m*θ)
         σrθ += @. ((r/R)^(2*m) - (r/R)^(2*m-2)) * sind(2*m*θ0) * sind(2*m*θ)
     end
     σrr = @. σrrconstterm + leadingterm * σrr
-    σθθ = @. σθθconstterm + leadingterm * σθθ
+    σθθ = @. σθθconstterm - leadingterm * σθθ
     σrθ = @. leadingterm * σrθ
 
     # Convert cylindrical stresses to Cartesian
@@ -109,7 +109,7 @@ function ex_cylinder()
 
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 361)
+    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
