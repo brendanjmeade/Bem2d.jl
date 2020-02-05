@@ -64,7 +64,7 @@ function ex_cylinder()
     nu = 0.25
 
     # Observation coordinates for far-field calculation
-    npts = 200
+    npts = 50
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
@@ -106,6 +106,18 @@ function ex_cylinder()
         σyy[i] = cartesian_stress_tensor[2, 2]
         σxy[i] = cartesian_stress_tensor[1, 2]
     end
+
+    # The solution due to line sources at each end of cylinder
+    # From: Estimation of the tensile elastic modulus using Brazilian disc by applying
+    # diametrically opposed concentrated loads, Ye Jianhong a,, F.Q. Wu , J.Z. Sun
+    # Equation 6
+    # Sort skeptical about this one because I can't get their (1959) equations to work (Equations 1)
+    l = 1.0 # This is the "length" of the cylinder...I have not idea what this should be
+    σxxline = @. 2*p / (pi*l) * (((R-y)*x^2)/((R-y)^2 + x^2)^2 + ((R+y)*x^2)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+    σyyline = @. 2*p / (pi*l) * (((R-y)^3)/((R-y)^2 + x^2)^2 + ((R+y)^3)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+    σxyline = @. 2*p / (pi*l) * (((R-y)^2*x)/((R-y)^2 + x^2)^2 + ((R+y)^2*x)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+
+
 
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
@@ -173,13 +185,16 @@ function ex_cylinder()
     PyPlot.gca().tick_params(labelsize=fontsize)
 
     # Try setting a few values to NaN and see if we can isolate the circle
-    to_nan_idx = findall(x -> x > R, r)
+    to_nan_idx = findall(x -> x > 0.9 * R, r)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
     σrθ[to_nan_idx] .= NaN
     σxx[to_nan_idx] .= NaN
     σyy[to_nan_idx] .= NaN
     σxy[to_nan_idx] .= NaN
+    σxxline[to_nan_idx] .= NaN
+    σyyline[to_nan_idx] .= NaN
+    σxyline[to_nan_idx] .= NaN
     stresstrac[to_nan_idx, 1] .= NaN
     stresstrac[to_nan_idx, 2] .= NaN
     stresstrac[to_nan_idx, 3] .= NaN
@@ -192,19 +207,25 @@ function ex_cylinder()
     contour_levels = 10
     contour_color = "black"
     contour_linewidth = 0.5
-    PyPlot.figure(figsize=(30,15))
-    PyPlot.subplot(2, 3, 1)
+    PyPlot.figure(figsize=(20,20))
+    PyPlot.subplot(3, 3, 1)
     circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr}")
-    PyPlot.subplot(2, 3, 2)
+    PyPlot.subplot(3, 3, 2)
     circle_subplot(x, y, σθθ, npts, R, θ0, L"\sigma_{\theta\theta}")
-    PyPlot.subplot(2, 3, 3)
+    PyPlot.subplot(3, 3, 3)
     circle_subplot(x, y, σrθ, npts, R, θ0, L"\sigma_{r\theta}")
-    PyPlot.subplot(2, 3, 4)
+    PyPlot.subplot(3, 3, 4)
     circle_subplot(x, y, σxx, npts, R, θ0, L"\sigma_{xx}")
-    PyPlot.subplot(2, 3, 5)
+    PyPlot.subplot(3, 3, 5)
     circle_subplot(x, y, σyy, npts, R, θ0, L"\sigma_{yy}")
-    PyPlot.subplot(2, 3, 6)
+    PyPlot.subplot(3, 3, 6)
     circle_subplot(x, y, σxy, npts, R, θ0, L"\sigma_{xy}")
+    PyPlot.subplot(3, 3, 7)
+    circle_subplot(x, y, σxxline, npts, R, θ0, L"\sigma_{xx}")
+    PyPlot.subplot(3, 3, 8)
+    circle_subplot(x, y, σyyline, npts, R, θ0, L"\sigma_{yy}")
+    PyPlot.subplot(3, 3, 9)
+    circle_subplot(x, y, σxyline, npts, R, θ0, L"\sigma_{xy}")
     PyPlot.suptitle(string(θ0), fontsize=30)
     PyPlot.tight_layout()
 
