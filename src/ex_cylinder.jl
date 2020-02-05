@@ -19,7 +19,7 @@ end
 
 function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     fontsize = 20
-    contour_levels = 60
+    contour_levels = 20
     contour_color = "white"
     contour_linewidth = 0.5
     color_scale = 1e6
@@ -74,7 +74,7 @@ function ex_cylinder()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = 1.0e5 # Applied radial pressure over arc
-    θ0 = 1 # Arc length over which pressure is applied
+    θ0 = 0.001 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
     mmax = 1000 # Max number of terms in Hondros series
 
@@ -112,12 +112,15 @@ function ex_cylinder()
     # diametrically opposed concentrated loads, Ye Jianhong a,, F.Q. Wu , J.Z. Sun
     # Equation 6
     # Sort skeptical about this one because I can't get their (1959) equations to work (Equations 1)
-    l = 1.0 # This is the "length" of the cylinder...I have not idea what this should be
-    σxxline = @. 2*p / (pi*l) * (((R-y)*x^2)/((R-y)^2 + x^2)^2 + ((R+y)*x^2)/((R+y)^2 + x^2)^2 - (1/(2*R)))
-    σyyline = @. 2*p / (pi*l) * (((R-y)^3)/((R-y)^2 + x^2)^2 + ((R+y)^3)/((R+y)^2 + x^2)^2 - (1/(2*R)))
-    σxyline = @. 2*p / (pi*l) * (((R-y)^2*x)/((R-y)^2 + x^2)^2 + ((R+y)^2*x)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+    l = 1.0 # This is the "length" of the cylinder...I have no idea what this should be
+    # σxxline = @. 2*p / (pi*l) * (((R-y)*x^2)/((R-y)^2 + x^2)^2 + ((R+y)*x^2)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+    # σyyline = @. 2*p / (pi*l) * (((R-y)^3)/((R-y)^2 + x^2)^2 + ((R+y)^3)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+    # σxyline = @. 2*p / (pi*l) * (((R-y)^2*x)/((R-y)^2 + x^2)^2 + ((R+y)^2*x)/((R+y)^2 + x^2)^2 - (1/(2*R)))
 
-
+    # Just swapped (x,y) to (y,x) to make this with line sources at y = 0 rather than x = 0.
+    σxxline = @. 2*p / (pi*l) * (((R-x)*y^2)/((R-x)^2 + y^2)^2 + ((R+x)*y^2)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    σyyline = @. 2*p / (pi*l) * (((R-x)^3)/((R-x)^2 + y^2)^2 + ((R+x)^3)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    σxyline = @. 2*p / (pi*l) * (((R-x)^2*y)/((R-x)^2 + y^2)^2 + ((R+x)^2*y)/((R+x)^2 + y^2)^2 - (1/(2*R)))
 
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
@@ -160,29 +163,58 @@ function ex_cylinder()
         U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
         xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [xtrac[i]; ytrac[i]]
     end
+    dispall_isolated = Bem2d.interleave(xdisp, ydisp)
+
+    # Given the other tractions calcuate the induced displacements on the boudaries
+    interleavedtracs = Bem2d.interleave(xtrac, ytrac)
+    T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
+    dispall_Uonly = U * Bem2d.interleave(xtrac, ytrac)
 
     # Streses from tractions
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtrac, ytrac, mu, nu)
 
     # Stresses from traction induced displacements
-    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], xdisp, ydisp, mu, nu)
+    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
     # Plot tractions
+    # Plot the tractions and induced displacements at each element centroid
+    # Should the induced displacements be those from *all* tractions? or just a single element
     fontsize = 20
     PyPlot.close("all")
-    PyPlot.figure(figsize=(10, 10))
+    PyPlot.figure(figsize=(20, 10))
+    PyPlot.subplot(1, 2, 1)
     for i in 1:els.endidx
         PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
     end
     PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xtrac, ytrac)
     PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
     PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
+    PyPlot.title("applied tractions", fontsize=fontsize)
     PyPlot.xlim([-1100, 1100])
     PyPlot.ylim([-1100, 1100])
     PyPlot.xticks([-1000, 0, 1000])
     PyPlot.yticks([-1000, 0, 1000])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
+
+    PyPlot.subplot(1, 2, 2)
+    for i in 1:els.endidx
+        PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
+    end
+    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xdisp, ydisp, color="blue")
+    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall[1:2:end], dispall[2:2:end], color="green")
+    PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
+    PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
+    PyPlot.title("induced displacements", fontsize=fontsize)
+    PyPlot.xlim([-1100, 1100])
+    PyPlot.ylim([-1100, 1100])
+    PyPlot.xticks([-1000, 0, 1000])
+    PyPlot.yticks([-1000, 0, 1000])
+    PyPlot.gca().set_aspect("equal")
+    PyPlot.gca().tick_params(labelsize=fontsize)
+
 
     # Try setting a few values to NaN and see if we can isolate the circle
     to_nan_idx = findall(x -> x > 0.9 * R, r)
@@ -250,7 +282,6 @@ function ex_cylinder()
     circle_subplot(x, y, stresstrac[:, 3] - stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy}")
     PyPlot.suptitle(string(θ0), fontsize=30)
     PyPlot.tight_layout()
-
     PyPlot.show()
 end
 ex_cylinder()
