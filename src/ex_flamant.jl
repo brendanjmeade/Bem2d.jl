@@ -56,6 +56,10 @@ function ex_flamant()
         σxy[i] = cartesian_stress_tensor[1, 2]
     end
 
+    # Try the Flamant solution from Crouch and Starfield section 3.1 (z-line load on "half-plane")
+
+    # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
+
     # BEM solution
     els = Bem2d.Elements(Int(2))
     els.x1[1] = -1e-4
