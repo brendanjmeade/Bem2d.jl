@@ -35,8 +35,8 @@ function ex_flamant()
     r = @. sqrt(x^2 + y^2)
     θ = @. rad2deg(atan(y, x))
 
-    fx = 1.0
-    fy = 0.0
+    fx = 0.0
+    fy = 1.0
     σrr = zeros(length(x))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
@@ -44,21 +44,36 @@ function ex_flamant()
 
     # Convert cylindrical stresses to Cartesian
     # Swap the transpose to go from Cartesian to cylindrical
-    σxx = zeros(length(x))
-    σyy = zeros(length(x))
-    σxy = zeros(length(x))
-    for i in 1:length(x) # Project a single matrix to Cartesian coordinates
-        cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
-        transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
-        cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
-        σxx[i] = cartesian_stress_tensor[1, 1]
-        σyy[i] = cartesian_stress_tensor[2, 2]
-        σxy[i] = cartesian_stress_tensor[1, 2]
-    end
+    # σxx = zeros(length(x))
+    # σyy = zeros(length(x))
+    # σxy = zeros(length(x))
+    # for i in 1:length(x) # Project a single matrix to Cartesian coordinates
+    #     cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
+    #     transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
+    #     cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
+    #     σxx[i] = cartesian_stress_tensor[1, 1]
+    #     σyy[i] = cartesian_stress_tensor[2, 2]
+    #     σxy[i] = cartesian_stress_tensor[1, 2]
+    # end
 
     # Try the Flamant solution from Crouch and Starfield section 3.1 (z-line load on "half-plane")
+    σxx = @. -2*fy/pi * (x^2*y) / (x^2+y^2)^2
+    σyy = @. -2*fy/pi * (y^3) / (x^2+y^2)^2
+    σxy = @. -2*fy/pi * (x*y^2) / (x^2+y^2)^2
 
     # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
+    C = 1/(4*pi*(1-nu))
+    gx = @. -C * x/(x^2+y^2)
+    gy = @. -C * y/(x^2+y^2)
+    gxy = @. C * 2*x*y/(x^2+y^2)^2
+    gxx = @. C * (x^2-y^2)/(x^2+y^2)^2
+    gyy = -gxx
+    σxxKelvin = @. fy * (2*nu*gy-y*gxx) # Need to add fx terms
+    σyyKelvin = @. fy * (2*(1-nu)*gy-y*gyy)
+    σxyKelvin = @. fy * ((1-2*nu)*gx-y*gxy)
+    σxx = σxxKelvin
+    σyy = σyyKelvin
+    σxy = σxyKelvin
 
     # BEM solution
     els = Bem2d.Elements(Int(2))
@@ -78,7 +93,7 @@ function ex_flamant()
         U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["point"][i], idx["point"][i], mu, nu)
         xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
     end
-    dispall = Bem2d.interleave(xdisp, ydisp)
+    @show dispall = Bem2d.interleave(xdisp, ydisp)
 
     # Streses from tractions
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["point"], fx, fy, mu, nu)
