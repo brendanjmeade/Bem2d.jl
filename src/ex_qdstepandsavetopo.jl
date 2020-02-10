@@ -60,7 +60,7 @@ function ex_qdstepandsave()
     # Create fault elements
     els = Bem2d.Elements(Int(1e5))
     faultwidth = 10000
-    
+
     # Curved fault
     x1, y1, x2, y2 = Bem2d.discretizedline(-7e3, 0e3, 0, 0, nfault)
     y1 = 3e3 * atan.(x1 / 1e3)
@@ -92,31 +92,31 @@ function ex_qdstepandsave()
         els.normalstress[els.endidx + i] = 0e6
     end
     Bem2d.standardize_elements!(els)
-    
+
     # Create convience tools
     idx = Bem2d.getidxdict(els)
     partialsconst = Bem2d.initpartials(els)
-    
+
     # Calculate slip to traction partials on the fault
     println("Calculating velocity to traction matrix")
     @time _, _, partialsconst["trac"]["fault"]["fault"] = Bem2d.partialsconstdispstress(Bem2d.slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     @time _, _, partialsconst["trac"]["fault"]["freesurftopo"] = Bem2d.partialsconstdispstress(Bem2d.slip2dispstress, els, idx["fault"], idx["freesurftopo"], mu, nu)
     @time _, _, partialsconst["trac"]["freesurftopo"]["freesurftopo"] = Bem2d.partialsconstdispstress(Bem2d.slip2dispstress, els, idx["freesurftopo"], idx["freesurftopo"], mu, nu)
     @time _, _, partialsconst["trac"]["freesurftopo"]["fault"] = Bem2d.partialsconstdispstress(Bem2d.slip2dispstress, els, idx["freesurftopo"], idx["fault"], mu, nu)
-    
+
     #
     # Just trying out some new notation...need to think about it.
     # parC["T"]["fault"]["fault"]
     # parQ["S"]["fault"]["fault"]
     #
-    
+
     # This matrix allows us to go from fault slip to surface displacements
     # We then need to go from surface displacements to tractions on the fault
     # Do we need tractions on the surface too to go to fault tractions?  No because it's a free surface.
     @time faultsliptosurfacedisp = inv(partialsconst["trac"]["freesurftopo"]["freesurftopo"]) * partialsconst["trac"]["fault"]["freesurftopo"]
     faultsliptosurfacedisptofaulttraction = partialsconst["trac"]["freesurftopo"]["fault"] * faultsliptosurfacedisp
     bemsliptotractotal = partialsconst["trac"]["fault"]["fault"] - faultsliptosurfacedisptofaulttraction
-    
+
     # CS elements - Euler style stress integration
     nnodes = 1 * nfault
     ics = zeros(3 * nnodes)
@@ -144,7 +144,7 @@ function ex_qdstepandsave()
     end
     PyPlot.close("all")
     Bem2d.plotqdtimeseries(integrator.sol, 3, nfault)
-    
+
     # 3QN elements - Euler style stress integration
     # nnodes = 3 * nfault
     # ics = zeros(3 * nnodes)
@@ -171,8 +171,21 @@ function ex_qdstepandsave()
     #     end
     # end
     # plotqdtimeseriesquad(integrator.sol, 3, nfault)
-    
+
+    # Create new folder and save timestamped .jld2 file to that folder
+    basename = string(now())
+    outfoldername = "/home/meade/Desktop/data/qdvis/" * basename
+    basefilename = outfoldername * "/" * basename
+    outfilename = basefilename * ".jld2"
+    mkpath(outfoldername)
     @time @save outfilename integrator.sol els mu nu
+
+    # Plot and dave basic time series information
+    close("all")
+    plotqdtimeseries(integrator.sol, 3, nfault)
+    figure(1); savefig(basefilename * "_timeseries.pdf")
+    figure(2); savefig(basefilename * "_contours.pdf")
+
     println("Wrote integration results to:")
     println(outfilename)
 end
