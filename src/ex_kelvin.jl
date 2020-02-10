@@ -64,9 +64,9 @@ function ex_flamant()
 
     # BEM solution
     els = Bem2d.Elements(Int(2))
-    els.x1[1] = -0.5
+    els.x1[1] = -a
     els.y1[1] = 0.0
-    els.x2[1] = 0.5
+    els.x2[1] = a
     els.y2[1] = 0.0
     els.name[1] = "point"
     Bem2d.standardize_elements!(els)
