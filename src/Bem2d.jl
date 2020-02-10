@@ -362,6 +362,7 @@ function trac2dispstress(xcomp, ycomp, f, y, mu, nu)
     stress = zeros(length(y), 3)
     # _xcomp, _ycomp = -xcomp, -ycomp # For Okada consistency...causes problems...don't do this.
     _xcomp, _ycomp = xcomp, ycomp # Not sure what I'm trying here
+    # TODO: Check sigma_yy and sigma_xy for forcing in the x-direction
     for i in 1:length(y)
         disp[i, 1] = _xcomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] + y[i] * f[i, 2]) + _ycomp / (2.0 * mu) * (-y[i] * f[i, 3])
         disp[i, 2] = _xcomp / (2.0 * mu) * (-y[i] * f[i, 3]) + _ycomp / (2.0 * mu) * ((3.0 - 4.0 * nu) * f[i, 1] - y[i] * f[i, 2])
