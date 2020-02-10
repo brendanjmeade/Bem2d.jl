@@ -30,8 +30,8 @@ function ex_flamant()
     npts = 200
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-    tracx = 0.0
-    tracy = 1.0
+    tracx = 1.0
+    tracy = 0.0
 
     # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
     C = 1/(4*pi*(1-nu))
@@ -61,6 +61,7 @@ function ex_flamant()
     σxx_segment = @. tracx*((3-2*nu)*fx+y*fxy) + tracy*(2*nu*fy+y*fyy)
     σyy_segment = @. tracx*(-(1-2*nu)*fx-y*fxy) + tracy*(2*(1-nu)*fy-f*fyy)
     σxy_segment = @. tracx*( 2*(1-nu)*fy+y*fyy ) + tracy*((1-2*nu)fx-y*fxy)
+    # σxy_segment = @. tracx*((1-2*nu)*fy+y*fyy ) + tracy*((1-2*nu)fx-y*fxy)
 
     # BEM solution
     els = Bem2d.Elements(Int(2))
@@ -118,12 +119,12 @@ function ex_flamant()
     local_subplot(x, y, stresstrac[:, 1], npts, L"\sigma_{xx} \; \mathrm{(traction \; BEM)}")
 
     PyPlot.subplot(3, 6, 11) # TODO: Fix this!!!
-    # local_subplot(x, y, stresstrac[:, 2], npts, L"\sigma_{yy} \; \mathrm{(traction \; BEM)}")
-    local_subplot(x, y, σyy_segment, npts, L"\sigma_{yy} \; \mathrm{(traction \; SEGMENT)}")
+    local_subplot(x, y, stresstrac[:, 2], npts, L"\sigma_{yy} \; \mathrm{(traction \; BEM)}")
+    # local_subplot(x, y, σyy_segment, npts, L"\sigma_{yy} \; \mathrm{(traction \; SEGMENT)}")
 
     PyPlot.subplot(3, 6, 12) # TODO: Fix this!!!
-    # local_subplot(x, y, stresstrac[:, 3], npts, L"\sigma_{xy} \; \mathrm{(traction \; BEM)}")
-    local_subplot(x, y, σxy_segment, npts, L"\sigma_{xy} \; \mathrm{(traction \; SEGMENT)}")
+    local_subplot(x, y, stresstrac[:, 3], npts, L"\sigma_{xy} \; \mathrm{(traction \; BEM)}")
+    # local_subplot(x, y, σxy_segment, npts, L"\sigma_{xy} \; \mathrm{(traction \; SEGMENT)}")
 
     # Residuals
     PyPlot.subplot(3, 6, 13)
@@ -142,9 +143,9 @@ function ex_flamant()
     PyPlot.subplot(3, 6, 16)
     local_subplot(x, y, σxx_kelvin-stresstrac[:,1], npts, L"\sigma_{xx} \; (\mathrm{residual})")
     PyPlot.subplot(3, 6, 17)
-    local_subplot(x, y, σyy_kelvin-stresstrac[:,2], npts, L"\sigma_{xx} \; (\mathrm{residual})")
+    local_subplot(x, y, σyy_kelvin-stresstrac[:,2], npts, L"\sigma_{yy} \; (\mathrm{residual})")
     PyPlot.subplot(3, 6, 18)
-    local_subplot(x, y, σxy_kelvin-stresstrac[:,3], npts, L"\sigma_{xx} \; (\mathrm{residual})")
+    local_subplot(x, y, σxy_kelvin-stresstrac[:,3], npts, L"\sigma_{xy} \; (\mathrm{residual})")
 
     # "Kelvin" line segment solution
     # PyPlot.subplot(3, 6, 13)

@@ -6,7 +6,7 @@ using Bem2d
 
 function local_subplot(x, y, mat, npts, title_string)
     fontsize = 20
-    contour_levels = 20
+    contour_levels = 50
     contour_color = "white"
     contour_linewidth = 0.5
     color_scale = 1e6
@@ -29,7 +29,7 @@ function ex_flamant()
     nu = 0.25
 
     # Observation coordinates
-    npts = 50
+    npts = 200
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
     r = @. sqrt(x^2 + y^2)
@@ -93,14 +93,13 @@ function ex_flamant()
         U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["point"][i], idx["point"][i], mu, nu)
         xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
     end
-    @show dispall = Bem2d.interleave(xdisp, ydisp)
+    dispall = Bem2d.interleave(xdisp, ydisp)
 
     # Streses from tractions
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["point"], fx, fy, mu, nu)
 
     # Stresses from traction induced displacements
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["point"], dispall[1:2:end], dispall[2:2:end], mu, nu)
-
 
     PyPlot.close("all")
     PyPlot.figure(figsize=(40,20))
