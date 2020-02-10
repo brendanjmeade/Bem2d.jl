@@ -30,8 +30,8 @@ function ex_flamant()
     npts = 200
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-    tracx = 1.0
-    tracy = 0.0
+    tracx = 0.0
+    tracy = 1.0
 
     # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
     C = 1/(4*pi*(1-nu))
@@ -116,10 +116,14 @@ function ex_flamant()
     local_subplot(x, y, disptrac[:, 2], npts, L"u_y \; \mathrm{(traction \; BEM)}")
     PyPlot.subplot(3, 6, 10)
     local_subplot(x, y, stresstrac[:, 1], npts, L"\sigma_{xx} \; \mathrm{(traction \; BEM)}")
-    PyPlot.subplot(3, 6, 11)
-    local_subplot(x, y, stresstrac[:, 2], npts, L"\sigma_{yy} \; \mathrm{(traction \; BEM)}")
-    PyPlot.subplot(3, 6, 12)
-    local_subplot(x, y, stresstrac[:, 3], npts, L"\sigma_{xy} \; \mathrm{(traction \; BEM)}")
+
+    PyPlot.subplot(3, 6, 11) # TODO: Fix this!!!
+    # local_subplot(x, y, stresstrac[:, 2], npts, L"\sigma_{yy} \; \mathrm{(traction \; BEM)}")
+    local_subplot(x, y, σyy_segment, npts, L"\sigma_{yy} \; \mathrm{(traction \; SEGMENT)}")
+
+    PyPlot.subplot(3, 6, 12) # TODO: Fix this!!!
+    # local_subplot(x, y, stresstrac[:, 3], npts, L"\sigma_{xy} \; \mathrm{(traction \; BEM)}")
+    local_subplot(x, y, σxy_segment, npts, L"\sigma_{xy} \; \mathrm{(traction \; SEGMENT)}")
 
     # Residuals
     PyPlot.subplot(3, 6, 13)
