@@ -49,7 +49,7 @@ function ex_flamant()
     σxy_kelvin = @. tracy * ((1-2*nu)*gx-y*gxy)
 
     # Try the finite length "Kelvin" solution from Crouch and Starfied, section 4.3
-    a = 1.0
+    a = 0.5
     f = @. -C * (y*(atan(y, x-a)-atan(y, x+a)) - (x-a)*log(sqrt((x-a)^2 +y^2)) + (x+a)*log(sqrt((x+a)^2 +y^2)))
     fx = @. C * (log(sqrt((x-a)^2 +y^2)) - log(sqrt((x+a)^2 +y^2)))
     fy = @. -C * (atan(y,x-a) - atan(y,x+a))
@@ -58,17 +58,15 @@ function ex_flamant()
     fyy = -fxx
     ux_segment = @. tracx/(2*mu) * ((3-4*nu)*f-y*fx) + tracy/(2*mu)*(-y*fx)
     uy_segment = @. tracx/(2*mu) * (-y*fy) + tracy/(2*mu)*((3-4*nu)*f-y*fy)
-    # ux_segment = @. tracx/(2*mu)*((3-4*nu)*g-x*gx) + tracy/(2*mu)*(-y*gx)
-    # uy_segment = @. tracx/(2*mu)*(-x*gy) + tracy/(2*mu)*((3-4*nu)*g-y*gy)
     σxx_segment = @. tracy * (2*nu*fy+y*fyy) # Need to add fx terms
     σyy_segment = @. tracy * (2*(1-nu)*fy-f*fyy)
     σxy_segment = @. tracy * ((1-2*nu)fx-y*fxy)
 
     # BEM solution
     els = Bem2d.Elements(Int(2))
-    els.x1[1] = -1.0
+    els.x1[1] = -0.5
     els.y1[1] = 0.0
-    els.x2[1] = 1.0
+    els.x2[1] = 0.5
     els.y2[1] = 0.0
     els.name[1] = "point"
     Bem2d.standardize_elements!(els)
@@ -80,6 +78,7 @@ function ex_flamant()
     fontsize = 20
     PyPlot.close("all")
     PyPlot.figure(figsize=(40,20))
+
     # Analytic Kelvin
     PyPlot.subplot(3, 6, 1)
     quiver(x[:], y[:], ux_kelvin, uy_kelvin, units = "width", color = "b")
@@ -94,15 +93,15 @@ function ex_flamant()
     local_subplot(x, y, ux_kelvin, npts, L"u_x \; \mathrm{(CS \; Kelvin)}")
     PyPlot.subplot(3, 6, 3)
     local_subplot(x, y, uy_kelvin, npts, L"u_y \; \mathrm{(CS \; Kelvin)}")
-    PyPlot.subplot(3, 6, 7)
+    PyPlot.subplot(3, 6, 4)
     local_subplot(x, y, σxx_kelvin, npts, L"\sigma_{xx} \; \mathrm{(CS \; Kelvin)}")
-    PyPlot.subplot(3, 6, 8)
+    PyPlot.subplot(3, 6, 5)
     local_subplot(x, y, σyy_kelvin, npts, L"\sigma_{yy} \; \mathrm{(CS \; Kelvin)}")
-    PyPlot.subplot(3, 6, 9)
+    PyPlot.subplot(3, 6, 6)
     local_subplot(x, y, σxy_kelvin, npts, L"\sigma_{xy} \; \mathrm{(CS \; Kelvin)}")
 
     # BEM Kelvin
-    PyPlot.subplot(3, 6, 4)
+    PyPlot.subplot(3, 6, 7)
     quiver(x[:], y[:], disptrac[:, 1], disptrac[:, 2], units = "width", color = "b")
     PyPlot.title(L"\mathbf{u} \; \mathrm{(traction \; BEM)}", fontsize=fontsize)
     PyPlot.xlim([-1000, 1000])
@@ -111,9 +110,9 @@ function ex_flamant()
     PyPlot.yticks([])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
-    PyPlot.subplot(3, 6, 5)
+    PyPlot.subplot(3, 6, 8)
     local_subplot(x, y, disptrac[:, 1], npts, L"u_x \; \mathrm{(traction \; BEM)}")
-    PyPlot.subplot(3, 6, 6)
+    PyPlot.subplot(3, 6, 9)
     local_subplot(x, y, disptrac[:, 2], npts, L"u_y \; \mathrm{(traction \; BEM)}")
     PyPlot.subplot(3, 6, 10)
     local_subplot(x, y, stresstrac[:, 1], npts, L"\sigma_{xx} \; \mathrm{(traction \; BEM)}")
@@ -122,10 +121,10 @@ function ex_flamant()
     PyPlot.subplot(3, 6, 12)
     local_subplot(x, y, stresstrac[:, 3], npts, L"\sigma_{xy} \; \mathrm{(traction \; BEM)}")
 
-    # "Kelvin" line segment solution
+    # Residuals
     PyPlot.subplot(3, 6, 13)
-    quiver(x[:], y[:], ux_segment, uy_segment, units = "width", color = "b")
-    PyPlot.title(L"\mathbf{u} \; \mathrm{(CS \; segment)}", fontsize=fontsize)
+    quiver(x[:], y[:], ux_kelvin-disptrac[:,1], uy_kelvin-disptrac[:,2], units = "width", color = "b")
+    PyPlot.title(L"\mathbf{u} \; \mathrm{(residual)}", fontsize=fontsize)
     PyPlot.xlim([-1000, 1000])
     PyPlot.ylim([-1000, 1000])
     PyPlot.xticks([])
@@ -133,15 +132,36 @@ function ex_flamant()
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
     PyPlot.subplot(3, 6, 14)
-    local_subplot(x, y, ux_segment, npts, L"u_x \; \mathrm{(CS \; segment)}")
+    local_subplot(x, y, ux_kelvin-disptrac[:,1], npts, L"u_x \; \mathrm{(CS \; segment)}")
     PyPlot.subplot(3, 6, 15)
-    local_subplot(x, y, uy_segment, npts, L"u_y \; \mathrm{(CS \; segment)}")
+    local_subplot(x, y, uy_kelvin-disptrac[:,2], npts, L"u_y \; \mathrm{(CS \; segment)}")
     PyPlot.subplot(3, 6, 16)
-    local_subplot(x, y, σxx_segment, npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
+    local_subplot(x, y, σxx_kelvin-stresstrac[:,1], npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
     PyPlot.subplot(3, 6, 17)
-    local_subplot(x, y, σyy_segment, npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
+    local_subplot(x, y, σyy_kelvin-stresstrac[:,2], npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
     PyPlot.subplot(3, 6, 18)
-    local_subplot(x, y, σxy_segment, npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
+    local_subplot(x, y, σxy_kelvin-stresstrac[:,3], npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
+
+    # "Kelvin" line segment solution
+    # PyPlot.subplot(3, 6, 13)
+    # quiver(x[:], y[:], ux_segment, uy_segment, units = "width", color = "b")
+    # PyPlot.title(L"\mathbf{u} \; \mathrm{(CS \; segment)}", fontsize=fontsize)
+    # PyPlot.xlim([-1000, 1000])
+    # PyPlot.ylim([-1000, 1000])
+    # PyPlot.xticks([])
+    # PyPlot.yticks([])
+    # PyPlot.gca().set_aspect("equal")
+    # PyPlot.gca().tick_params(labelsize=fontsize)
+    # PyPlot.subplot(3, 6, 14)
+    # local_subplot(x, y, ux_segment, npts, L"u_x \; \mathrm{(CS \; segment)}")
+    # PyPlot.subplot(3, 6, 15)
+    # local_subplot(x, y, uy_segment, npts, L"u_y \; \mathrm{(CS \; segment)}")
+    # PyPlot.subplot(3, 6, 16)
+    # local_subplot(x, y, σxx_segment, npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
+    # PyPlot.subplot(3, 6, 17)
+    # local_subplot(x, y, σyy_segment, npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
+    # PyPlot.subplot(3, 6, 18)
+    # local_subplot(x, y, σxy_segment, npts, L"\sigma_{xx} \; \mathrm{(CS \; segment)}")
 
     PyPlot.tight_layout()
     PyPlot.show()
