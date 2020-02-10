@@ -30,8 +30,8 @@ function ex_flamant()
     npts = 200
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-    tracx = 1.0
-    tracy = 0.0
+    tracx = 0.0
+    tracy = 1.0
 
     # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
     C = 1/(4*pi*(1-nu))
@@ -46,7 +46,8 @@ function ex_flamant()
     uy_kelvin = @. tracx/(2*mu)*(-x*gy) + tracy/(2*mu)*((3-4*nu)*g-y*gy)
     σxx_kelvin = @. tracx*(2*(1-nu)*gx-x*gxx) + tracy*(2*nu*gy-y*gxx)
     σyy_kelvin = @. tracx*(2*nu*gx-x*gyy) + tracy*(2*(1-nu)*gy-y*gyy)
-    σxy_kelvin = @. tracx*(1-2*nu)*gy-x*gxy + tracy*((1-2*nu)*gx-y*gxy)
+    σxy_kelvin = @. tracx*((1-2*nu)*gy-x*gxy) + tracy*((1-2*nu)*gx-y*gxy)
+
 
     # Try the finite length "Kelvin" solution from Crouch and Starfied, section 4.3
     a = 0.5
@@ -60,8 +61,7 @@ function ex_flamant()
     uy_segment = @. tracx/(2*mu)*(-y*fy) + tracy/(2*mu)*((3-4*nu)*f-y*fy)
     σxx_segment = @. tracx*((3-2*nu)*fx+y*fxy) + tracy*(2*nu*fy+y*fyy)
     σyy_segment = @. tracx*(-(1-2*nu)*fx-y*fxy) + tracy*(2*(1-nu)*fy-f*fyy)
-    σxy_segment = @. tracx*( 2*(1-nu)*fy+y*fyy ) + tracy*((1-2*nu)fx-y*fxy)
-    # σxy_segment = @. tracx*((1-2*nu)*fy+y*fyy ) + tracy*((1-2*nu)fx-y*fxy)
+    σxy_segment = @. tracx*(2*(1-nu)*fy+y*fyy ) + tracy*((1-2*nu)fx-y*fxy)
 
     # BEM solution
     els = Bem2d.Elements(Int(2))
@@ -117,14 +117,10 @@ function ex_flamant()
     local_subplot(x, y, disptrac[:, 2], npts, L"u_y \; \mathrm{(traction \; BEM)}")
     PyPlot.subplot(3, 6, 10)
     local_subplot(x, y, stresstrac[:, 1], npts, L"\sigma_{xx} \; \mathrm{(traction \; BEM)}")
-
-    PyPlot.subplot(3, 6, 11) # TODO: Fix this!!!
+    PyPlot.subplot(3, 6, 11)
     local_subplot(x, y, stresstrac[:, 2], npts, L"\sigma_{yy} \; \mathrm{(traction \; BEM)}")
-    # local_subplot(x, y, σyy_segment, npts, L"\sigma_{yy} \; \mathrm{(traction \; SEGMENT)}")
-
-    PyPlot.subplot(3, 6, 12) # TODO: Fix this!!!
+    PyPlot.subplot(3, 6, 12)
     local_subplot(x, y, stresstrac[:, 3], npts, L"\sigma_{xy} \; \mathrm{(traction \; BEM)}")
-    # local_subplot(x, y, σxy_segment, npts, L"\sigma_{xy} \; \mathrm{(traction \; SEGMENT)}")
 
     # Residuals
     PyPlot.subplot(3, 6, 13)
