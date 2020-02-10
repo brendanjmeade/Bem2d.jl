@@ -30,8 +30,8 @@ function ex_flamant()
     npts = 200
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-    tracx = 0.0
-    tracy = 1.0
+    tracx = 1.0
+    tracy = 0.0
 
     # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
     C = 1/(4*pi*(1-nu))
@@ -44,9 +44,9 @@ function ex_flamant()
     gyy = -gxx
     ux_kelvin = @. tracx/(2*mu)*((3-4*nu)*g-x*gx) + tracy/(2*mu)*(-y*gx)
     uy_kelvin = @. tracx/(2*mu)*(-x*gy) + tracy/(2*mu)*((3-4*nu)*g-y*gy)
-    σxx_kelvin = @. tracy * (2*nu*gy-y*gxx) # Need to add fx terms
-    σyy_kelvin = @. tracy * (2*(1-nu)*gy-y*gyy)
-    σxy_kelvin = @. tracy * ((1-2*nu)*gx-y*gxy)
+    σxx_kelvin = @. tracx*(2*(1-nu)*gx-x*gxx) + tracy*(2*nu*gy-y*gxx)
+    σyy_kelvin = @. tracx*(2*nu*gx-x*gyy) + tracy*(2*(1-nu)*gy-y*gyy)
+    σxy_kelvin = @. tracx*(1-2*nu)*gy-x*gxy + tracy*((1-2*nu)*gx-y*gxy)
 
     # Try the finite length "Kelvin" solution from Crouch and Starfied, section 4.3
     a = 0.5
@@ -56,11 +56,11 @@ function ex_flamant()
     fxy = @. C * (y/((x-a)^2+y^2) - y/((x+a)^2+y^2))
     fxx = @. C * ((x-a)/((x-a)^2+y^2) - (x+a)/((x+a)^2+y^2))
     fyy = -fxx
-    ux_segment = @. tracx/(2*mu) * ((3-4*nu)*f-y*fx) + tracy/(2*mu)*(-y*fx)
-    uy_segment = @. tracx/(2*mu) * (-y*fy) + tracy/(2*mu)*((3-4*nu)*f-y*fy)
-    σxx_segment = @. tracy * (2*nu*fy+y*fyy) # Need to add fx terms
-    σyy_segment = @. tracy * (2*(1-nu)*fy-f*fyy)
-    σxy_segment = @. tracy * ((1-2*nu)fx-y*fxy)
+    ux_segment = @. tracx/(2*mu)*((3-4*nu)*f-y*fx) + tracy/(2*mu)*(-y*fx)
+    uy_segment = @. tracx/(2*mu)*(-y*fy) + tracy/(2*mu)*((3-4*nu)*f-y*fy)
+    σxx_segment = @. tracx*((3-2*nu)*fx+y*fxy) + tracy*(2*nu*fy+y*fyy)
+    σyy_segment = @. tracx*(-(1-2*nu)*fx-y*fxy) + tracy*(2*(1-nu)*fy-f*fyy)
+    σxy_segment = @. tracx*( 2*(1-nu)*fy+y*fyy ) + tracy*((1-2*nu)fx-y*fxy)
 
     # BEM solution
     els = Bem2d.Elements(Int(2))
