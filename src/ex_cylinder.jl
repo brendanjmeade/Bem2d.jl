@@ -73,17 +73,17 @@ function ex_cylinder()
     θ = @. rad2deg(atan(y, x))
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
-    p = 1.0e5 # Applied radial pressure over arc
-    θ0 = 0.001 # Arc length over which pressure is applied
+    p = -1.0e5 # Applied radial pressure over arc
+    θ0 = 45.0 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
     mmax = 1000 # Max number of terms in Hondros series
 
     σrr = zeros(length(x))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
-    σrrconstterm = 2.0 * θ0 * p / 180
-    σθθconstterm = 2.0 * θ0 * p / 180
-    leadingterm = 2.0 * p / 180
+    σrrconstterm = 2.0 * θ0 * -p / 180
+    σθθconstterm = 2.0 * θ0 * -p / 180
+    leadingterm = 2.0 * -p / 180
     for m in 1:mmax
         σrr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sind(2*m*θ0) * cosd(2*m*θ)
         σθθ += @. (r/R)^(2*m-2) * (1-(1+1/m)*(r/R)^2) * sind(2*m*θ0) * cosd(2*m*θ)
@@ -275,11 +275,11 @@ function ex_cylinder()
     PyPlot.subplot(3, 3, 6)
     circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy}")
     PyPlot.subplot(3, 3, 7)
-    circle_subplot(x, y, stresstrac[:, 1] - stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx}")
+    circle_subplot(x, y, stresstrac[:, 1] + stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx}")
     PyPlot.subplot(3, 3, 8)
-    circle_subplot(x, y, stresstrac[:, 2] - stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy}")
+    circle_subplot(x, y, stresstrac[:, 2] + stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy}")
     PyPlot.subplot(3, 3, 9)
-    circle_subplot(x, y, stresstrac[:, 3] - stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy}")
+    circle_subplot(x, y, stresstrac[:, 3] + stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy}")
     PyPlot.suptitle(string(θ0), fontsize=30)
     PyPlot.tight_layout()
     PyPlot.show()
