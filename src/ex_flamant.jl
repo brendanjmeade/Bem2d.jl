@@ -12,8 +12,6 @@ function local_subplot(x, y, mat, npts, title_string)
     color_scale = 1e6
     PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = PyPlot.colorbar(fraction=0.020, pad=0.05, extend = "both")
-    # cbar.ax.tick_params(labelsize=fontsize)
-    # cbar.set_label(label=title_string * " (MPa)", fontsize=fontsize)
     PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(title_string, fontsize=fontsize)
     PyPlot.xlim([-1000, 1000])
@@ -27,59 +25,33 @@ end
 function ex_flamant()
     mu = 3e10
     nu = 0.25
-
-    # Observation coordinates
     npts = 200
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
     r = @. sqrt(x^2 + y^2)
     θ = @. rad2deg(atan(y, x))
-
     fx = 0.0
     fy = 1.0
-    σrr = zeros(length(x))
+    σrr = @. -2.0/(pi*r) * (fx*cosd(θ) + fy*sind(θ))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
-    σrr = @. -2.0/(pi*r) * (fx*cosd(θ) + fy*sind(θ))
 
     # Convert cylindrical stresses to Cartesian
     # Swap the transpose to go from Cartesian to cylindrical
-    # σxx = zeros(length(x))
-    # σyy = zeros(length(x))
-    # σxy = zeros(length(x))
-    # for i in 1:length(x) # Project a single matrix to Cartesian coordinates
-    #     cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
-    #     transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
-    #     cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
-    #     σxx[i] = cartesian_stress_tensor[1, 1]
-    #     σyy[i] = cartesian_stress_tensor[2, 2]
-    #     σxy[i] = cartesian_stress_tensor[1, 2]
-    # end
+    σxx_flamant = @. σrr * cosd(θ) * cosd(θ)
+    σyy_flamant = @. σrr * sind(θ) * sind(θ)
+    σxy_flamant = @. σrr * sind(θ) * cosd(θ)
 
     # Try the Flamant solution from Crouch and Starfield section 3.1 (z-line load on "half-plane")
     σxx = @. -2*fy/pi * (x^2*y) / (x^2+y^2)^2
     σyy = @. -2*fy/pi * (y^3) / (x^2+y^2)^2
     σxy = @. -2*fy/pi * (x*y^2) / (x^2+y^2)^2
 
-    # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
-    C = 1/(4*pi*(1-nu))
-    gx = @. -C * x/(x^2+y^2)
-    gy = @. -C * y/(x^2+y^2)
-    gxy = @. C * 2*x*y/(x^2+y^2)^2
-    gxx = @. C * (x^2-y^2)/(x^2+y^2)^2
-    gyy = -gxx
-    σxxKelvin = @. fy * (2*nu*gy-y*gxx) # Need to add fx terms
-    σyyKelvin = @. fy * (2*(1-nu)*gy-y*gyy)
-    σxyKelvin = @. fy * ((1-2*nu)*gx-y*gxy)
-    σxx = σxxKelvin
-    σyy = σyyKelvin
-    σxy = σxyKelvin
-
     # BEM solution
     els = Bem2d.Elements(Int(2))
-    els.x1[1] = -1e-4
+    els.x1[1] = -0.5
     els.y1[1] = 0.0
-    els.x2[1] = 1e-4
+    els.x2[1] = 0.5
     els.y2[1] = 0.0
     els.name[1] = "point"
     Bem2d.standardize_elements!(els)
@@ -106,17 +78,23 @@ function ex_flamant()
 
     # Analytic Flamant
     PyPlot.subplot(3, 6, 1)
-    local_subplot(x, y, σrr, npts, L"\sigma_{rr}")
+    local_subplot(x, y, σrr, npts, L"\sigma_{rr} \; \mathrm{(Wikipedia)}")
     PyPlot.subplot(3, 6, 2)
-    local_subplot(x, y, σθθ, npts, L"\sigma_{\theta\theta}")
+    local_subplot(x, y, σθθ, npts, L"\sigma_{\theta\theta} \; \mathrm{(Wikipedia)}")
     PyPlot.subplot(3, 6, 3)
-    local_subplot(x, y, σrθ, npts, L"\sigma_{r\theta}")
+    local_subplot(x, y, σrθ, npts, L"\sigma_{r\theta} \; \mathrm{(Wikipedia)}")
+    PyPlot.subplot(3, 6, 7)
+    local_subplot(x, y, σxx_flamant, npts, L"\sigma_{xx} \; \mathrm{(Wikipedia \; Cartesian)}")
+    PyPlot.subplot(3, 6, 8)
+    local_subplot(x, y, σyy_flamant, npts, L"\sigma_{yy} \; \mathrm{(Wikipedia \; Cartesian)}")
+    PyPlot.subplot(3, 6, 9)
+    local_subplot(x, y, σxy_flamant, npts, L"\sigma_{xy} \; \mathrm{(Wikipedia \; Cartesian)}")
     PyPlot.subplot(3, 6, 13)
-    local_subplot(x, y, σxx, npts, L"\sigma_{xx}")
+    local_subplot(x, y, σxx, npts, L"\sigma_{xx} \; \mathrm{(CS \; Cartesian)}")
     PyPlot.subplot(3, 6, 14)
-    local_subplot(x, y, σyy, npts, L"\sigma_{yy}")
+    local_subplot(x, y, σyy, npts, L"\sigma_{yy} \; \mathrm{(CS \; Cartesian)}")
     PyPlot.subplot(3, 6, 15)
-    local_subplot(x, y, σxy, npts, L"\sigma_{xy}")
+    local_subplot(x, y, σxy, npts, L"\sigma_{xy} \; \mathrm{(CS \; Cartesian)}")
 
     # BEM Flamant
     PyPlot.subplot(3, 6, 4)
@@ -140,6 +118,5 @@ function ex_flamant()
 
     PyPlot.tight_layout()
     PyPlot.show()
-
 end
 ex_flamant()
