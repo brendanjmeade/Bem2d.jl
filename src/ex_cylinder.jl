@@ -51,10 +51,10 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
 
     PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
     PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
-    PyPlot.xlim([-1100, 1100])
-    PyPlot.ylim([-1100, 1100])
-    PyPlot.xticks([-1000, 0, 1000])
-    PyPlot.yticks([-1000, 0, 1000])
+    # PyPlot.xlim([-1100, 1100])
+    # PyPlot.ylim([-1100, 1100])
+    # PyPlot.xticks([-1000, 0, 1000])
+    # PyPlot.yticks([-1000, 0, 1000])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 end
@@ -63,20 +63,17 @@ function ex_cylinder()
     mu = 3e10
     nu = 0.25
 
-    # Observation coordinates for far-field calculation
-    npts = 50
-    obswidth = 1000
-    x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-
-    # Convert Cartesian to cylindrical coordinates
-    r = @. sqrt(x^2 + y^2)
-    θ = @. rad2deg(atan(y, x))
-
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
     θ0 = 45.0 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
+    R = 57.296 # Radius of disc
     mmax = 1000 # Max number of terms in Hondros series
+    npts = 50
+    x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
+    r = @. sqrt(x^2 + y^2)
+    θ = @. rad2deg(atan(y, x))
+
 
     σrr = zeros(length(x))
     σθθ = zeros(length(x))
@@ -94,7 +91,6 @@ function ex_cylinder()
     σrθ = @. leadingterm * σrθ
 
     # Convert cylindrical stresses to Cartesian
-    # Swap the transpose to go from Cartesian to cylindrical
     σxx = zeros(length(x))
     σyy = zeros(length(x))
     σxy = zeros(length(x))
@@ -161,7 +157,7 @@ function ex_cylinder()
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
         T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
         U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
-        xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [xtrac[i]; ytrac[i]]
+        # xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [xtrac[i]; ytrac[i]]
     end
     dispall_isolated = Bem2d.interleave(xdisp, ydisp)
 
@@ -192,10 +188,10 @@ function ex_cylinder()
     PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
     PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
     PyPlot.title("applied tractions", fontsize=fontsize)
-    PyPlot.xlim([-1100, 1100])
-    PyPlot.ylim([-1100, 1100])
-    PyPlot.xticks([-1000, 0, 1000])
-    PyPlot.yticks([-1000, 0, 1000])
+    # PyPlot.xlim([-1100, 1100])
+    # PyPlot.ylim([-1100, 1100])
+    # PyPlot.xticks([-1000, 0, 1000])
+    # PyPlot.yticks([-1000, 0, 1000])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 
@@ -208,16 +204,15 @@ function ex_cylinder()
     PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
     PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
     PyPlot.title("induced displacements", fontsize=fontsize)
-    PyPlot.xlim([-1100, 1100])
-    PyPlot.ylim([-1100, 1100])
-    PyPlot.xticks([-1000, 0, 1000])
-    PyPlot.yticks([-1000, 0, 1000])
+    # PyPlot.xlim([-1100, 1100])
+    # PyPlot.ylim([-1100, 1100])
+    # PyPlot.xticks([-1000, 0, 1000])
+    # PyPlot.yticks([-1000, 0, 1000])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 
-
     # Try setting a few values to NaN and see if we can isolate the circle
-    to_nan_idx = findall(x -> x > 0.9 * R, r)
+    to_nan_idx = findall(x -> x > 1.0 * R, r)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
     σrθ[to_nan_idx] .= NaN
