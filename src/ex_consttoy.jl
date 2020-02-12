@@ -1,8 +1,8 @@
 using Revise
 using LinearAlgebra
 using PyPlot
+using Infiltrator
 using Bem2d
-
 
 function ex_consttoy()
     PyPlot.close("all")
@@ -35,7 +35,6 @@ function ex_consttoy()
     obswidth = 20e3
     xobs, yobs = obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
-
     # Volume evalattion of Crouch and Starfield (1983) kernels
     dispconstslip, stressconstslip = constdispstress(slip2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
     dispconsttrac, stressconsttrac = constdispstress(trac2dispstress, xobs, yobs, els, idx["fault"], xdrive, ydrive, mu, nu)
@@ -49,6 +48,11 @@ function ex_consttoy()
     U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["fault"], idx["fault"], mu, nu)
 
     # Solve BEM problem for slip on fault resulting from unit traction
+    @show U
+    @show T
+    @show [xdrive; ydrive]
+    # @infiltrate
+    # Taking the inverse of this fails because the argument is all zeros because T is all zeros...whaa?
     u = (inv(T + 0.5 * I(size(T)[1]))) * U * [xdrive; ydrive]
 
     # Forward model for volume
