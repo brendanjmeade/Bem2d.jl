@@ -42,20 +42,18 @@ function ex_flamant()
     σyy_flamant = @. σrr * sind(θ) * sind(θ)
     σxy_flamant = @. σrr * sind(θ) * cosd(θ)
 
-    # TODO: Try the matrix rotation approach again
-    # σxx = zeros(length(x))
-    # σyy = zeros(length(x))
-    # σxy = zeros(length(x))
-    # for i in 1:length(x) # Project a single matrix to Cartesian coordinates
-    #     cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
-    #     transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
-    #     cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
-    #     σxx_flamant[i] = cartesian_stress_tensor[1, 1]
-    #     σyy_flamant[i] = cartesian_stress_tensor[2, 2]
-    #     σxy_flamant[i] = cartesian_stress_tensor[1, 2]
-    # end
-
-
+    # Cylindrical to Cartesian via matrix rotation
+    σxx = zeros(length(x))
+    σyy = zeros(length(x))
+    σxy = zeros(length(x))
+    for i in 1:length(x) # Project a single matrix to Cartesian coordinates
+        cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
+        transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
+        cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
+        σxx_flamant[i] = cartesian_stress_tensor[1, 1]
+        σyy_flamant[i] = cartesian_stress_tensor[2, 2]
+        σxy_flamant[i] = cartesian_stress_tensor[1, 2]
+    end
 
     # Try the Flamant solution from Crouch and Starfield section 3.1 (z-line load on "half-plane")
     σxx = @. -2*fy/pi * (x^2*y) / (x^2+y^2)^2
@@ -65,7 +63,7 @@ function ex_flamant()
     # BEM solution
     els = Bem2d.Elements(Int(2))
     els.x1[1] = -0.5
-    els.y1[1] = 0.0
+    els.y1[1] = 0.
     els.x2[1] = 0.5
     els.y2[1] = 0.0
     els.name[1] = "point"
