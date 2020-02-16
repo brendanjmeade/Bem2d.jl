@@ -22,13 +22,13 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     contour_levels = 20
     contour_color = "white"
     contour_linewidth = 0.5
-    color_scale = 1e6
-    mat = @. mat / 1e6 # Convert from Pascals to mega Pascals
+    color_scale = 1
+    # mat = @. mat / 1e6 # Convert from Pascals to mega Pascals
 
     PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = PyPlot.colorbar(fraction=0.020, pad=0.05, extend = "both")
     cbar.ax.tick_params(labelsize=fontsize)
-    cbar.set_label(label=title_string * " (MPa)", fontsize=fontsize)
+    cbar.set_label(label=title_string * " (Pa)", fontsize=fontsize)
     PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
 
     # Draw enditre circle
@@ -65,7 +65,7 @@ function ex_cylinder()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
-    θ0 = 45.0 # Arc length over which pressure is applied
+    θ0 = 10.0 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
     R = 57.296 # Radius of disc
     mmax = 1000 # Max number of terms in Hondros series
@@ -73,7 +73,6 @@ function ex_cylinder()
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
     r = @. sqrt(x^2 + y^2)
     θ = @. rad2deg(atan(y, x))
-
 
     σrr = zeros(length(x))
     σθθ = zeros(length(x))
@@ -229,11 +228,31 @@ function ex_cylinder()
     stressdisp[to_nan_idx, 2] .= NaN
     stressdisp[to_nan_idx, 3] .= NaN
 
+    # Try normalizing and sign flips
+    σxx = -σxx
+    σyy = -σyy
+    σxy = -σxy
+    σxx = σxx .- minimum(filter(!isnan, σxx))
+    σyy = σyy .- minimum(filter(!isnan, σyy))
+    σxy = σxy .- minimum(filter(!isnan, σxy))
+    stresstrac[:, 1] = stresstrac[:, 1] .- minimum(filter(!isnan, stresstrac[:, 1]))
+    stresstrac[:, 2] = stresstrac[:, 2] .- minimum(filter(!isnan, stresstrac[:, 2]))
+    stresstrac[:, 3] = stresstrac[:, 3] .- minimum(filter(!isnan, stresstrac[:, 3]))
+    σxx = σxx ./ maximum(filter(!isnan, σxx))
+    σyy = σyy ./ maximum(filter(!isnan, σyy))
+    σxy = σxy ./ maximum(filter(!isnan, σxy))
+    stresstrac[:, 1] = stresstrac[:, 1] ./ maximum(filter(!isnan, stresstrac[:, 1]))
+    stresstrac[:, 2] = stresstrac[:, 2] ./ maximum(filter(!isnan, stresstrac[:, 2]))
+    stresstrac[:, 3] = stresstrac[:, 3] ./ maximum(filter(!isnan, stresstrac[:, 3]))
+
+
     # Plot contours with PyPlot
     fontsize = 24
     contour_levels = 10
     contour_color = "black"
     contour_linewidth = 0.5
+
+    # Analytic solutions
     PyPlot.figure(figsize=(20,20))
     PyPlot.subplot(3, 3, 1)
     circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr}")
@@ -256,6 +275,7 @@ function ex_cylinder()
     PyPlot.suptitle(string(θ0), fontsize=30)
     PyPlot.tight_layout()
 
+    # BEM solutions
     PyPlot.figure(figsize=(20, 20))
     PyPlot.subplot(3, 3, 1)
     circle_subplot(x, y, stresstrac[:, 1], npts, R, θ0, L"\sigma_{xx}")
