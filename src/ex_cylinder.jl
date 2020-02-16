@@ -59,6 +59,12 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     PyPlot.gca().tick_params(labelsize=fontsize)
 end
 
+function normalizenan(vec)
+    vec = vec .- minimum(filter(!isnan, vec))
+    vec = vec ./ maximum(filter(!isnan, vec))
+    return vec
+end
+
 function ex_cylinder()
     mu = 3e10
     nu = 0.25
@@ -232,19 +238,12 @@ function ex_cylinder()
     σxx = -σxx
     σyy = -σyy
     σxy = -σxy
-    σxx = σxx .- minimum(filter(!isnan, σxx))
-    σyy = σyy .- minimum(filter(!isnan, σyy))
-    σxy = σxy .- minimum(filter(!isnan, σxy))
-    stresstrac[:, 1] = stresstrac[:, 1] .- minimum(filter(!isnan, stresstrac[:, 1]))
-    stresstrac[:, 2] = stresstrac[:, 2] .- minimum(filter(!isnan, stresstrac[:, 2]))
-    stresstrac[:, 3] = stresstrac[:, 3] .- minimum(filter(!isnan, stresstrac[:, 3]))
-    σxx = σxx ./ maximum(filter(!isnan, σxx))
-    σyy = σyy ./ maximum(filter(!isnan, σyy))
-    σxy = σxy ./ maximum(filter(!isnan, σxy))
-    stresstrac[:, 1] = stresstrac[:, 1] ./ maximum(filter(!isnan, stresstrac[:, 1]))
-    stresstrac[:, 2] = stresstrac[:, 2] ./ maximum(filter(!isnan, stresstrac[:, 2]))
-    stresstrac[:, 3] = stresstrac[:, 3] ./ maximum(filter(!isnan, stresstrac[:, 3]))
-
+    σxx = normalizenan(σxx)
+    σyy = normalizenan(σyy)
+    σxy = normalizenan(σxy)
+    stresstrac[:, 1] = normalizenan(stresstrac[:, 1])
+    stresstrac[:, 2] = normalizenan(stresstrac[:, 2])
+    stresstrac[:, 3] = normalizenan(stresstrac[:, 3])
 
     # Plot contours with PyPlot
     fontsize = 24
