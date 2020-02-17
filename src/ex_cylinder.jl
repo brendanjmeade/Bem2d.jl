@@ -28,33 +28,33 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = PyPlot.colorbar(fraction=0.020, pad=0.05, extend = "both")
     cbar.ax.tick_params(labelsize=fontsize)
-    cbar.set_label(label=title_string * " (Pa)", fontsize=fontsize)
+    # cbar.set_label(label=title_string * " (Pa)", fontsize=fontsize)
     PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-
+    PyPlot.title(title_string, fontsize=fontsize)
     # Draw enditre circle
     x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-k", linewidth=10)
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-k", linewidth=5)
     end
 
     # Draw right-hand side of applied compression arc
     x1, y1, x2, y2 = discretized_arc(-θ0, θ0, R, 50)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=5)
     end
 
     # Draw left-hand side of applied compression arc
     x1, y1, x2, y2 = discretized_arc(-θ0+180, θ0+180, R, 50)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=5)
     end
 
-    PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
-    PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
-    # PyPlot.xlim([-1100, 1100])
-    # PyPlot.ylim([-1100, 1100])
-    # PyPlot.xticks([-1000, 0, 1000])
-    # PyPlot.yticks([-1000, 0, 1000])
+    # PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
+    # PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
+    PyPlot.xlim([-1100, 1100])
+    PyPlot.ylim([-1100, 1100])
+    PyPlot.xticks([])
+    PyPlot.yticks([])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 end
@@ -73,7 +73,7 @@ function ex_cylinder()
     p = -1.0e5 # Applied radial pressure over arc
     θ0 = 10.0 # Arc length over which pressure is applied
     R = 1.0e3 # Radius of disc
-    R = 57.296 # Radius of disc
+    # R = 57.296 # Radius of disc
     mmax = 1000 # Max number of terms in Hondros series
     npts = 50
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
@@ -119,9 +119,9 @@ function ex_cylinder()
     # σxyline = @. 2*p / (pi*l) * (((R-y)^2*x)/((R-y)^2 + x^2)^2 + ((R+y)^2*x)/((R+y)^2 + x^2)^2 - (1/(2*R)))
 
     # Just swapped (x,y) to (y,x) to make this with line sources at y = 0 rather than x = 0.
-    σxxline = @. 2*p / (pi*l) * (((R-x)*y^2)/((R-x)^2 + y^2)^2 + ((R+x)*y^2)/((R+x)^2 + y^2)^2 - (1/(2*R)))
-    σyyline = @. 2*p / (pi*l) * (((R-x)^3)/((R-x)^2 + y^2)^2 + ((R+x)^3)/((R+x)^2 + y^2)^2 - (1/(2*R)))
-    σxyline = @. 2*p / (pi*l) * (((R-x)^2*y)/((R-x)^2 + y^2)^2 + ((R+x)^2*y)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    # σxxline = @. 2*p / (pi*l) * (((R-x)*y^2)/((R-x)^2 + y^2)^2 + ((R+x)*y^2)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    # σyyline = @. 2*p / (pi*l) * (((R-x)^3)/((R-x)^2 + y^2)^2 + ((R+x)^3)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    # σxyline = @. 2*p / (pi*l) * (((R-x)^2*y)/((R-x)^2 + y^2)^2 + ((R+x)^2*y)/((R+x)^2 + y^2)^2 - (1/(2*R)))
 
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
@@ -162,7 +162,7 @@ function ex_cylinder()
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
         T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
         U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"][i], idx["circle"][i], mu, nu)
-        # xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [xtrac[i]; ytrac[i]]
+        xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [xtrac[i]; ytrac[i]]
     end
     dispall_isolated = Bem2d.interleave(xdisp, ydisp)
 
@@ -178,6 +178,8 @@ function ex_cylinder()
 
     # Stresses from traction induced displacements
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
+    # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall_Uonly[1:2:end], dispall_Uonly[2:2:end], mu, nu)
+    # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], xdisp, ydisp, mu, nu)
 
     # Plot tractions
     # Plot the tractions and induced displacements at each element centroid
@@ -206,6 +208,7 @@ function ex_cylinder()
     end
     PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xdisp, ydisp, color="blue")
     PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall[1:2:end], dispall[2:2:end], color="green")
+    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall_Uonly[1:2:end], dispall_Uonly[2:2:end], color="red")
     PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
     PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
     PyPlot.title("induced displacements", fontsize=fontsize)
@@ -224,9 +227,9 @@ function ex_cylinder()
     σxx[to_nan_idx] .= NaN
     σyy[to_nan_idx] .= NaN
     σxy[to_nan_idx] .= NaN
-    σxxline[to_nan_idx] .= NaN
-    σyyline[to_nan_idx] .= NaN
-    σxyline[to_nan_idx] .= NaN
+    # σxxline[to_nan_idx] .= NaN
+    # σyyline[to_nan_idx] .= NaN
+    # σxyline[to_nan_idx] .= NaN
     stresstrac[to_nan_idx, 1] .= NaN
     stresstrac[to_nan_idx, 2] .= NaN
     stresstrac[to_nan_idx, 3] .= NaN
@@ -246,49 +249,43 @@ function ex_cylinder()
     contour_linewidth = 0.5
 
     # Analytic solutions
-    PyPlot.figure(figsize=(20,20))
-    PyPlot.subplot(3, 3, 1)
-    circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr}")
-    PyPlot.subplot(3, 3, 2)
-    circle_subplot(x, y, σθθ, npts, R, θ0, L"\sigma_{\theta\theta}")
-    PyPlot.subplot(3, 3, 3)
-    circle_subplot(x, y, σrθ, npts, R, θ0, L"\sigma_{r\theta}")
-    PyPlot.subplot(3, 3, 4)
-    circle_subplot(x, y, normalizenan(σxx), npts, R, θ0, L"\sigma_{xx}")
-    PyPlot.subplot(3, 3, 5)
-    circle_subplot(x, y, normalizenan(σyy), npts, R, θ0, L"\sigma_{yy}")
-    PyPlot.subplot(3, 3, 6)
-    circle_subplot(x, y, normalizenan(σxy), npts, R, θ0, L"\sigma_{xy}")
-    # PyPlot.subplot(3, 3, 7)
-    # circle_subplot(x, y, σxxline, npts, R, θ0, L"\sigma_{xx}")
-    # PyPlot.subplot(3, 3, 8)
-    # circle_subplot(x, y, σyyline, npts, R, θ0, L"\sigma_{yy}")
-    # PyPlot.subplot(3, 3, 9)
-    # circle_subplot(x, y, σxyline, npts, R, θ0, L"\sigma_{xy}")
-    PyPlot.suptitle(string(θ0), fontsize=30)
-    PyPlot.tight_layout()
+    PyPlot.figure(figsize=(30,20))
+    # PyPlot.subplot(3, 6, 1)
+    # circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr}")
+    # PyPlot.subplot(3, 6, 2)
+    # circle_subplot(x, y, σθθ, npts, R, θ0, L"\sigma_{\theta\theta}")
+    # PyPlot.subplot(3, 6, 3)
+    # circle_subplot(x, y, σrθ, npts, R, θ0, L"\sigma_{r\theta}")
+    PyPlot.subplot(3, 6, 13)
+    circle_subplot(x, y, normalizenan(σxx), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
+    PyPlot.subplot(3, 6, 14)
+    circle_subplot(x, y, normalizenan(σyy), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(analytic, \; normalized)}")
+    PyPlot.subplot(3, 6, 15)
+    circle_subplot(x, y, normalizenan(σxy), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
+    # PyPlot.suptitle(string(θ0), fontsize=30)
+    # PyPlot.tight_layout()
 
     # BEM solutions
-    PyPlot.figure(figsize=(20, 20))
-    PyPlot.subplot(3, 3, 1)
-    circle_subplot(x, y, stresstrac[:, 1], npts, R, θ0, L"\sigma_{xx}")
-    PyPlot.subplot(3, 3, 2)
-    circle_subplot(x, y, stresstrac[:, 2], npts, R, θ0, L"\sigma_{yy}")
-    PyPlot.subplot(3, 3, 3)
-    circle_subplot(x, y, stresstrac[:, 3], npts, R, θ0, L"\sigma_{xy}")
-    PyPlot.subplot(3, 3, 4)
-    circle_subplot(x, y, stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx}")
-    PyPlot.subplot(3, 3, 5)
-    circle_subplot(x, y, stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy}")
-    PyPlot.subplot(3, 3, 6)
-    circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy}")
-    PyPlot.subplot(3, 3, 7)
-    circle_subplot(x, y, normalizenan(stresstrac[:, 1] + stressdisp[:, 1]), npts, R, θ0, L"\sigma_{xx}")
-    PyPlot.subplot(3, 3, 8)
-    circle_subplot(x, y, normalizenan(stresstrac[:, 2] + stressdisp[:, 2]), npts, R, θ0, L"\sigma_{yy}")
-    PyPlot.subplot(3, 3, 9)
-    circle_subplot(x, y, normalizenan(stresstrac[:, 3] + stressdisp[:, 3]), npts, R, θ0, L"\sigma_{xy}")
-    PyPlot.suptitle(string(θ0), fontsize=30)
+    # PyPlot.figure(figsize=(20, 20))
+    PyPlot.subplot(3, 6, 4)
+    circle_subplot(x, y, stresstrac[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(applied \; tractions)}")
+    PyPlot.subplot(3, 6, 5)
+    circle_subplot(x, y, stresstrac[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(applied \; tractions)}")
+    PyPlot.subplot(3, 6, 6)
+    circle_subplot(x, y, stresstrac[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(applied \; tractions)}")
+    PyPlot.subplot(3, 6, 10)
+    circle_subplot(x, y, stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(induced \; displacements)}")
+    PyPlot.subplot(3, 6, 11)
+    circle_subplot(x, y, stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(induced \; displacements)}")
+    PyPlot.subplot(3, 6, 12)
+    circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(induced \; displacements)}")
+    PyPlot.subplot(3, 6, 16)
+    circle_subplot(x, y, normalizenan(stresstrac[:, 1] + stressdisp[:, 1]), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
+    PyPlot.subplot(3, 6, 17)
+    circle_subplot(x, y, normalizenan(stresstrac[:, 2] + stressdisp[:, 2]), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
+    PyPlot.subplot(3, 6, 18)
+    circle_subplot(x, y, normalizenan(stresstrac[:, 3] + stressdisp[:, 3]), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
+    # PyPlot.suptitle(string(θ0), fontsize=30)
     PyPlot.tight_layout()
     PyPlot.show()
 end
