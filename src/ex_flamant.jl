@@ -30,9 +30,12 @@ function ex_flamant()
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
     r = @. sqrt(x^2 + y^2)
     θ = @. rad2deg(atan(y, x))
-    fx = 0.0
-    fy = 1.0
-    σrr = @. -2.0/(pi*r) * (fx*cosd(θ) + fy*sind(θ))
+    nels = 101
+    mididx = 51
+    fx = zeros(nels)
+    fy = zeros(nels)
+    fy[mididx] = 1.0
+    σrr = @. -2.0/(pi*r) * (fx[mididx]*cosd(θ) + fy[mididx]*sind(θ))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
 
@@ -56,17 +59,21 @@ function ex_flamant()
     end
 
     # Try the Flamant solution from Crouch and Starfield section 3.1 (z-line load on "half-plane")
-    σxx = @. -2*fy/pi * (x^2*y) / (x^2+y^2)^2
-    σyy = @. -2*fy/pi * (y^3) / (x^2+y^2)^2
-    σxy = @. -2*fy/pi * (x*y^2) / (x^2+y^2)^2
+    σxx = @. -2*fy[mididx]/pi * (x^2*y) / (x^2+y^2)^2
+    σyy = @. -2*fy[mididx]/pi * (y^3) / (x^2+y^2)^2
+    σxy = @. -2*fy[mididx]/pi * (x*y^2) / (x^2+y^2)^2
 
     # BEM solution
-    els = Bem2d.Elements(Int(2))
-    els.x1[1] = -0.5
-    els.y1[1] = 0.
-    els.x2[1] = 0.5
-    els.y2[1] = 0.0
-    els.name[1] = "point"
+    # We need to create a grid with a single element in the middle and then the rest to calculate induced displacments
+    els = Bem2d.Elements(Int(1e5))
+    x1, y1, x2, y2 = discretizedline(-3*obswidth, 0, 3*obswidth, 0, nels)
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "line"
+    end
     Bem2d.standardize_elements!(els)
     idx = Bem2d.getidxdict(els)
 
@@ -74,17 +81,25 @@ function ex_flamant()
     xdisp = zeros(els.endidx)
     ydisp = zeros(els.endidx)
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
-        T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["point"][i], idx["point"][i], mu, nu)
-        U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["point"][i], idx["point"][i], mu, nu)
+        T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
+        U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
         xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
     end
-    dispall = Bem2d.interleave(xdisp, ydisp)
+    displocal = Bem2d.interleave(xdisp, ydisp)
+
+    # Given the other tractions calcuate the induced displacements on the boudaries
+    # interleavedtracs = Bem2d.interleave(xtrac, ytrac)
+    T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"], idx["line"], mu, nu)
+    U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"], idx["line"], mu, nu)
+    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(fx, fy)
+    dispall = U * Bem2d.interleave(fx, fy) + displocal
 
     # Streses from tractions
-    _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["point"], fx, fy, mu, nu)
+    # _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["point"], fx, fy, mu, nu)
+    _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["line"], fx, fy, mu, nu)
 
     # Stresses from traction induced displacements
-    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["point"], dispall[1:2:end], dispall[2:2:end], mu, nu)
+    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["line"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
     PyPlot.close("all")
     PyPlot.figure(figsize=(40,20))
@@ -123,11 +138,11 @@ function ex_flamant()
     PyPlot.subplot(3, 6, 12)
     local_subplot(x, y, stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(displacement)}")
     PyPlot.subplot(3, 6, 16)
-    local_subplot(x, y, stresstrac[:, 1]+stressdisp[:, 1], npts, L"\sigma_{xx} \; \mathrm{(total)}")
+    local_subplot(x, y, stresstrac[:, 1] - stressdisp[:, 1], npts, L"\sigma_{xx} \; \mathrm{(total)}")
     PyPlot.subplot(3, 6, 17)
-    local_subplot(x, y, stresstrac[:, 2]+stressdisp[:, 2], npts, L"\sigma_{yy} \; \mathrm{(total)}")
+    local_subplot(x, y, stresstrac[:, 2] - stressdisp[:, 2], npts, L"\sigma_{yy} \; \mathrm{(total)}")
     PyPlot.subplot(3, 6, 18)
-    local_subplot(x, y, stresstrac[:, 3]+stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(total)}")
+    local_subplot(x, y, stresstrac[:, 3] - stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(total)}")
 
     PyPlot.tight_layout()
     PyPlot.show()
