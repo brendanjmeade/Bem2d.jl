@@ -7,6 +7,8 @@ using Bem2d
 function local_subplot(x, y, mat, npts, title_string)
     fontsize = 20
     contour_levels = 50
+    contour_levels = collect(LinRange(-0.01, 0.01, 20))
+
     contour_color = "white"
     contour_linewidth = 0.5
     color_scale = 1e6
@@ -30,8 +32,8 @@ function ex_flamant()
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
     r = @. sqrt(x^2 + y^2)
     θ = @. rad2deg(atan(y, x))
-    nels = 101
-    mididx = 51
+    nels = 1001
+    mididx = 501
     fx = zeros(nels)
     fy = zeros(nels)
     fy[mididx] = 1.0
@@ -80,26 +82,50 @@ function ex_flamant()
     # Given the traction boundary conditions calcuate the induced displacements on each element
     xdisp = zeros(els.endidx)
     ydisp = zeros(els.endidx)
+    ∂xdisp = zeros(els.endidx)
+    ∂ydisp = zeros(els.endidx)
+
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
         T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
         U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
         xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
+        # xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
     end
     displocal = Bem2d.interleave(xdisp, ydisp)
 
     # Given the other tractions calcuate the induced displacements on the boudaries
-    # interleavedtracs = Bem2d.interleave(xtrac, ytrac)
     T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"], idx["line"], mu, nu)
     U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"], idx["line"], mu, nu)
     dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(fx, fy)
-    dispall = U * Bem2d.interleave(fx, fy) + displocal
+
+    @show cond(T + 0.5 * LinearAlgebra.I(size(T)[1]))
+    # U[diagind(U)] .= 0
+    # dispall = U * Bem2d.interleave(fx, fy) + displocal
 
     # Streses from tractions
-    # _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["point"], fx, fy, mu, nu)
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["line"], fx, fy, mu, nu)
 
     # Stresses from traction induced displacements
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["line"], dispall[1:2:end], dispall[2:2:end], mu, nu)
+
+    # Set everything in the upper half-plane to zero because that is the exterior solution
+    # Try setting a few values to NaN and see if we can isolate the circle
+    to_nan_idx = findall(x -> x > 0.0, y)
+    σrr[to_nan_idx] .= NaN
+    σθθ[to_nan_idx] .= NaN
+    σrθ[to_nan_idx] .= NaN
+    σxx_flamant[to_nan_idx] .= NaN
+    σyy_flamant[to_nan_idx] .= NaN
+    σxy_flamant[to_nan_idx] .= NaN
+    σxx[to_nan_idx] .= NaN
+    σyy[to_nan_idx] .= NaN
+    σxy[to_nan_idx] .= NaN
+    stresstrac[to_nan_idx, 1] .= NaN
+    stresstrac[to_nan_idx, 2] .= NaN
+    stresstrac[to_nan_idx, 3] .= NaN
+    stressdisp[to_nan_idx, 1] .= NaN
+    stressdisp[to_nan_idx, 2] .= NaN
+    stressdisp[to_nan_idx, 3] .= NaN
 
     PyPlot.close("all")
     PyPlot.figure(figsize=(40,20))
