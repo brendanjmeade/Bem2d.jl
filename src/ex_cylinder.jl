@@ -119,8 +119,8 @@ function ex_cylinder()
     # σxyline = @. 2*p / (pi*l) * (((R-y)^2*x)/((R-y)^2 + x^2)^2 + ((R+y)^2*x)/((R+y)^2 + x^2)^2 - (1/(2*R)))
 
     # Just swapped (x,y) to (y,x) to make this with line sources at y = 0 rather than x = 0.
-    σxxline = @. 2*p / (pi*l) * (((R-x)*y^2)/((R-x)^2 + y^2)^2 + ((R+x)*y^2)/((R+x)^2 + y^2)^2 - (1/(2*R)))
-    σyyline = @. 2*p / (pi*l) * (((R-x)^3)/((R-x)^2 + y^2)^2 + ((R+x)^3)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    σxxline = @. -2*p / (pi*l) * (((R-x)*y^2)/((R-x)^2 + y^2)^2 + ((R+x)*y^2)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    σyyline = @. -2*p / (pi*l) * (((R-x)^3)/((R-x)^2 + y^2)^2 + ((R+x)^3)/((R+x)^2 + y^2)^2 - (1/(2*R)))
     σxyline = @. 2*p / (pi*l) * (((R-x)^2*y)/((R-x)^2 + y^2)^2 + ((R+x)^2*y)/((R+x)^2 + y^2)^2 - (1/(2*R)))
 
     # Start of BEM solution
@@ -177,9 +177,9 @@ function ex_cylinder()
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtrac, ytrac, mu, nu)
 
     # Stresses from traction induced displacements
-    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
+    # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
     # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall_Uonly[1:2:end], dispall_Uonly[2:2:end], mu, nu)
-    # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], xdisp, ydisp, mu, nu)
+    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], xdisp, ydisp, mu, nu)
 
     # Try setting a few values to NaN and see if we can isolate the circle
     to_nan_idx = findall(x -> x > 1.0 * R, r)
@@ -200,9 +200,9 @@ function ex_cylinder()
     stressdisp[to_nan_idx, 3] .= NaN
 
     # Try normalizing and sign flips
-    σxx = -σxx
-    σyy = -σyy
-    σxy = -σxy
+    # σxx = -σxx
+    # σyy = -σyy
+    # σxy = -σxy
 
     # Plot diagnostic and final figures
     fontsize = 24
@@ -305,11 +305,11 @@ function ex_cylinder()
     PyPlot.subplot(3, 6, 12)
     circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(induced \; displacements)}")
     PyPlot.subplot(3, 6, 16)
-    circle_subplot(x, y, normalizenan(-stresstrac[:, 1] + stressdisp[:, 1]), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
+    circle_subplot(x, y, normalizenan(stresstrac[:, 1] + stressdisp[:, 1]), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
     PyPlot.subplot(3, 6, 17)
-    circle_subplot(x, y, normalizenan(-stresstrac[:, 2] + stressdisp[:, 2]), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
+    circle_subplot(x, y, normalizenan(stresstrac[:, 2] - stressdisp[:, 2]), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
     PyPlot.subplot(3, 6, 18)
-    circle_subplot(x, y, normalizenan(-stresstrac[:, 3] + stressdisp[:, 3]), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
+    circle_subplot(x, y, normalizenan(stresstrac[:, 3] + stressdisp[:, 3]), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
     PyPlot.tight_layout()
     PyPlot.show()
 end
