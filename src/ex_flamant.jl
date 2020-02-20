@@ -25,18 +25,35 @@ function local_subplot(x, y, mat, npts, title_string)
 end
 
 function ex_flamant()
+
+    obswidth = 1000
+
+
+    # Try wierd symmetric quadratic spacing with small elements i the middle
+    nquad = 200
+    x1 = zeros(3 + 2 * (nquad-1))
+    x2 = zeros(3 + 2 * (nquad-1))
+    quadspacing = collect(LinRange(1, sqrt(3*obswidth), nquad).^2)
+    x1[1:1:nquad-1] = -reverse(quadspacing[2:1:end], dims=1)
+    x1[nquad:1:nquad+2] = [-1.0 -0.5 0.5]
+    x1[nquad+3:1:end] = quadspacing[1:1:end-1]
+    x2[1:1:nquad-1] = -reverse(quadspacing[1:1:end-1], dims=1)
+    x2[nquad:1:nquad+2] = [-0.5 0.5 1.0]
+    x2[nquad+3:1:end] = quadspacing[2:1:end]
+    y1 = zeros(size(x1))
+    y2 = zeros(size(x1))
+    mididx = Int(floor(length(x1)/2)+1)
+
     mu = 3e10
     nu = 0.25
     npts = 200
-    obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
     r = @. sqrt(x^2 + y^2)
     θ = @. rad2deg(atan(y, x))
-    nels = 1001
-    mididx = 501
+    nels = length(x1)
     fx = zeros(nels)
     fy = zeros(nels)
-    fy[mididx] = 1.0
+    fx[mididx] = 1.0
     σrr = @. -2.0/(pi*r) * (fx[mididx]*cosd(θ) + fy[mididx]*sind(θ))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
@@ -68,7 +85,7 @@ function ex_flamant()
     # BEM solution
     # We need to create a grid with a single element in the middle and then the rest to calculate induced displacments
     els = Bem2d.Elements(Int(1e5))
-    x1, y1, x2, y2 = discretizedline(-3*obswidth, 0, 3*obswidth, 0, nels)
+    # x1, y1, x2, y2 = discretizedline(-3*obswidth, 0, 3*obswidth, 0, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -164,11 +181,11 @@ function ex_flamant()
     PyPlot.subplot(3, 6, 12)
     local_subplot(x, y, stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(displacement)}")
     PyPlot.subplot(3, 6, 16)
-    local_subplot(x, y, stresstrac[:, 1] - stressdisp[:, 1], npts, L"\sigma_{xx} \; \mathrm{(total)}")
+    local_subplot(x, y, 2 * (stresstrac[:, 1] - stressdisp[:, 1]), npts, L"\sigma_{xx} \; \mathrm{(total)}")
     PyPlot.subplot(3, 6, 17)
-    local_subplot(x, y, stresstrac[:, 2] - stressdisp[:, 2], npts, L"\sigma_{yy} \; \mathrm{(total)}")
+    local_subplot(x, y, 2 * (stresstrac[:, 2] - stressdisp[:, 2]), npts, L"\sigma_{yy} \; \mathrm{(total)}")
     PyPlot.subplot(3, 6, 18)
-    local_subplot(x, y, stresstrac[:, 3] - stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(total)}")
+    local_subplot(x, y, 2 * (stresstrac[:, 3] - stressdisp[:, 3]), npts, L"\sigma_{xy} \; \mathrm{(total)}")
 
     PyPlot.tight_layout()
     PyPlot.show()
