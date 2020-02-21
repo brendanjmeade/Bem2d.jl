@@ -22,7 +22,7 @@ function ex_okada()
     idx = Bem2d.getidxdict(els)
 
     obswidth = 10
-    npts = 100
+    npts = 99
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
 
     # Constant slip fault
@@ -35,7 +35,7 @@ function ex_okada()
     σokadass = zeros(length(x), 3)
     for i in 1:length(x)
         deep = 1000.0
-        _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-0.7, 0.7], [-0.7, 0.7], [0.0, 1.0, 0.0])
+        _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000, 1000], [-0.5, 0.5], [0.0, 1.0, 0.0])
         uokadass[i, 1] = u[2]
         uokadass[i, 2] = u[3]
     end
