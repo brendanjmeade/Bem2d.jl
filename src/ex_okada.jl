@@ -88,7 +88,7 @@ function ex_okada()
     σokadats = zeros(length(x), 3)
     deep = 10000.0
     for i in 1:length(x)
-        _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-100000, 100000], [-0.5, 0.5], [0.0, 1.0, 0.0])
+        _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 1.0, 0.0])
         ∇u = [∇u[2,2] ∇u[2,3] ; ∇u[3,2] ∇u[3,3]]
         ϵ = @. 0.5 * (∇u + transpose(∇u))
         σ = mu*I(2)*tr(ϵ) + 2*mu*ϵ
@@ -98,7 +98,7 @@ function ex_okada()
         σokadass[i, 2] = σ[2, 2]
         σokadass[i, 3] = σ[1, 2]
 
-        _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-100000, 100000], [-0.5, 0.5], [0.0, 0.0, 1.0])
+        _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 0.0, 1.0])
         ∇u = [∇u[2,2] ∇u[2,3] ; ∇u[3,2] ∇u[3,3]]
         ϵ = @. 0.5 * (∇u + transpose(∇u))
         σ = mu*I(2)*tr(ϵ) + 2*mu*ϵ
