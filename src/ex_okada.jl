@@ -113,10 +113,8 @@ function ex_okada()
     plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadass, σokadass, "Okada (strike-slip)")
     plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), UfUss, σfUss, "BEM (strike-slip)")
     plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadass - UfUss, σokadass - σfUss, "Residuals (strike-slip)")
-
     plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadats, σokadats, "Okada (tensile-slip)")
     plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), UfUts, σfUts, "BEM (tensile-slip)")
     plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadats - UfUts, σokadats - σfUts, "Residuals (tensile-slip)")
-
 end
 ex_okada()
