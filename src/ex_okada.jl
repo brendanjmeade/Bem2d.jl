@@ -4,6 +4,16 @@ using PyPlot
 using LinearAlgebra
 using Bem2d
 
+function stylesubplots_local(xlim, ylim)
+    gca().set_aspect("equal")
+    gca().set_xlim([xlim[1], xlim[2]])
+    gca().set_ylim([ylim[1], ylim[2]])
+    gca().set_xticks([])
+    gca().set_yticks([])
+    return nothing
+end
+
+
 function plotfields_contours_local(els, xobs, yobs, idx, field, title)
     ncontours = 40
     xlim = [minimum(xobs) maximum(xobs)]
@@ -18,7 +28,7 @@ function plotfields_contours_local(els, xobs, yobs, idx, field, title)
     contour(xobs, yobs, reshape(field, size(xobs)), ncontours,
         vmin = -scale * fieldmax, vmax = scale * fieldmax, linewidths = 0.25, colors = "k")
     PyPlot.title(title)
-    # stylesubplots(xlim, ylim)
+    stylesubplots_local(xlim, ylim)
     plotelements(els)
     return nothing
 end
@@ -57,7 +67,7 @@ end
 function ex_okada()
     mu = 30e9
     nu = 0.25
-    
+
     # Flat fault
     nfault = 1
     x1, y1, x2, y2 = Bem2d.discretizedline(-0.5, 0, 0.5, 0, nfault)
@@ -110,11 +120,39 @@ function ex_okada()
     end
 
     PyPlot.close("all")
-    plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadass, σokadass, "Okada (strike-slip)")
-    plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), UfUss, σfUss, "BEM (strike-slip)")
-    plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadass - UfUss, σokadass - σfUss, "Residuals (strike-slip)")
-    plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadats, σokadats, "Okada (tensile-slip)")
-    plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), UfUts, σfUts, "BEM (tensile-slip)")
-    plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadats - UfUts, σokadats - σfUts, "Residuals (tensile-slip)")
+    PyPlot.figure(figsize = (25, 15))
+    PyPlot.subplot(2, 3, 1)
+    PyPlot.quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units = "width", color = "b")
+    stylesubplots_local([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
+    Bem2d.plotelements(els)
+    PyPlot.title("displacements")
+
+    contourvec = collect(LinRange(-0.5, 0.5, 50))
+    subplot(2, 3, 2)
+    contourf(xobs, yobs, reshape(disp[:, 1], size(xobs)), contourvec, cmap = rycroftcmap())
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both")
+    contour(xobs, yobs, reshape(disp[:, 1], size(xobs)), contourvec, linewidths = 0.25, colors = "k")
+    PyPlot.title(L"u_x")
+    plotelements(els)
+
+    subplot(2, 3, 3)
+    contourf(xobs, yobs, reshape(disp[:, 2], size(xobs)), contourvec, cmap = rycroftcmap())
+    colorbar(fraction = 0.020, pad = 0.05, extend = "both")
+    contour(xobs, yobs, reshape(disp[:, 2], size(xobs)), contourvec, linewidths = 0.25, colors = "k")
+    PyPlot.title(L"u_y")
+    plotelements(els)
+
+    # plotfields_contours_local(els, xobs, yobs, 4, stress[:, 1], L"\sigma_{xx}")
+    # plotfields_contours_local(els, xobs, yobs, 5, stress[:, 2], L"\sigma_{yy}")
+    # plotfields_contours_local(els, xobs, yobs, 6, stress[:, 3], L"\sigma_{xy}")
+    # PyPlot.suptitle(suptitle, fontsize=20)
+    PyPlot.show()
+
+    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadass, σokadass, "Okada (strike-slip)")
+    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), UfUss, σfUss, "BEM (strike-slip)")
+    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadass - UfUss, σokadass - σfUss, "Residuals (strike-slip)")
+    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadats, σokadats, "Okada (tensile-slip)")
+    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), UfUts, σfUts, "BEM (tensile-slip)")
+    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadats - UfUts, σokadats - σfUts, "Residuals (tensile-slip)")
 end
 ex_okada()
