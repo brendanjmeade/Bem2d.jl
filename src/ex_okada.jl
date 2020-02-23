@@ -57,7 +57,7 @@ end
 function ex_okada()
     mu = 30e9
     nu = 0.25
-
+    
     # Flat fault
     nfault = 1
     x1, y1, x2, y2 = Bem2d.discretizedline(-0.5, 0, 0.5, 0, nfault)
