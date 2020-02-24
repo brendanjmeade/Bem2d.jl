@@ -4,63 +4,10 @@ using PyPlot
 using LinearAlgebra
 using Bem2d
 
-function stylesubplots_local(xlim, ylim)
+function stylesubplots_local()
     gca().set_aspect("equal")
-    gca().set_xlim([xlim[1], xlim[2]])
-    gca().set_ylim([ylim[1], ylim[2]])
     gca().set_xticks([])
     gca().set_yticks([])
-    return nothing
-end
-
-
-function plotfields_contours_local(els, xobs, yobs, idx, field, title)
-    ncontours = 40
-    xlim = [minimum(xobs) maximum(xobs)]
-    ylim = [minimum(yobs) maximum(yobs)]
-    subplot(2, 3, idx)
-    scale = 1.0
-    fieldmax = maximum(@.abs(field))
-    contourf(xobs, yobs, reshape(field, size(xobs)), ncontours,
-        vmin = -scale * fieldmax, vmax = scale * fieldmax, cmap = rycroftcmap())
-    clim(-scale * fieldmax, scale * fieldmax)
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both")
-    contour(xobs, yobs, reshape(field, size(xobs)), ncontours,
-        vmin = -scale * fieldmax, vmax = scale * fieldmax, linewidths = 0.25, colors = "k")
-    PyPlot.title(title)
-    stylesubplots_local(xlim, ylim)
-    plotelements(els)
-    return nothing
-end
-
-function plotfields_local(els, xobs, yobs, disp, stress, suptitle)
-    figure(figsize = (25, 15))
-    subplot(2, 3, 1)
-    quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units = "width", color = "b")
-    # stylesubplots([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
-    Bem2d.plotelements(els)
-    PyPlot.title("displacements")
-
-    contourvec = collect(LinRange(-0.5, 0.5, 50))
-    subplot(2, 3, 2)
-    contourf(xobs, yobs, reshape(disp[:, 1], size(xobs)), contourvec, cmap = rycroftcmap())
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both")
-    contour(xobs, yobs, reshape(disp[:, 1], size(xobs)), contourvec, linewidths = 0.25, colors = "k")
-    PyPlot.title(L"u_x")
-    plotelements(els)
-
-    subplot(2, 3, 3)
-    contourf(xobs, yobs, reshape(disp[:, 2], size(xobs)), contourvec, cmap = rycroftcmap())
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both")
-    contour(xobs, yobs, reshape(disp[:, 2], size(xobs)), contourvec, linewidths = 0.25, colors = "k")
-    PyPlot.title(L"u_y")
-    plotelements(els)
-
-    plotfields_contours_local(els, xobs, yobs, 4, stress[:, 1], L"\sigma_{xx}")
-    plotfields_contours_local(els, xobs, yobs, 5, stress[:, 2], L"\sigma_{yy}")
-    plotfields_contours_local(els, xobs, yobs, 6, stress[:, 3], L"\sigma_{xy}")
-    PyPlot.suptitle(suptitle, fontsize=20)
-    show()
     return nothing
 end
 
@@ -85,74 +32,144 @@ function ex_okada()
     obswidth = 3
     npts = 99
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-
+    xobs = reshape(x, npts, npts)
+    yobs = reshape(y, npts, npts)
+    
     # Constant slip fault
-    UfUss, σfUss = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["fault"], 1, 0, mu, nu)
-    UfUts, σfUts = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["fault"], 0, 1, mu, nu)
+    dispbemss, stressbemss = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["fault"], 1, 0, mu, nu)
+    dispbemts, stressbemts = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["fault"], 0, 1, mu, nu)
 
     # Okada solution
     ow = pyimport("okada_wrapper") # from okada_wrapper import dc3dwrapper
-    uokadass = zeros(length(x), 2)
-    σokadass = zeros(length(x), 3)
-    uokadats = zeros(length(x), 2)
-    σokadats = zeros(length(x), 3)
+    dispokadass = zeros(length(x), 2)
+    stressokadass = zeros(length(x), 3)
+    dispokadats = zeros(length(x), 2)
+    stressokadats = zeros(length(x), 3)
     deep = 10000.0
     for i in 1:length(x)
         _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 1.0, 0.0])
         ∇u = [∇u[2,2] ∇u[2,3] ; ∇u[3,2] ∇u[3,3]]
         ϵ = @. 0.5 * (∇u + transpose(∇u))
         σ = mu*I(2)*tr(ϵ) + 2*mu*ϵ
-        uokadass[i, 1] = u[2]
-        uokadass[i, 2] = u[3]
-        σokadass[i, 1] = σ[1, 1]
-        σokadass[i, 2] = σ[2, 2]
-        σokadass[i, 3] = σ[1, 2]
+        dispokadass[i, 1] = u[2]
+        dispokadass[i, 2] = u[3]
+        stressokadass[i, 1] = σ[1, 1]
+        stressokadass[i, 2] = σ[2, 2]
+        stressokadass[i, 3] = σ[1, 2]
 
         _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 0.0, 1.0])
         ∇u = [∇u[2,2] ∇u[2,3] ; ∇u[3,2] ∇u[3,3]]
         ϵ = @. 0.5 * (∇u + transpose(∇u))
         σ = mu*I(2)*tr(ϵ) + 2*mu*ϵ
-        uokadats[i, 1] = u[2]
-        uokadats[i, 2] = u[3]
-        σokadats[i, 1] = σ[1, 1]
-        σokadats[i, 2] = σ[2, 2]
-        σokadats[i, 3] = σ[1, 2]
+        dispokadats[i, 1] = u[2]
+        dispokadats[i, 2] = u[3]
+        stressokadats[i, 1] = σ[1, 1]
+        stressokadats[i, 2] = σ[2, 2]
+        stressokadats[i, 3] = σ[1, 2]
     end
 
+    # Set contour levels for displacements and stresses
+    contourvecdisp = collect(LinRange(-0.5, 0.5, 51))
+    contourvecstress = collect(LinRange(-1e11, 1e11, 51))
+    cmap = PyPlot.get_cmap("seismic")
+    
     PyPlot.close("all")
-    PyPlot.figure(figsize = (25, 15))
-    PyPlot.subplot(2, 3, 1)
-    PyPlot.quiver(xobs[:], yobs[:], disp[:, 1], disp[:, 2], units = "width", color = "b")
-    stylesubplots_local([minimum(xobs) maximum(xobs)], [minimum(yobs) maximum(yobs)])
+    PyPlot.figure(figsize=(30, 20))
+
+    # BEM solutions
+    PyPlot.subplot(3, 6, 1)
+    PyPlot.quiver(x, y, dispbemss[:, 1], dispbemss[:, 2], units="width", color="b")
+    stylesubplots_local()
     Bem2d.plotelements(els)
-    PyPlot.title("displacements")
+    PyPlot.title(L"\mathbf{u} \; \mathrm{(BEM)}")
 
-    contourvec = collect(LinRange(-0.5, 0.5, 50))
-    subplot(2, 3, 2)
-    contourf(xobs, yobs, reshape(disp[:, 1], size(xobs)), contourvec, cmap = rycroftcmap())
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both")
-    contour(xobs, yobs, reshape(disp[:, 1], size(xobs)), contourvec, linewidths = 0.25, colors = "k")
-    PyPlot.title(L"u_x")
-    plotelements(els)
+    PyPlot.subplot(3, 6, 2)
+    PyPlot.contourf(xobs, yobs, reshape(dispbemss[:, 1], size(xobs)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(dispbemss[:, 1], size(xobs)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"u_x \; \mathrm{(BEM)}")
+    
+    PyPlot.subplot(3, 6, 3)
+    PyPlot.contourf(xobs, yobs, reshape(dispbemss[:, 2], size(xobs)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(dispbemss[:, 2], size(xobs)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"u_y \; \mathrm{(BEM)}")
 
-    subplot(2, 3, 3)
-    contourf(xobs, yobs, reshape(disp[:, 2], size(xobs)), contourvec, cmap = rycroftcmap())
-    colorbar(fraction = 0.020, pad = 0.05, extend = "both")
-    contour(xobs, yobs, reshape(disp[:, 2], size(xobs)), contourvec, linewidths = 0.25, colors = "k")
-    PyPlot.title(L"u_y")
-    plotelements(els)
+    PyPlot.subplot(3, 6, 4)
+    PyPlot.contourf(xobs, yobs, reshape(stressbemss[:, 1], size(xobs)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(stressbemss[:, 1], size(xobs)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"\sigma_{xx} \; \mathrm{(BEM)}")
 
-    # plotfields_contours_local(els, xobs, yobs, 4, stress[:, 1], L"\sigma_{xx}")
-    # plotfields_contours_local(els, xobs, yobs, 5, stress[:, 2], L"\sigma_{yy}")
-    # plotfields_contours_local(els, xobs, yobs, 6, stress[:, 3], L"\sigma_{xy}")
-    # PyPlot.suptitle(suptitle, fontsize=20)
+    PyPlot.subplot(3, 6, 5)
+    PyPlot.contourf(xobs, yobs, reshape(stressbemss[:, 2], size(xobs)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(stressbemss[:, 2], size(xobs)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"\sigma_{yy} \; \mathrm{(BEM)}")
+
+    PyPlot.subplot(3, 6, 6)
+    PyPlot.contourf(xobs, yobs, reshape(stressbemss[:, 3], size(xobs)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(stressbemss[:, 3], size(xobs)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"\sigma_{xy} \; \mathrm{(BEM)}")
+
+    # Okada solutions
+    PyPlot.subplot(3, 6, 7)
+    PyPlot.quiver(x, y, dispokadass[:, 1], dispokadass[:, 2], units="width", color="b")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"\mathbf{u} \; \mathrm{(Okada)}")
+
+    PyPlot.subplot(3, 6, 8)
+    PyPlot.contourf(xobs, yobs, reshape(dispbemss[:, 1], size(xobs)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(dispbemss[:, 1], size(xobs)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"u_x \; \mathrm{(Okada)}")
+    
+    PyPlot.subplot(3, 6, 9)
+    PyPlot.contourf(xobs, yobs, reshape(dispokadass[:, 2], size(xobs)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(dispokadass[:, 2], size(xobs)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"u_y \; \mathrm{(Okada)}")
+
+    PyPlot.subplot(3, 6, 10)
+    PyPlot.contourf(xobs, yobs, reshape(stressokadass[:, 1], size(xobs)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(stressokadass[:, 1], size(xobs)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"\sigma_{xx} \; \mathrm{(Okada)}")
+
+    PyPlot.subplot(3, 6, 11)
+    PyPlot.contourf(xobs, yobs, reshape(stressokadass[:, 2], size(xobs)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(stressokadass[:, 2], size(xobs)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"\sigma_{yy} \; \mathrm{(Okada)}")
+
+    PyPlot.subplot(3, 6, 12)
+    PyPlot.contourf(xobs, yobs, reshape(stressokadass[:, 3], size(xobs)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(xobs, yobs, reshape(stressokadass[:, 3], size(xobs)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title(L"\sigma_{xy} \; \mathrm{(Okada)}")
+
     PyPlot.show()
-
-    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadass, σokadass, "Okada (strike-slip)")
-    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), UfUss, σfUss, "BEM (strike-slip)")
-    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadass - UfUss, σokadass - σfUss, "Residuals (strike-slip)")
-    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadats, σokadats, "Okada (tensile-slip)")
-    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), UfUts, σfUts, "BEM (tensile-slip)")
-    # plotfields_local(els, reshape(x, npts, npts), reshape(y, npts, npts), uokadats - UfUts, σokadats - σfUts, "Residuals (tensile-slip)")
 end
 ex_okada()
