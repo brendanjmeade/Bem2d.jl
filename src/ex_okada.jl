@@ -201,20 +201,21 @@ function ex_okada()
     stressokadats = zeros(length(x), 3)
     deep = 10000.0
     for i in 1:length(x)
-        _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 1.0, 0.0])
+        _, u, ∇u = ow.dc3dwrapper((2.0/3.0), [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 1.0, 0.0])
         ∇u = [∇u[2,2] ∇u[2,3] ; ∇u[3,2] ∇u[3,3]]
         strain = @. 0.5 * (∇u + transpose(∇u))
-        stress = (1.0/3.0)*mu*I(2)*tr(strain) + 2*mu*strain
+        stress = (1.0/2.0)*mu*I(2)*tr(strain) + 2*mu*strain
         dispokadass[i, 1] = u[2]
         dispokadass[i, 2] = u[3]
         stressokadass[i, 1] = stress[1, 1]
         stressokadass[i, 2] = stress[2, 2]
         stressokadass[i, 3] = stress[2, 1]
 
-        _, u, ∇u = ow.dc3dwrapper(0.6, [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 0.0, 1.0])
+        _, u, ∇u = ow.dc3dwrapper((2.0/3.0), [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 0.0, 1.0])
         ∇u = [∇u[2,2] ∇u[2,3] ; ∇u[3,2] ∇u[3,3]]
         strain = @. 0.5 * (∇u + transpose(∇u))
-        stress = (1.0/3.0)*mu*I(2)*tr(strain) + 2*mu*strain
+        display(strain)
+        stress = (1.0/2.0)*mu*LinearAlgebra.I(2)*tr(strain) + 2*mu*strain
         dispokadats[i, 1] = u[2]
         dispokadats[i, 2] = u[3]
         stressokadats[i, 1] = stress[1, 1]
@@ -225,6 +226,5 @@ function ex_okada()
     PyPlot.close("all")
     plot18(els, xobs, yobs, dispbemss, stressbemss, "BEM", dispokadass, stressokadass, "Okada", "strike-slip (BEM vs. Okada)")
     plot18(els, xobs, yobs, dispbemts, stressbemts, "BEM", dispokadats, stressokadats, "Okada", "tensile-slip (BEM vs. Okada)")
-
 end
 ex_okada()
