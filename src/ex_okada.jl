@@ -205,10 +205,6 @@ function ex_okada()
         _, u, gradu = ow.dc3dwrapper((2.0/3.0), [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 1.0, 0.0])
         strain = @. 0.5 * (gradu' + gradu)
         stress = (1.0/3.0)*mu*LinearAlgebra.I(3)*tr(strain) + 2.0*mu*strain
- 
-        # ∇u = [∇u[2,2] ∇u[2,3] ; ∇u[3,2] ∇u[3,3]]
-        # strain = @. 0.5 * (∇u + transpose(∇u))
-        # stress = (1.0/2.0)*mu*I(2)*tr(strain) + 2*mu*strain
         dispokadass[i, 1] = u[2]
         dispokadass[i, 2] = u[3]
         stressokadass[i, 1] = stress[2, 2]
