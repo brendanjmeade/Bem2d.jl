@@ -220,27 +220,28 @@ end
 # Constant slip kernels from Starfield and Crouch, pages 49 and 82
 function constkernel(x, y, a, nu)
     f = zeros(length(x), 7)
+    leadingconst = 1/(4*pi*(1-nu))
     for i in 1:length(x)
         # f(x) = f_1
-        f[i, 1] = -1 / (4 * pi * (1 - nu)) * (y[i] * (atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a))) - (x[i] - a) * log(sqrt((x[i] - a)^2 + y[i]^2)) + (x[i] + a) * log(sqrt((x[i] + a)^2 + y[i]^2)))
+        f[i, 1] = -leadingconst * (y[i] * (atan(y[i], (x[i]-a)) - atan(y[i], (x[i]+a))) - (x[i] - a) * log(sqrt((x[i] - a)^2 + y[i]^2)) + (x[i]+a) * log(sqrt((x[i]+a)^2 + y[i]^2)))
 
         # df/dy = f_2
-        f[i, 2] = -1 / (4 * pi * (1 - nu)) * ((atan(y[i], (x[i] - a)) - atan(y[i], (x[i] + a))))
+        f[i, 2] = -leadingconst * ((atan(y[i], (x[i]-a)) - atan(y[i], (x[i]+a))))
 
         # df/dx = f_3
-        f[i, 3] = 1 / (4 * pi * (1 - nu)) * (log(sqrt((x[i] - a)^2 + y[i]^2)) - log(sqrt((x[i] + a)^2 + y[i]^2)))
+        f[i, 3] = leadingconst * (log(sqrt((x[i]-a)^2 + y[i]^2)) - log(sqrt((x[i]+a)^2 + y[i]^2)))
 
         # d2f/dxdy = f_4
-        f[i, 4] = 1 / (4 * pi * (1 - nu)) * (y[i] / ((x[i] - a)^2 + y[i]^2) - y[i] / ((x[i] + a)^2 + y[i]^2))
+        f[i, 4] = leadingconst * (y[i] / ((x[i]-a)^2 + y[i]^2) - y[i] / ((x[i]+a)^2 + y[i]^2))
 
         # d2f/dxdx = -d2f/dydy = f_5
-        f[i, 5] = 1 / (4 * pi * (1 - nu)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2) - (x[i] + a) / ((x[i] + a)^2 + y[i]^2))
+        f[i, 5] = leadingconst * ((x[i]-a) / ((x[i]-a)^2 + y[i]^2) - (x[i]+a) / ((x[i]+a)^2 + y[i]^2))
 
         # d3f/dxdydy = -d3f/dxdxdx = f_6
-        f[i, 6] = 1 / (4 * pi * (1 - nu)) * (((x[i] - a)^2 - y[i]^2) / ((x[i] - a)^2 + y[i]^2)^2 - ((x[i] + a)^2 - y[i]^2) / ((x[i] + a)^2 + y[i]^2)^2)
+        f[i, 6] = leadingconst * (((x[i]-a)^2 - y[i]^2) / ((x[i]-a)^2 + y[i]^2)^2 - ((x[i]+a)^2 - y[i]^2) / ((x[i]+a)^2 + y[i]^2)^2)
 
         # d3f/dydydy = -d3f/dxdxdy = f7
-        f[i, 7] = 2 * y[i] / (4 * pi * (1 - nu)) * ((x[i] - a) / ((x[i] - a)^2 + y[i]^2)^2 - (x[i] + a) / ((x[i] + a)^2 + y[i]^2)^2)
+        f[i, 7] = 2 * y[i] / (4 * pi * (1 - nu)) * ((x[i]-a) / ((x[i]-a)^2 + y[i]^2)^2 - (x[i]+a) / ((x[i]+a)^2 + y[i]^2)^2)
     end
     return f
 end
@@ -421,13 +422,19 @@ function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     # _xcomp, _ycomp = xcomp, ycomp # TODO: Neglecting the sign flip leads to errors with ...super strange
     for i in 1:length(y)
         # CS equations (5.2.3), page 81
-        disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-(1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
-        disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
+        @show rand(1)
+        disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) +
+                     _ycomp * (-(1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
+        disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) +
+                     _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
 
         # CS equations (5.2.4), page 81
-        stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
-        stress[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
-        stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7]) + 2.0 * _ycomp * mu * (-y[i] * f[i, 6])
+        stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6]) +
+                       2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
+        stress[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6]) +
+                       2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
+        stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7]) +
+                       2.0 * _ycomp * mu * (-y[i] * f[i, 6])
     end
     return disp, stress
 end
