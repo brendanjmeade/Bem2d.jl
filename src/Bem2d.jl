@@ -422,7 +422,6 @@ function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     # _xcomp, _ycomp = xcomp, ycomp # TODO: Neglecting the sign flip leads to errors with ...super strange
     for i in 1:length(y)
         # CS equations (5.2.3), page 81
-        @show rand(1)
         disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) +
                      _ycomp * (-(1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
         disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) +
