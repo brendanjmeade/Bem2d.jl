@@ -31,7 +31,7 @@ function ex_flamant()
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
     tracx = 1.0
-    tracy = 1.0
+    tracy = 0.0
 
     # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
     C = 1/(4*pi*(1-nu))
