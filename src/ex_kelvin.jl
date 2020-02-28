@@ -14,7 +14,8 @@ end
 
 function plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, title_string)
     # Set contour levels for displacements and stresses
-    contourvecdisp = collect(LinRange(-5e-10, 5e-10, 51))
+    contourvecdispy = collect(LinRange(-5e-11, 5e-11, 51))
+    contourvecdispx = collect(LinRange(-1e-12, 1e-12, 51))
     contourvecstress = collect(LinRange(-1e-2, 1e-2, 51))
     cmap = PyPlot.get_cmap("seismic")
     fontsize = 30
@@ -28,17 +29,17 @@ function plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, tit
     PyPlot.title("u", fontsize=fontsize)
 
     PyPlot.subplot(3, 6, 2)
-    PyPlot.contourf(x, y, reshape(disp1[:, 1], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.contourf(x, y, reshape(disp1[:, 1], size(x)), contourvecdispx, cmap=cmap)
     PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(disp1[:, 1], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    PyPlot.contour(x, y, reshape(disp1[:, 1], size(x)), contourvecdispx, linewidths=0.25, colors="k")
     stylesubplots_local()
     Bem2d.plotelements(els)
     PyPlot.title("ux (" * string1 * ")", fontsize=fontsize)
     
     PyPlot.subplot(3, 6, 3)
-    PyPlot.contourf(x, y, reshape(disp1[:, 2], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.contourf(x, y, reshape(disp1[:, 2], size(x)), contourvecdispy, cmap=cmap)
     PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(disp1[:, 2], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    PyPlot.contour(x, y, reshape(disp1[:, 2], size(x)), contourvecdispy, linewidths=0.25, colors="k")
     stylesubplots_local()
     Bem2d.plotelements(els)
     PyPlot.title("uy (" * string1 * ")", fontsize=fontsize)
@@ -75,17 +76,17 @@ function plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, tit
     PyPlot.title("u", fontsize=fontsize)
 
     PyPlot.subplot(3, 6, 8)
-    PyPlot.contourf(x, y, reshape(disp2[:, 1], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.contourf(x, y, reshape(disp2[:, 1], size(x)), contourvecdispx, cmap=cmap)
     PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(disp2[:, 1], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    PyPlot.contour(x, y, reshape(disp2[:, 1], size(x)), contourvecdispx, linewidths=0.25, colors="k")
     stylesubplots_local()
     Bem2d.plotelements(els)
     PyPlot.title("ux (" * string2 * ")", fontsize=fontsize)
     
     PyPlot.subplot(3, 6, 9)
-    PyPlot.contourf(x, y, reshape(disp2[:, 2], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.contourf(x, y, reshape(disp2[:, 2], size(x)), contourvecdispy, cmap=cmap)
     PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(disp2[:, 2], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    PyPlot.contour(x, y, reshape(disp2[:, 2], size(x)), contourvecdispy, linewidths=0.25, colors="k")
     stylesubplots_local()
     Bem2d.plotelements(els)
     PyPlot.title("uy (" * string2 * ")", fontsize=fontsize)
@@ -122,17 +123,17 @@ function plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, tit
     PyPlot.title("u", fontsize=fontsize)
 
     PyPlot.subplot(3, 6, 14)
-    PyPlot.contourf(x, y, reshape(disp1[:, 1]-disp2[:, 1], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.contourf(x, y, reshape(disp1[:, 1]-disp2[:, 1], size(x)), contourvecdispx, cmap=cmap)
     PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(disp1[:, 1]-disp2[:, 1], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    PyPlot.contour(x, y, reshape(disp1[:, 1]-disp2[:, 1], size(x)), contourvecdispx, linewidths=0.25, colors="k")
     stylesubplots_local()
     Bem2d.plotelements(els)
     PyPlot.title("uy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
     
     PyPlot.subplot(3, 6, 15)
-    PyPlot.contourf(x, y, reshape(disp1[:, 2]-disp2[:, 2], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.contourf(x, y, reshape(disp1[:, 2]-disp2[:, 2], size(x)), contourvecdispy, cmap=cmap)
     PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(disp1[:, 2]-disp2[:, 2], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    PyPlot.contour(x, y, reshape(disp1[:, 2]-disp2[:, 2], size(x)), contourvecdispy, linewidths=0.25, colors="k")
     stylesubplots_local()
     Bem2d.plotelements(els)
     PyPlot.title("uy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
@@ -191,8 +192,8 @@ function ex_kelvin()
     npts = 200
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-    tracx = 1.0
-    tracy = 0.0
+    tracx = 0.0
+    tracy = 1.0
 
     # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
     C = 1/(4*pi*(1-nu))
@@ -218,12 +219,13 @@ function ex_kelvin()
     fxy = @. C * (y/((x-a)^2+y^2) - y/((x+a)^2+y^2))
     fxx = @. C * ((x-a)/((x-a)^2+y^2) - (x+a)/((x+a)^2+y^2))
     fyy = -fxx
-    ux_segment = @. tracx/(2*mu)*((3-4*nu)*f-y*fx) + tracy/(2*mu)*(-y*fx)
-    uy_segment = @. tracx/(2*mu)*(-y*fy) + tracy/(2*mu)*((3-4*nu)*f-y*fy)
+    ux_segment = @. tracx/(2*mu)*((3-4*nu)*f+y*fy) + tracy/(2*mu)*(-y*fx)
+    uy_segment = @. tracx/(2*mu)*(-y*fx) + tracy/(2*mu)*((3-4*nu)*f-y*fy)
     σxx_segment = @. tracx*((3-2*nu)*fx+y*fxy) + tracy*(2*nu*fy+y*fyy)
     σyy_segment = @. tracx*(-(1-2*nu)*fx-y*fxy) + tracy*(2*(1-nu)*fy-f*fyy)
     σxy_segment = @. tracx*(2*(1-nu)*fy+y*fyy ) + tracy*((1-2*nu)fx-y*fxy)
-
+    u_segment = [ux_segment[:] uy_segment[:]]
+    
     # BEM solution
     els = Bem2d.Elements(Int(2))
     els.x1[1] = -a
@@ -245,8 +247,8 @@ function ex_kelvin()
     stresskelvin = [σxx_kelvin[:] σyy_kelvin[:] σxy_kelvin[:]]
     xobs = reshape(x, npts, npts)
     yobs = reshape(y, npts, npts)
-    plot18(els, xobs, yobs, disptrac, stresstrac, "BEM", dispkelvin, stresskelvin, "Kelvin point", "fx (BEM vs. Kelvin point)")
-
+    plot18(els, xobs, yobs, disptrac, stresstrac, "BEM", dispkelvin, stresskelvin, "Kelvin point", "fy (BEM vs. Kelvin point)")
+    
     PyPlot.figure(figsize=(40,20))
     # Analytic Kelvin
     PyPlot.subplot(3, 6, 1)
