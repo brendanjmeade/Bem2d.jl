@@ -14,8 +14,8 @@ end
 
 function plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, title_string)
     # Set contour levels for displacements and stresses
-    contourvecdisp = collect(LinRange(-0.5, 0.5, 51))
-    contourvecstress = collect(LinRange(-1e11, 1e11, 51))
+    contourvecdisp = collect(LinRange(-5e-10, 5e-10, 51))
+    contourvecstress = collect(LinRange(-1e-2, 1e-2, 51))
     cmap = PyPlot.get_cmap("seismic")
     fontsize = 30
     PyPlot.figure(figsize=(30, 20))
@@ -183,7 +183,7 @@ function local_subplot(x, y, mat, npts, title_string)
     PyPlot.gca().tick_params(labelsize=fontsize)
 end
 
-function ex_flamant()
+function ex_kelvin()
     mu = 3e10
     nu = 0.25
 
@@ -191,8 +191,8 @@ function ex_flamant()
     npts = 200
     obswidth = 1000
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-    tracx = 0.0
-    tracy = 1.0
+    tracx = 1.0
+    tracy = 0.0
 
     # Try the Kelvin solution from Crouch and Starfield section 4.2 (z-line load in full space)
     C = 1/(4*pi*(1-nu))
@@ -239,11 +239,15 @@ function ex_flamant()
 
     fontsize = 20
     PyPlot.close("all")
-    PyPlot.figure(figsize=(40,20))
 
     # 18 panel plot
-    # plot18(els, xobs, yobs, dispbemss, stressbemss, "BEM", dispokadass, stressokadass, "Okada", "strike-slip (BEM vs. Okada)")
+    dispkelvin = [ux_kelvin[:] uy_kelvin[:]]
+    stresskelvin = [σxx_kelvin[:] σyy_kelvin[:] σxy_kelvin[:]]
+    xobs = reshape(x, npts, npts)
+    yobs = reshape(y, npts, npts)
+    plot18(els, xobs, yobs, disptrac, stresstrac, "BEM", dispkelvin, stresskelvin, "Kelvin point", "fx (BEM vs. Kelvin point)")
 
+    PyPlot.figure(figsize=(40,20))
     # Analytic Kelvin
     PyPlot.subplot(3, 6, 1)
     quiver(x[:], y[:], ux_kelvin, uy_kelvin, units = "width", color = "b")
@@ -332,4 +336,4 @@ function ex_flamant()
     PyPlot.show()
 
 end
-ex_flamant()
+ex_kelvin()
