@@ -189,5 +189,16 @@ function ex_flamant()
 
     PyPlot.tight_layout()
     PyPlot.show()
+
+    # Turn this into 18 panel
+    PyPlot.figure(figsize=(40,20))
+    PyPlot.subplot(1, 3, 1)
+    local_subplot(x, y, σxy_flamant, npts, L"\sigma_{xy} \; \mathrm{(total)}")
+    PyPlot.subplot(1, 3, 2)
+    local_subplot(x, y, 2 .* (stresstrac[:, 3] .- stressdisp[:, 3]), npts, L"\sigma_{xy} \; \mathrm{(total)}")
+    PyPlot.subplot(1, 3, 3)
+    local_subplot(x, y, 2 .* (stresstrac[:, 3] .- stressdisp[:, 3]) .-  σxy_flamant, npts, L"\sigma_{xy} \; \mathrm{(total)}")
+    PyPlot.show()
+
 end
 ex_flamant()
