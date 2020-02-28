@@ -25,7 +25,6 @@ function local_subplot(x, y, mat, npts, title_string)
 end
 
 function ex_flamant()
-
     obswidth = 1000
 
 
@@ -53,7 +52,7 @@ function ex_flamant()
     nels = length(x1)
     fx = zeros(nels)
     fy = zeros(nels)
-    fx[mididx] = 1.0
+    fy[mididx] = 1.0
     σrr = @. -2.0/(pi*r) * (fx[mididx]*cosd(θ) + fy[mididx]*sind(θ))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
@@ -125,6 +124,10 @@ function ex_flamant()
     # Stresses from traction induced displacements
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["line"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
+    # Displacement solutions (https://en.wikipedia.org/wiki/Flamant_solution)
+    kappaplainstrain = 3-4*nu
+    kappaplanestress = (3-nu)/(1+nu)
+    
     # Set everything in the upper half-plane to zero because that is the exterior solution
     # Try setting a few values to NaN and see if we can isolate the circle
     to_nan_idx = findall(x -> x > 0.0, y)
@@ -144,7 +147,20 @@ function ex_flamant()
     stressdisp[to_nan_idx, 2] .= NaN
     stressdisp[to_nan_idx, 3] .= NaN
 
+    # Package up displacements and stresses for 18 panel plot
+    dispbem = zeros(length(x), 2)
+    stressbem = stresstrac + stressdisp
+    dispanalytic = zeros(length(x), 2)
+    stressanalytic = [σxx_flamant σyy_flamant σxy_flamant]
+ 
+
     PyPlot.close("all")
+
+    # Set up for 18 panel plots
+    xobs = reshape(x, npts, npts)
+    yobs = reshape(y, npts, npts)
+    # plot18(els, xobs, yobs, dispbem, stressbem, "BEM", dispanalytic, stressanalytic, "analytic", "Flamant (BEM vs. analytic)")
+
     PyPlot.figure(figsize=(40,20))
 
     # Analytic Flamant
