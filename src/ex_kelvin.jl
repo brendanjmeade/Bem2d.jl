@@ -4,6 +4,167 @@ using LinearAlgebra
 using Infiltrator
 using Bem2d
 
+
+function stylesubplots_local()
+    gca().set_aspect("equal")
+    gca().set_xticks([])
+    gca().set_yticks([])
+    return nothing
+end
+
+function plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, title_string)
+    # Set contour levels for displacements and stresses
+    contourvecdisp = collect(LinRange(-0.5, 0.5, 51))
+    contourvecstress = collect(LinRange(-1e11, 1e11, 51))
+    cmap = PyPlot.get_cmap("seismic")
+    fontsize = 30
+    PyPlot.figure(figsize=(30, 20))
+
+    # Fields from first model
+    PyPlot.subplot(3, 6, 1)
+    PyPlot.quiver(x[:], y[:], disp1[:, 1], disp1[:, 2], units="width", color="b")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("u", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 2)
+    PyPlot.contourf(x, y, reshape(disp1[:, 1], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(disp1[:, 1], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("ux (" * string1 * ")", fontsize=fontsize)
+    
+    PyPlot.subplot(3, 6, 3)
+    PyPlot.contourf(x, y, reshape(disp1[:, 2], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(disp1[:, 2], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("uy (" * string1 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 4)
+    PyPlot.contourf(x, y, reshape(stress1[:, 1], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress1[:, 1], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("sxx (" * string1 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 5)
+    PyPlot.contourf(x, y, reshape(stress1[:, 2], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress1[:, 2], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("syy (" * string1 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 6)
+    PyPlot.contourf(x, y, reshape(stress1[:, 3], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress1[:, 3], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("sxy (" * string1 * ")", fontsize=fontsize)
+
+    # Fields from second model
+    PyPlot.subplot(3, 6, 7)
+    PyPlot.quiver(x[:], y[:], disp2[:, 1], disp2[:, 2], units="width", color="b")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("u", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 8)
+    PyPlot.contourf(x, y, reshape(disp2[:, 1], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(disp2[:, 1], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("ux (" * string2 * ")", fontsize=fontsize)
+    
+    PyPlot.subplot(3, 6, 9)
+    PyPlot.contourf(x, y, reshape(disp2[:, 2], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(disp2[:, 2], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("uy (" * string2 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 10)
+    PyPlot.contourf(x, y, reshape(stress2[:, 1], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress2[:, 1], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("sxx (" * string2 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 11)
+    PyPlot.contourf(x, y, reshape(stress2[:, 2], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress2[:, 2], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("syy (" * string2 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 12)
+    PyPlot.contourf(x, y, reshape(stress2[:, 3], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress2[:, 3], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("sxy (" * string2 * ")", fontsize=fontsize)
+
+    # Residuals
+    PyPlot.subplot(3, 6, 13)
+    PyPlot.quiver(x[:], y[:], disp1[:, 1]-disp2[:, 1], disp1[:, 2]-disp2[:, 2], units="width", color="b")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("u", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 14)
+    PyPlot.contourf(x, y, reshape(disp1[:, 1]-disp2[:, 1], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(disp1[:, 1]-disp2[:, 1], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("uy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
+    
+    PyPlot.subplot(3, 6, 15)
+    PyPlot.contourf(x, y, reshape(disp1[:, 2]-disp2[:, 2], size(x)), contourvecdisp, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(disp1[:, 2]-disp2[:, 2], size(x)), contourvecdisp, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("uy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 16)
+    PyPlot.contourf(x, y, reshape(stress1[:, 1]-stress2[:, 1], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress1[:, 1]-stress2[:, 1], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("sxx (" * string1 * "-" * string2 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 17)
+    PyPlot.contourf(x, y, reshape(stress1[:, 2]-stress2[:, 2], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress1[:, 2]-stress2[:, 2], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("syy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
+
+    PyPlot.subplot(3, 6, 18)
+    PyPlot.contourf(x, y, reshape(stress1[:, 3]-stress2[:, 3], size(x)), contourvecstress, cmap=cmap)
+    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
+    PyPlot.contour(x, y, reshape(stress1[:, 3]-stress2[:, 3], size(x)), contourvecstress, linewidths=0.25, colors="k")
+    stylesubplots_local()
+    Bem2d.plotelements(els)
+    PyPlot.title("sxy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
+
+    PyPlot.suptitle(title_string, fontsize=fontsize)
+    PyPlot.show()
+end
+
 function local_subplot(x, y, mat, npts, title_string)
     fontsize = 20
     contour_levels = 50
@@ -79,6 +240,9 @@ function ex_flamant()
     fontsize = 20
     PyPlot.close("all")
     PyPlot.figure(figsize=(40,20))
+
+    # 18 panel plot
+    # plot18(els, xobs, yobs, dispbemss, stressbemss, "BEM", dispokadass, stressokadass, "Okada", "strike-slip (BEM vs. Okada)")
 
     # Analytic Kelvin
     PyPlot.subplot(3, 6, 1)
