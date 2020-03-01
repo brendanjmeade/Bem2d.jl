@@ -43,6 +43,10 @@ function ex_flamant()
     y2 = zeros(size(x1))
     mididx = Int(floor(length(x1)/2)+1)
 
+    # Try settting up uniform spacing again
+    # x1, y1, x2, y2 = discretizedline(-200, 0, 200, 0, 401)
+    # mididx = Int(floor(length(x1)/2)+1)
+
     mu = 3e10
     nu = 0.25
     npts = 200
