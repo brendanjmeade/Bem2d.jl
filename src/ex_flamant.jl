@@ -7,7 +7,7 @@ using Bem2d
 function local_subplot(x, y, mat, npts, title_string)
     fontsize = 20
     contour_levels = 50
-    contour_levels = collect(LinRange(-0.01, 0.01, 20))
+    contour_levels = collect(LinRange(-0.01, 0.01, 31))
 
     contour_color = "white"
     contour_linewidth = 0.5
@@ -27,7 +27,6 @@ end
 function ex_flamant()
     obswidth = 500
 
-
     # Try wierd symmetric quadratic spacing with small elements i the middle
     nquad = 200
     x1 = zeros(3 + 2 * (nquad-1))
@@ -43,7 +42,7 @@ function ex_flamant()
     y2 = zeros(size(x1))
     mididx = Int(floor(length(x1)/2)+1)
 
-    # TODO: Why is this not working at all???
+    #? Why does this look worse than quadratic spacing?
     # Try settting up uniform spacing again
     x1, y1, x2, y2 = discretizedline(-1*obswidth, 0, 1*obswidth, 0, 1001)
     mididx = Int(floor(length(x1)/2)+1)
@@ -58,20 +57,15 @@ function ex_flamant()
     fx = zeros(nels)
     fy = zeros(nels)
     fy[mididx] = 1.0
+
+    #! Analytic solution from Wikipedia in cylindrical coordinates
     σrr = @. -2.0/(pi*r) * (fx[mididx]*cosd(θ) + fy[mididx]*sind(θ))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
 
-    # Convert cylindrical stresses to Cartesian
-    # Swap the transpose to go from Cartesian to cylindrical
-    σxx_flamant = @. σrr * cosd(θ) * cosd(θ)
-    σyy_flamant = @. σrr * sind(θ) * sind(θ)
-    σxy_flamant = @. σrr * sind(θ) * cosd(θ)
-
-    # Cylindrical to Cartesian via matrix rotation
-    σxx = zeros(length(x))
-    σyy = zeros(length(x))
-    σxy = zeros(length(x))
+    σxx_flamant = zeros(length(x))
+    σyy_flamant = zeros(length(x))
+    σxy_flamant = zeros(length(x))
     for i in 1:length(x) # Project a single matrix to Cartesian coordinates
         cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
         transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
@@ -81,12 +75,7 @@ function ex_flamant()
         σxy_flamant[i] = cartesian_stress_tensor[1, 2]
     end
 
-    # Try the Flamant solution from Crouch and Starfield section 3.1 (z-line load on "half-plane")
-    # σxx = @. -2*fy[mididx]/pi * (x^2*y) / (x^2+y^2)^2
-    # σyy = @. -2*fy[mididx]/pi * (y^3) / (x^2+y^2)^2
-    # σxy = @. -2*fy[mididx]/pi * (x*y^2) / (x^2+y^2)^2
-
-    # BEM solution
+    #! BEM solution
     # We need to create a grid with a single element in the middle and then the rest to calculate induced displacments
     els = Bem2d.Elements(Int(1e5))
     # x1, y1, x2, y2 = discretizedline(-3*obswidth, 0, 3*obswidth, 0, nels)
@@ -110,7 +99,6 @@ function ex_flamant()
         T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
         U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
         xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
-        # xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
     end
     displocal = Bem2d.interleave(xdisp, ydisp)
 
@@ -134,7 +122,6 @@ function ex_flamant()
     kappaplanestress = (3-nu)/(1+nu)
     
     # Set everything in the upper half-plane to zero because that is the exterior solution
-    # Try setting a few values to NaN and see if we can isolate the circle
     to_nan_idx = findall(x -> x > 0.0, y)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
@@ -142,9 +129,6 @@ function ex_flamant()
     σxx_flamant[to_nan_idx] .= NaN
     σyy_flamant[to_nan_idx] .= NaN
     σxy_flamant[to_nan_idx] .= NaN
-    σxx[to_nan_idx] .= NaN
-    σyy[to_nan_idx] .= NaN
-    σxy[to_nan_idx] .= NaN
     stresstrac[to_nan_idx, 1] .= NaN
     stresstrac[to_nan_idx, 2] .= NaN
     stresstrac[to_nan_idx, 3] .= NaN
@@ -158,35 +142,21 @@ function ex_flamant()
     dispanalytic = zeros(length(x), 2)
     stressanalytic = [σxx_flamant σyy_flamant σxy_flamant]
  
-
+    #! Plotting
     PyPlot.close("all")
-
     # Set up for 18 panel plots
     xobs = reshape(x, npts, npts)
     yobs = reshape(y, npts, npts)
     # plot18(els, xobs, yobs, dispbem, stressbem, "BEM", dispanalytic, stressanalytic, "analytic", "Flamant (BEM vs. analytic)")
 
     PyPlot.figure(figsize=(40,20))
-
     # Analytic Flamant
-    PyPlot.subplot(3, 6, 1)
-    local_subplot(x, y, σrr, npts, L"\sigma_{rr} \; \mathrm{(Wikipedia)}")
-    PyPlot.subplot(3, 6, 2)
-    local_subplot(x, y, σθθ, npts, L"\sigma_{\theta\theta} \; \mathrm{(Wikipedia)}")
-    PyPlot.subplot(3, 6, 3)
-    local_subplot(x, y, σrθ, npts, L"\sigma_{r\theta} \; \mathrm{(Wikipedia)}")
-    PyPlot.subplot(3, 6, 7)
+    PyPlot.subplot(3, 6, 13)
     local_subplot(x, y, σxx_flamant, npts, L"\sigma_{xx} \; \mathrm{(Wikipedia \; Cartesian)}")
-    PyPlot.subplot(3, 6, 8)
+    PyPlot.subplot(3, 6, 14)
     local_subplot(x, y, σyy_flamant, npts, L"\sigma_{yy} \; \mathrm{(Wikipedia \; Cartesian)}")
-    PyPlot.subplot(3, 6, 9)
+    PyPlot.subplot(3, 6, 15)
     local_subplot(x, y, σxy_flamant, npts, L"\sigma_{xy} \; \mathrm{(Wikipedia \; Cartesian)}")
-    # PyPlot.subplot(3, 6, 13)
-    # local_subplot(x, y, σxx, npts, L"\sigma_{xx} \; \mathrm{(CS \; Cartesian)}")
-    # PyPlot.subplot(3, 6, 14)
-    # local_subplot(x, y, σyy, npts, L"\sigma_{yy} \; \mathrm{(CS \; Cartesian)}")
-    # PyPlot.subplot(3, 6, 15)
-    # local_subplot(x, y, σxy, npts, L"\sigma_{xy} \; \mathrm{(CS \; Cartesian)}")
 
     # BEM Flamant
     PyPlot.subplot(3, 6, 4)
@@ -202,12 +172,11 @@ function ex_flamant()
     PyPlot.subplot(3, 6, 12)
     local_subplot(x, y, stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(displacement)}")
     PyPlot.subplot(3, 6, 16)
-    local_subplot(x, y, 2 * (stresstrac[:, 1] - stressdisp[:, 1]), npts, L"\sigma_{xx} \; \mathrm{(total)}")
+    local_subplot(x, y, stresstrac[:, 1] .- stressdisp[:, 1], npts, L"\sigma_{xx} \; \mathrm{(total)}")
     PyPlot.subplot(3, 6, 17)
-    local_subplot(x, y, 2 * (stresstrac[:, 2] - stressdisp[:, 2]), npts, L"\sigma_{yy} \; \mathrm{(total)}")
+    local_subplot(x, y, stresstrac[:, 2] .- stressdisp[:, 2], npts, L"\sigma_{yy} \; \mathrm{(total)}")
     PyPlot.subplot(3, 6, 18)
-    local_subplot(x, y, 2 * (stresstrac[:, 3] - stressdisp[:, 3]), npts, L"\sigma_{xy} \; \mathrm{(total)}")
-
+    local_subplot(x, y, stresstrac[:, 3] .- stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(total)}")
     PyPlot.tight_layout()
     PyPlot.show()
 
@@ -220,6 +189,5 @@ function ex_flamant()
     PyPlot.subplot(1, 3, 3)
     local_subplot(x, y, 2 .* (stresstrac[:, 3] .- stressdisp[:, 3]) .-  σxy_flamant, npts, L"\sigma_{xy} \; \mathrm{(total)}")
     PyPlot.show()
-
 end
 ex_flamant()
