@@ -25,7 +25,7 @@ function local_subplot(x, y, mat, npts, title_string)
 end
 
 function ex_flamant()
-    obswidth = 1000
+    obswidth = 500
 
 
     # Try wierd symmetric quadratic spacing with small elements i the middle
@@ -45,8 +45,8 @@ function ex_flamant()
 
     # TODO: Why is this not working at all???
     # Try settting up uniform spacing again
-    # x1, y1, x2, y2 = discretizedline(-200, 0, 200, 0, 401)
-    # mididx = Int(floor(length(x1)/2)+1)
+    x1, y1, x2, y2 = discretizedline(-1*obswidth, 0, 1*obswidth, 0, 1001)
+    mididx = Int(floor(length(x1)/2)+1)
 
     mu = 3e10
     nu = 0.25
@@ -82,9 +82,9 @@ function ex_flamant()
     end
 
     # Try the Flamant solution from Crouch and Starfield section 3.1 (z-line load on "half-plane")
-    σxx = @. -2*fy[mididx]/pi * (x^2*y) / (x^2+y^2)^2
-    σyy = @. -2*fy[mididx]/pi * (y^3) / (x^2+y^2)^2
-    σxy = @. -2*fy[mididx]/pi * (x*y^2) / (x^2+y^2)^2
+    # σxx = @. -2*fy[mididx]/pi * (x^2*y) / (x^2+y^2)^2
+    # σyy = @. -2*fy[mididx]/pi * (y^3) / (x^2+y^2)^2
+    # σxy = @. -2*fy[mididx]/pi * (x*y^2) / (x^2+y^2)^2
 
     # BEM solution
     # We need to create a grid with a single element in the middle and then the rest to calculate induced displacments
@@ -181,12 +181,12 @@ function ex_flamant()
     local_subplot(x, y, σyy_flamant, npts, L"\sigma_{yy} \; \mathrm{(Wikipedia \; Cartesian)}")
     PyPlot.subplot(3, 6, 9)
     local_subplot(x, y, σxy_flamant, npts, L"\sigma_{xy} \; \mathrm{(Wikipedia \; Cartesian)}")
-    PyPlot.subplot(3, 6, 13)
-    local_subplot(x, y, σxx, npts, L"\sigma_{xx} \; \mathrm{(CS \; Cartesian)}")
-    PyPlot.subplot(3, 6, 14)
-    local_subplot(x, y, σyy, npts, L"\sigma_{yy} \; \mathrm{(CS \; Cartesian)}")
-    PyPlot.subplot(3, 6, 15)
-    local_subplot(x, y, σxy, npts, L"\sigma_{xy} \; \mathrm{(CS \; Cartesian)}")
+    # PyPlot.subplot(3, 6, 13)
+    # local_subplot(x, y, σxx, npts, L"\sigma_{xx} \; \mathrm{(CS \; Cartesian)}")
+    # PyPlot.subplot(3, 6, 14)
+    # local_subplot(x, y, σyy, npts, L"\sigma_{yy} \; \mathrm{(CS \; Cartesian)}")
+    # PyPlot.subplot(3, 6, 15)
+    # local_subplot(x, y, σxy, npts, L"\sigma_{xy} \; \mathrm{(CS \; Cartesian)}")
 
     # BEM Flamant
     PyPlot.subplot(3, 6, 4)
