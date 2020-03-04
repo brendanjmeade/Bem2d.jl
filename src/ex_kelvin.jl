@@ -212,7 +212,7 @@ function ex_kelvin()
 
 
     # Try the finite length "Kelvin" solution from Crouch and Starfied, section 4.3
-    a = 0.5
+    a = 0.00005
     f = @. -C * (y*(atan(y, x-a)-atan(y, x+a)) - (x-a)*log(sqrt((x-a)^2 +y^2)) + (x+a)*log(sqrt((x+a)^2 +y^2)))
     fx = @. C * (log(sqrt((x-a)^2 +y^2)) - log(sqrt((x+a)^2 +y^2)))
     fy = @. -C * (atan(y,x-a) - atan(y,x+a))
@@ -237,6 +237,8 @@ function ex_kelvin()
     idx = Bem2d.getidxdict(els)
 
     # Streses from tractions
+    tracx = tracx / (2*a) #! Strange length dependent normalization
+    tracy = tracy / (2*a) #! Strange length dependent normalization
     disptrac, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["point"], tracx, tracy, mu, nu)
 
     fontsize = 20
