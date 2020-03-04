@@ -188,6 +188,37 @@ function plot18_local(els, x, y, disp1, stress1, string1, disp2, stress2, string
     PyPlot.show()
 end
 
+#! Analytic Flamant solution
+function flamant(x, y, fx, fy, mididx)
+    r = @. sqrt(x^2 + y^2)
+    θ = @. rad2deg(atan(y, x))
+
+    #! Analytic solution from Wikipedia in cylindrical coordinates
+    σrr = @. -2.0/(pi*r) * (fx[mididx]*cosd(θ) + fy[mididx]*sind(θ))
+    σθθ = zeros(length(x))
+    σrθ = zeros(length(x))
+
+    #! Displacement solutions (https://en.wikipedia.org/wiki/Flamant_solution)
+    # kappaplainstrain = 3-4*nu
+    # kappaplanestress = (3-nu)/(1+nu)
+
+    #! Convert to from cylindrical to Cartesian coordinates
+    σxx_flamant = zeros(length(x))
+    σyy_flamant = zeros(length(x))
+    σxy_flamant = zeros(length(x))
+    for i in 1:length(x) # Project a single matrix to Cartesian coordinates
+        cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
+        transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
+        cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
+        σxx_flamant[i] = cartesian_stress_tensor[1, 1]
+        σyy_flamant[i] = cartesian_stress_tensor[2, 2]
+        σxy_flamant[i] = cartesian_stress_tensor[1, 2]
+    end
+
+    dispanalytic = zeros(length(x), 2)
+    stressanalytic = [σxx_flamant σyy_flamant σxy_flamant]
+    return dispanalytic, stressanalytic
+end
 
 function ex_flamant()
     obswidth = 1000
@@ -213,28 +244,13 @@ function ex_flamant()
     nu = 0.25
     npts = 50
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
-    r = @. sqrt(x^2 + y^2)
-    θ = @. rad2deg(atan(y, x))
     nels = length(x1)
     fx = zeros(nels)
     fy = zeros(nels)
     fy[mididx] = 1.0
 
-    #! Analytic solution from Wikipedia in cylindrical coordinates
-    σrr = @. -2.0/(pi*r) * (fx[mididx]*cosd(θ) + fy[mididx]*sind(θ))
-    σθθ = zeros(length(x))
-    σrθ = zeros(length(x))
-    σxx_flamant = zeros(length(x))
-    σyy_flamant = zeros(length(x))
-    σxy_flamant = zeros(length(x))
-    for i in 1:length(x) # Project a single matrix to Cartesian coordinates
-        cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
-        transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
-        cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
-        σxx_flamant[i] = cartesian_stress_tensor[1, 1]
-        σyy_flamant[i] = cartesian_stress_tensor[2, 2]
-        σxy_flamant[i] = cartesian_stress_tensor[1, 2]
-    end
+    #! Analytic Flamant solution
+    dispanalytic, stressanalytic = flamant(x, y, fx, fy, mididx)
 
     #! BEM solution
     els = Bem2d.Elements(Int(1e5))
@@ -263,79 +279,29 @@ function ex_flamant()
     U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"], idx["line"], mu, nu)
     # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(fx, fy)
     dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(fx, fy)
-
-
-    @show cond(T + 0.5 * LinearAlgebra.I(size(T)[1]))
     # U[diagind(U)] .= 0
     # dispall = U * Bem2d.interleave(fx, fy) + displocal
 
-    # Streses from tractions
-    _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["line"], fx, fy, mu, nu)
-
-    # Stresses from traction induced displacements
-    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["line"], dispall[1:2:end], dispall[2:2:end], mu, nu)
-
-    # Displacement solutions (https://en.wikipedia.org/wiki/Flamant_solution)
-    kappaplainstrain = 3-4*nu
-    kappaplanestress = (3-nu)/(1+nu)
+    # Streses from tractions and induced displacements
+    disptrac, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["line"], fx, fy, mu, nu)
+    dispdisp, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["line"], dispall[1:2:end], dispall[2:2:end], mu, nu)
     
     #! Set everything in the upper half-plane to zero because that is the exterior solution
     to_nan_idx = findall(x -> x > 0.0, y)
-    σrr[to_nan_idx] .= NaN
-    σθθ[to_nan_idx] .= NaN
-    σrθ[to_nan_idx] .= NaN
-    σxx_flamant[to_nan_idx] .= NaN
-    σyy_flamant[to_nan_idx] .= NaN
-    σxy_flamant[to_nan_idx] .= NaN
-    stresstrac[to_nan_idx, 1] .= NaN
-    stresstrac[to_nan_idx, 2] .= NaN
-    stresstrac[to_nan_idx, 3] .= NaN
-    stressdisp[to_nan_idx, 1] .= NaN
-    stressdisp[to_nan_idx, 2] .= NaN
-    stressdisp[to_nan_idx, 3] .= NaN
+    dispanalytic[to_nan_idx, :] .= NaN
+    stressanalytic[to_nan_idx, :] .= NaN
+    disptrac[to_nan_idx, :] .= NaN
+    dispdisp[to_nan_idx, :] .= NaN
+    stresstrac[to_nan_idx, :] .= NaN
+    stressdisp[to_nan_idx, :] .= NaN
 
     #! 18 panel plot
     PyPlot.close("all")
-    dispbem = zeros(length(x), 2)
+    dispbem = disptrac .- dispdisp
     stressbem = stresstrac .- stressdisp
-    dispanalytic = zeros(length(x), 2)
-    stressanalytic = [σxx_flamant σyy_flamant σxy_flamant] 
-    @show size(stressbem)
-    @show size(stressanalytic)
-
     xobs = reshape(x, npts, npts)
     yobs = reshape(y, npts, npts)
     plot18_local(els, xobs, yobs, dispbem, stressbem, "BEM", dispanalytic, stressanalytic, "analytic", "Flamant (BEM vs. analytic)")
-
-    #! Hacky plotting
-    PyPlot.figure(figsize=(40,20))
-    #! Analytic Flamant
-    PyPlot.subplot(3, 6, 13)
-    local_subplot(x, y, σxx_flamant, npts, L"\sigma_{xx} \; \mathrm{(Wikipedia \; Cartesian)}")
-    PyPlot.subplot(3, 6, 14)
-    local_subplot(x, y, σyy_flamant, npts, L"\sigma_{yy} \; \mathrm{(Wikipedia \; Cartesian)}")
-    PyPlot.subplot(3, 6, 15)
-    local_subplot(x, y, σxy_flamant, npts, L"\sigma_{xy} \; \mathrm{(Wikipedia \; Cartesian)}")
-
-    #! BEM Flamant
-    PyPlot.subplot(3, 6, 4)
-    local_subplot(x, y, stresstrac[:, 1], npts, L"\sigma_{xx} \; \mathrm{(traction)}")
-    PyPlot.subplot(3, 6, 5)
-    local_subplot(x, y, stresstrac[:, 2], npts, L"\sigma_{yy} \; \mathrm{(traction)}")
-    PyPlot.subplot(3, 6, 6)
-    local_subplot(x, y, stresstrac[:, 3], npts, L"\sigma_{xy} \; \mathrm{(traction)}")
-    PyPlot.subplot(3, 6, 10)
-    local_subplot(x, y, stressdisp[:, 1], npts, L"\sigma_{xx} \; \mathrm{(displacement)}")
-    PyPlot.subplot(3, 6, 11)
-    local_subplot(x, y, stressdisp[:, 2], npts, L"\sigma_{yy} \; \mathrm{(displacement)}")
-    PyPlot.subplot(3, 6, 12)
-    local_subplot(x, y, stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(displacement)}")
-    PyPlot.subplot(3, 6, 16)
-    local_subplot(x, y, stresstrac[:, 1] .- stressdisp[:, 1], npts, L"\sigma_{xx} \; \mathrm{(total)}")
-    PyPlot.subplot(3, 6, 17)
-    local_subplot(x, y, stresstrac[:, 2] .- stressdisp[:, 2], npts, L"\sigma_{yy} \; \mathrm{(total)}")
-    PyPlot.subplot(3, 6, 18)
-    local_subplot(x, y, stresstrac[:, 3] .- stressdisp[:, 3], npts, L"\sigma_{xy} \; \mathrm{(total)}")
     PyPlot.tight_layout()
     PyPlot.show()
 end
