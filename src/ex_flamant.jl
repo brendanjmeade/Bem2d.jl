@@ -4,26 +4,6 @@ using LinearAlgebra
 using Infiltrator
 using Bem2d
 
-function local_subplot(x, y, mat, npts, title_string)
-    fontsize = 20
-    contour_levels = 50
-    contour_levels = collect(LinRange(-0.01, 0.01, 31))
-
-    contour_color = "white"
-    contour_linewidth = 0.5
-    color_scale = 1e6
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = PyPlot.colorbar(fraction=0.020, pad=0.05, extend = "both")
-    PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    PyPlot.title(title_string, fontsize=fontsize)
-    PyPlot.xlim([-1000, 1000])
-    PyPlot.ylim([-1000, 1000])
-    PyPlot.xticks([])
-    PyPlot.yticks([])
-    PyPlot.gca().set_aspect("equal")
-    PyPlot.gca().tick_params(labelsize=fontsize)
-end
-
 function stylesubplots_local()
     gca().set_aspect("equal")
     PyPlot.xlim([-1000, 1000])
@@ -35,8 +15,10 @@ end
 
 function plot18_local(els, x, y, disp1, stress1, string1, disp2, stress2, string2, title_string)    
     # Set contour levels for displacements and stresses
-    contourvecdispy = collect(LinRange(-5e-11, 5e-11, 51))
-    contourvecdispx = collect(LinRange(-1e-12, 1e-12, 51))
+    contourvecdispx = collect(LinRange(-1e-11, 1e-11, 51))
+    # contourvecdispy = collect(LinRange(-1e-11, 1e-11, 51))
+    contourvecdispy = collect(LinRange(-1e-10, 1e-10, 51))
+    # contourvecdispy = 51
     contourvecstress = collect(LinRange(-1e-2, 1e-2, 51))
     cmap = PyPlot.get_cmap("seismic")
     fontsize = 30
@@ -224,7 +206,7 @@ function ex_flamant()
     obswidth = 1000
 
     #! Try wierd symmetric quadratic spacing with small elements i the middle
-    nquad = 200
+    nquad = 100
     x1 = zeros(3 + 2 * (nquad-1))
     x2 = zeros(3 + 2 * (nquad-1))
     quadspacing = collect(LinRange(1, sqrt(3*obswidth), nquad).^2)
