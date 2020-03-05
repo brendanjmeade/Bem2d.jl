@@ -171,18 +171,33 @@ function plot18_local(els, x, y, disp1, stress1, string1, disp2, stress2, string
 end
 
 #! Analytic Flamant solution
-function flamant(x, y, fx, fy, mididx)
+function flamant(x, y, fx, fy, mididx, mu, nu)
     r = @. sqrt(x^2 + y^2)
     θ = @. rad2deg(atan(y, x))
+
+    #! Displacement solutions (https://en.wikipedia.org/wiki/Flamant_solution)
+    κplanestrain = 3-4*nu
+    κplanestress = (3-nu)/(1+nu)
+    κ = κplanestrain
+    ur = @. -1/(4*pi*mu) * 
+         (fx[mididx]*((κ-1)*deg2rad(θ)*sind(θ) - cosd(θ) + (κ+1)*cosd(θ)*log(r)) +
+          fy[mididx]*((κ-1)*deg2rad(θ)*cosd(θ) + sind(θ) - (κ+1)*sind(θ)*log(r)))
+    uθ = @. -1/(4*pi*mu) * 
+         (fx[mididx]*((κ-1)*deg2rad(θ)*cosd(θ) - sind(θ) - (κ+1)*sind(θ)*log(r)) +
+          fy[mididx]*((κ-1)*deg2rad(θ)*sind(θ) + cosd(θ) + (κ+1)*cosd(θ)*log(r)))
+ 
+
+    #! Convert from cylindrical to Cartesian coordinates
+    dispanalytic = zeros(length(x), 2)
+    for i in 1:length(x)
+        dispanalytic[i, 1] = ur[i] * cos(uθ[i])
+        dispanalytic[i, 2] = ur[i] * sin(uθ[i])
+    end
 
     #! Analytic solution from Wikipedia in cylindrical coordinates
     σrr = @. -2.0/(pi*r) * (fx[mididx]*cosd(θ) + fy[mididx]*sind(θ))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
-
-    #! Displacement solutions (https://en.wikipedia.org/wiki/Flamant_solution)
-    # kappaplainstrain = 3-4*nu
-    # kappaplanestress = (3-nu)/(1+nu)
 
     #! Convert to from cylindrical to Cartesian coordinates
     σxx_flamant = zeros(length(x))
@@ -191,13 +206,12 @@ function flamant(x, y, fx, fy, mididx)
     for i in 1:length(x) # Project a single matrix to Cartesian coordinates
         cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
         transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
-        cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
+        cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transformation_matrix'
         σxx_flamant[i] = cartesian_stress_tensor[1, 1]
         σyy_flamant[i] = cartesian_stress_tensor[2, 2]
         σxy_flamant[i] = cartesian_stress_tensor[1, 2]
     end
 
-    dispanalytic = zeros(length(x), 2)
     stressanalytic = [σxx_flamant σyy_flamant σxy_flamant]
     return dispanalytic, stressanalytic
 end
@@ -232,7 +246,7 @@ function ex_flamant()
     fy[mididx] = 1.0
 
     #! Analytic Flamant solution
-    dispanalytic, stressanalytic = flamant(x, y, fx, fy, mididx)
+    dispanalytic, stressanalytic = flamant(x, y, fx, fy, mididx, mu, nu)
 
     #! BEM solution
     els = Bem2d.Elements(Int(1e5))
