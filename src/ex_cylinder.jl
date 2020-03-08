@@ -51,10 +51,10 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
 
     # PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
     # PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
-    PyPlot.xlim([-1100, 1100])
-    PyPlot.ylim([-1100, 1100])
-    PyPlot.xticks([])
-    PyPlot.yticks([])
+    # PyPlot.xlim([-1100, 1100])
+    # PyPlot.ylim([-1100, 1100])
+    # PyPlot.xticks([])
+    # PyPlot.yticks([])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 end
@@ -71,9 +71,9 @@ function ex_cylinder()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
-    θ0 = 1.0 # Arc length over which pressure is applied
-    R = 1.0e3 # Radius of disc
-    # R = 57.296 # Radius of disc
+    θ0 = 20.0 # Arc length over which pressure is applied
+    # R = 1.0e2 # Radius of disc
+    R = 57.296 # Radius of disc
     mmax = 100 # Max number of terms in Hondros series
     npts = 50
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
@@ -125,7 +125,7 @@ function ex_cylinder()
 
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
+    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 1000)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -156,6 +156,11 @@ function ex_cylinder()
     xtrac[deleteidx] .= 0
     ytrac[deleteidx] .= 0
 
+    # Scale tractions by element lengths
+    # @infiltrate
+    xtracscaled = xtrac ./ els.length[1:1:els.endidx]
+    ytracscaled = ytrac ./ els.length[1:1:els.endidx]
+
     # Given the traction boundary conditions calcuate the induced displacements on each element
     xdisp = zeros(els.endidx)
     ydisp = zeros(els.endidx)
@@ -167,26 +172,26 @@ function ex_cylinder()
     dispall_isolated = Bem2d.interleave(xdisp, ydisp)
 
     # Given the other tractions calcuate the induced displacements on the boudaries
-    interleavedtracs = Bem2d.interleave(xtrac, ytrac)
+    # interleavedtracs = Bem2d.interleave(xtrac, ytrac)
     T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
-    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
+    # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
+    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
 
     # Strange experiments
-    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
-
-    dispall_Uonly = U * Bem2d.interleave(xtrac, ytrac)
+    # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
+    # dispall_Uonly = U * Bem2d.interleave(xtrac, ytrac)
 
     # Streses from tractions
-    _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtrac, ytrac, mu, nu)
+    _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
 
     # Stresses from traction induced displacements
-    # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
+    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
     # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall_Uonly[1:2:end], dispall_Uonly[2:2:end], mu, nu)
-    _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], xdisp, ydisp, mu, nu)
+    # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], xdisp, ydisp, mu, nu)
 
     # Try setting a few values to NaN and see if we can isolate the circle
-    to_nan_idx = findall(x -> x > 1.0 * R, r)
+    to_nan_idx = findall(x -> x > 0.9 * R, r)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
     σrθ[to_nan_idx] .= NaN
@@ -288,12 +293,20 @@ function ex_cylinder()
     PyPlot.subplot(3, 6, 9)
     circle_subplot(x, y, normalizenan(σxyline), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic \; line, \; normalized)}")
 
+    # PyPlot.subplot(3, 6, 13)
+    # circle_subplot(x, y, normalizenan(σxx), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
+    # PyPlot.subplot(3, 6, 14)
+    # circle_subplot(x, y, normalizenan(σyy), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(analytic, \; normalized)}")
+    # PyPlot.subplot(3, 6, 15)
+    # circle_subplot(x, y, normalizenan(σxy), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
+
     PyPlot.subplot(3, 6, 13)
-    circle_subplot(x, y, normalizenan(σxx), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
+    circle_subplot(x, y, σxx, npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
     PyPlot.subplot(3, 6, 14)
-    circle_subplot(x, y, normalizenan(σyy), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(analytic, \; normalized)}")
+    circle_subplot(x, y, σyy, npts, R, θ0, L"\sigma_{yy} \; \mathrm{(analytic, \; normalized)}")
     PyPlot.subplot(3, 6, 15)
-    circle_subplot(x, y, normalizenan(σxy), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
+    circle_subplot(x, y, σxy, npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
+
 
     # BEM solutions
     PyPlot.subplot(3, 6, 4)
@@ -308,12 +321,21 @@ function ex_cylinder()
     circle_subplot(x, y, stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(induced \; displacements)}")
     PyPlot.subplot(3, 6, 12)
     circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(induced \; displacements)}")
+
+    # Removing normalization
     PyPlot.subplot(3, 6, 16)
-    circle_subplot(x, y, normalizenan(stresstrac[:, 1] + stressdisp[:, 1]), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
+    circle_subplot(x, y, stresstrac[:, 1] + stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
     PyPlot.subplot(3, 6, 17)
-    circle_subplot(x, y, normalizenan(stresstrac[:, 2] + stressdisp[:, 2]), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
+    circle_subplot(x, y, stresstrac[:, 2] + stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
     PyPlot.subplot(3, 6, 18)
-    circle_subplot(x, y, normalizenan(stresstrac[:, 3] + stressdisp[:, 3]), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
+    circle_subplot(x, y, stresstrac[:, 3] + stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
+
+    # PyPlot.subplot(3, 6, 16)
+    # circle_subplot(x, y, normalizenan(stresstrac[:, 1] + stressdisp[:, 1]), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
+    # PyPlot.subplot(3, 6, 17)
+    # circle_subplot(x, y, normalizenan(stresstrac[:, 2] + stressdisp[:, 2]), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
+    # PyPlot.subplot(3, 6, 18)
+    # circle_subplot(x, y, normalizenan(stresstrac[:, 3] + stressdisp[:, 3]), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
     PyPlot.tight_layout()
     PyPlot.show()
 end

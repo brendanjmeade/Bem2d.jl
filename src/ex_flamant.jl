@@ -8,8 +8,9 @@ function stylesubplots_local()
     gca().set_aspect("equal")
     PyPlot.xlim([-1000, 1000])
     PyPlot.ylim([-1000, 1000])
-    gca().set_xticks([])
-    gca().set_yticks([])
+    # gca().# set_xticks([])
+    # gca().
+    # set_yticks([])
     return nothing
 end
 
@@ -221,11 +222,11 @@ function ex_flamant()
     obswidth = 1000
 
     #! Try wierd symmetric quadratic spacing with small elements i the middle
-    a = 0.5
-    nquad = 100
+    a = 2.00
+    nquad = 2000
     x1 = zeros(3 + 2 * (nquad-1))
     x2 = zeros(3 + 2 * (nquad-1))
-    quadspacing = collect(LinRange(1, sqrt(3*obswidth), nquad).^2)
+    quadspacing = collect(LinRange(1, sqrt(30*obswidth), nquad).^2)
     x1[1:1:nquad-1] = -reverse(quadspacing[2:1:end], dims=1)
     x1[nquad:1:nquad+2] = [-1.0 -a a]
     x1[nquad+3:1:end] = quadspacing[1:1:end-1]
@@ -236,6 +237,11 @@ function ex_flamant()
     y2 = zeros(size(x1))
     mididx = Int(floor(length(x1)/2)+1)
 
+    # Uniform mesh spacing
+    # npts = 2001
+    # x1, y1, x2, y2 = discretizedline(-2000, 0, 2000, 0, npts)
+    # mididx = Int(floor(length(x1)/2)+1)
+    
     mu = 3e10
     nu = 0.25
     npts = 50
@@ -244,7 +250,7 @@ function ex_flamant()
     fx = zeros(nels)
     fy = zeros(nels)
     fy[mididx] = 1.0
-
+    
     # Rescale forcing for smaller central element.
     # This is strange
     fxscaled = fx / (2*a) #! Strange length dependent normalization
@@ -278,10 +284,10 @@ function ex_flamant()
     # Given the other tractions calcuate the induced displacements on the boudaries
     T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"], idx["line"], mu, nu)
     U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"], idx["line"], mu, nu)
-    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(fx, fy)
+    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(fxscaled, fyscaled)
 
     # Streses from tractions and induced displacements
-    disptrac, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["line"], fx, fy, mu, nu)
+    disptrac, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["line"], fxscaled, fyscaled, mu, nu)
     dispdisp, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["line"], dispall[1:2:end], dispall[2:2:end], mu, nu)
     
     #! Set everything in the upper half-plane to zero because that is the exterior solution
