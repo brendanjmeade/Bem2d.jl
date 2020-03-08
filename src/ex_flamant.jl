@@ -193,6 +193,7 @@ function flamant(x, y, fx, fy, mididx, mu, nu)
         dispanalytic[i, 1] = ur[i] * cos(uθ[i])
         dispanalytic[i, 2] = ur[i] * sin(uθ[i])
     end
+    dispanalytic = zeros(length(x), 2)
 
     #! Analytic solution from Wikipedia in cylindrical coordinates
     σrr = @. -2.0/(pi*r) * (fx[mididx]*cosd(θ) + fy[mididx]*sind(θ))
@@ -220,17 +221,16 @@ function ex_flamant()
     obswidth = 1000
 
     #! Try wierd symmetric quadratic spacing with small elements i the middle
+    a = 0.5
     nquad = 100
     x1 = zeros(3 + 2 * (nquad-1))
     x2 = zeros(3 + 2 * (nquad-1))
     quadspacing = collect(LinRange(1, sqrt(3*obswidth), nquad).^2)
     x1[1:1:nquad-1] = -reverse(quadspacing[2:1:end], dims=1)
-    x1[nquad:1:nquad+2] = [-1.0 -0.5 0.5]
-    # x1[nquad:1:nquad+2] = [-1.0 -0.1 0.1] # smaller central element
+    x1[nquad:1:nquad+2] = [-1.0 -a a]
     x1[nquad+3:1:end] = quadspacing[1:1:end-1]
     x2[1:1:nquad-1] = -reverse(quadspacing[1:1:end-1], dims=1)
-    x2[nquad:1:nquad+2] = [-0.5 0.5 1.0]
-    # x2[nquad:1:nquad+2] = [-0.1 0.1 1.0] # smaller central element
+    x2[nquad:1:nquad+2] = [-a a 1.0]
     x2[nquad+3:1:end] = quadspacing[2:1:end]
     y1 = zeros(size(x1))
     y2 = zeros(size(x1))
@@ -244,6 +244,11 @@ function ex_flamant()
     fx = zeros(nels)
     fy = zeros(nels)
     fy[mididx] = 1.0
+
+    # Rescale forcing for smaller central element.
+    # This is strange
+    fxscaled = fx / (2*a) #! Strange length dependent normalization
+    fyscaled = fy / (2*a) #! Strange length dependent normalization
 
     #! Analytic Flamant solution
     dispanalytic, stressanalytic = flamant(x, y, fx, fy, mididx, mu, nu)
@@ -261,22 +266,19 @@ function ex_flamant()
     idx = Bem2d.getidxdict(els)
 
     #! Given the traction boundary conditions calcuate the induced displacements on each element
-    xdisp = zeros(els.endidx)
-    ydisp = zeros(els.endidx)
-    for i in 1:els.endidx # Calcuate the x and y components of the tractions
-        T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
-        U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
-        xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
-    end
-    displocal = Bem2d.interleave(xdisp, ydisp)
+    # xdisp = zeros(els.endidx)
+    # ydisp = zeros(els.endidx)
+    # for i in 1:els.endidx # Calcuate the x and y components of the tractions
+    #     T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
+    #     U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"][i], idx["line"][i], mu, nu)
+    #     xdisp[i], ydisp[i] = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * [fx[i]; fy[i]]
+    # end
+    # displocal = Bem2d.interleave(xdisp, ydisp)
 
     # Given the other tractions calcuate the induced displacements on the boudaries
     T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["line"], idx["line"], mu, nu)
     U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["line"], idx["line"], mu, nu)
-    # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(fx, fy)
     dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(fx, fy)
-    # U[diagind(U)] .= 0
-    # dispall = U * Bem2d.interleave(fx, fy) + displocal
 
     # Streses from tractions and induced displacements
     disptrac, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["line"], fx, fy, mu, nu)
