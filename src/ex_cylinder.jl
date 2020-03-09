@@ -125,7 +125,7 @@ function ex_cylinder()
 
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 1000)
+    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -306,7 +306,6 @@ function ex_cylinder()
     circle_subplot(x, y, σyy, npts, R, θ0, L"\sigma_{yy} \; \mathrm{(analytic, \; normalized)}")
     PyPlot.subplot(3, 6, 15)
     circle_subplot(x, y, σxy, npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
-
 
     # BEM solutions
     PyPlot.subplot(3, 6, 4)
