@@ -1,4 +1,5 @@
 using Revise
+using Statistics
 using LaTeXStrings
 using PyPlot
 using LinearAlgebra
@@ -191,14 +192,32 @@ function ex_cylinder()
     stressdisp[to_nan_idx, 1] .= NaN
     stressdisp[to_nan_idx, 2] .= NaN
     stressdisp[to_nan_idx, 3] .= NaN
+    stressbem = @. stresstrac + stressdisp
 
     # Plot diagnostic and final figures
     fontsize = 24
 
+    #! Estimate average error to compare with what is reported in CS83 text (6-9% away from boundaries)
+
+    @show mean(filter(!isnan, σxx))
+    @show mean(filter(!isnan, σxx-stressbem[:,1]))
+    @show mean(filter(!isnan, abs.(σxx-stressbem[:,1]) ./ stressbem[:,1]))
+
+    @show mean(filter(!isnan, σyy))
+    @show mean(filter(!isnan, σyy-stressbem[:,2]))
+    @show mean(filter(!isnan, abs.(σyy-stressbem[:,2]) ./ stressbem[:,2]))
+
+    @show mean(filter(!isnan, σxy))
+    @show mean(filter(!isnan, σxy-stressbem[:,3]))
+    @show mean(filter(!isnan, abs.(σxy-stressbem[:,3]) ./ stressbem[:,3]))
+
     #! Try Crouch and Starfield line style plot
+    # Figure 4.15 in CS1983 doesn't make a lot of sense to me because
+    # it shows a sign change in sigmaxxdivp which is not seen the data given
+    # in table 4.1 
     # xdivr         = [0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9]
-    # sigmaxxdivp
-    # sigmayydivp
+    # sigmaxxdivp   =  [0.0398 0.0382 0.0339 0.0278 0.0209 0.0144 0.0089 0.0047 0.0019 0.0004 0.000]
+    # sigmayydivp   = -[0.1198 0.1167 0.1078 0.0946 0.0789 0.0624 0.0465 0.0321 0.0195 0.0089 0.000]
 
     #! Summary figure
     PyPlot.figure(figsize=(30,20))
@@ -266,12 +285,11 @@ function ex_cylinder()
     PyPlot.subplot(3, 6, 12)
     circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(induced \; displacements)}")
     PyPlot.subplot(3, 6, 16)
-    circle_subplot(x, y, stresstrac[:, 1] + stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
+    circle_subplot(x, y, stressbem[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
     PyPlot.subplot(3, 6, 17)
-    circle_subplot(x, y, stresstrac[:, 2] + stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
+    circle_subplot(x, y, stressbem[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
     PyPlot.subplot(3, 6, 18)
-    circle_subplot(x, y, stresstrac[:, 3] + stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
-
+    circle_subplot(x, y, stressbem[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
     PyPlot.tight_layout()
     PyPlot.show()
 end
