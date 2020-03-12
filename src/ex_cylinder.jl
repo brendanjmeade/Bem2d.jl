@@ -79,12 +79,13 @@ function ex_cylinder()
     r = @. sqrt(x^2 + y^2)
     θ = @. atan(y, x)
 
+    #! Analytic stresses in cylindrical coordinates
     σrr = zeros(length(x))
     σθθ = zeros(length(x))
     σrθ = zeros(length(x))
-    σrrconstterm = 2.0 * θ0 * -p / 180
-    σθθconstterm = 2.0 * θ0 * -p / 180
-    leadingterm = 2.0 * -p / 180
+    σrrconstterm = 2.0 * θ0 * -p / deg2rad(180)
+    σθθconstterm = 2.0 * θ0 * -p / deg2rad(180)
+    leadingterm = 2.0 * -p / deg2rad(180)
     for m in 1:mmax
         σrr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sin(2*m*θ0) * cos(2*m*θ)
         σθθ += @. (r/R)^(2*m-2) * (1-(1+1/m)*(r/R)^2) * sin(2*m*θ0) * cos(2*m*θ)
@@ -94,7 +95,7 @@ function ex_cylinder()
     σθθ = @. σθθconstterm - leadingterm * σθθ
     σrθ = @. leadingterm * σrθ
 
-    # Convert cylindrical stresses to Cartesian
+    #! Convert analytic cylindrical stresses to Cartesian
     σxx = zeros(length(x))
     σyy = zeros(length(x))
     σxy = zeros(length(x))
@@ -107,7 +108,7 @@ function ex_cylinder()
         σxy[i] = cartesian_stress_tensor[1, 2]
     end
 
-    # Start of BEM solution
+    #! BEM solution
     els = Bem2d.Elements(Int(1e5))
     x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     for i in 1:length(x1)
@@ -121,8 +122,7 @@ function ex_cylinder()
     idx = Bem2d.getidxdict(els)
     partialsconst = Bem2d.initpartials(els)
 
-    # Apply normal tractions everywhere
-    # Convert from radial to Cartesian
+    #! Apply normal tractions everywhere and convert from radial to Cartesian
     xtrac = zeros(els.endidx)
     ytrac = zeros(els.endidx)
     θels = @. atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx])
@@ -131,8 +131,7 @@ function ex_cylinder()
         xtrac[i], ytrac[i] = els.rotmat[i, :, :] * normalTractions
     end
 
-    # Zero out the tractions on the area without contact
-    # What are the boundary conditions on the regions without contact?
+    #! Zero out the tractions on the area without contact
     deleteidx = findall(x -> (x>θ0 && x<deg2rad(180)-θ0), θels)
     xtrac[deleteidx] .= 0
     ytrac[deleteidx] .= 0
@@ -140,7 +139,7 @@ function ex_cylinder()
     xtrac[deleteidx] .= 0
     ytrac[deleteidx] .= 0
 
-    # Scale tractions by element lengths
+    #! Scale tractions by element lengths
     xtracscaled = xtrac ./ els.length[1:1:els.endidx]
     ytracscaled = ytrac ./ els.length[1:1:els.endidx]
 
@@ -257,21 +256,12 @@ function ex_cylinder()
     PyPlot.gca().tick_params(labelsize=fontsize)
 
     #! Analytic solutions
-    # PyPlot.subplot(3, 6, 13)
-    # circle_subplot(x, y, normalizenan(σxx), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
-    # PyPlot.subplot(3, 6, 14)
-    # circle_subplot(x, y, normalizenan(σyy), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(analytic, \; normalized)}")
-    # PyPlot.subplot(3, 6, 15)
-    # circle_subplot(x, y, normalizenan(σxy), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
-
     PyPlot.subplot(3, 6, 7)
     circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr} \; \mathrm{(analytic}")
     PyPlot.subplot(3, 6, 8)
     circle_subplot(x, y, σθθ, npts, R, θ0, L"\sigma_{\theta\theta} \; \mathrm{(analytic)}")
     PyPlot.subplot(3, 6, 9)
     circle_subplot(x, y, σrθ, npts, R, θ0, L"\sigma_{r\theta} \; \mathrm{(analytic)}")
-
-
     PyPlot.subplot(3, 6, 13)
     circle_subplot(x, y, σxx, npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
     PyPlot.subplot(3, 6, 14)
