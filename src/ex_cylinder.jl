@@ -264,6 +264,14 @@ function ex_cylinder()
     # PyPlot.subplot(3, 6, 15)
     # circle_subplot(x, y, normalizenan(σxy), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
 
+    PyPlot.subplot(3, 6, 7)
+    circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr} \; \mathrm{(analytic}")
+    PyPlot.subplot(3, 6, 8)
+    circle_subplot(x, y, σθθ, npts, R, θ0, L"\sigma_{\theta\theta} \; \mathrm{(analytic)}")
+    PyPlot.subplot(3, 6, 9)
+    circle_subplot(x, y, σrθ, npts, R, θ0, L"\sigma_{r\theta} \; \mathrm{(analytic)}")
+
+
     PyPlot.subplot(3, 6, 13)
     circle_subplot(x, y, σxx, npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
     PyPlot.subplot(3, 6, 14)
