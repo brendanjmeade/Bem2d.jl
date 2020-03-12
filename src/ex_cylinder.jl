@@ -160,7 +160,7 @@ function ex_cylinder()
     # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
     dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
 
-    # Can I recover the original tractions?  YES!
+    #! Can I recover the original tractions?  YES!
     # tracrecovered = inv(U) * (T + 0.5 * LinearAlgebra.I(size(T)[1])) * dispall
     # PyPlot.figure(figsize=(30, 20))
     # PyPlot.subplot(2, 1, 1)
@@ -171,13 +171,13 @@ function ex_cylinder()
     # PyPlot.plot(tracrecovered[2:2:end], "bx")
     # PyPlot.show()
 
-    # Streses from tractions
+    #! Streses from tractions
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
 
-    # Stresses from traction induced displacements
+    #! Stresses from traction induced displacements
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
-    # Try setting a few values to NaN and see if we can isolate the circle
+    #! Isolate the values inside the circle
     to_nan_idx = findall(x -> x > 0.9 * R, r)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
@@ -195,32 +195,15 @@ function ex_cylinder()
     # Plot diagnostic and final figures
     fontsize = 24
 
-    ### Try Crouch and Starfield line style plot ###
+    #! Try Crouch and Starfield line style plot
     # xdivr         = [0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9]
     # sigmaxxdivp
     # sigmayydivp
-    # return
 
-    # Look at some of the partials
-    PyPlot.figure(figsize=(10, 10))
-    PyPlot.subplot(2, 1, 1)
-    PyPlot.plot(diag(U)[1:2:end], "rx", label="not sure")
-    PyPlot.plot(diag(inv(T + 0.5 * LinearAlgebra.I(size(T)[1])) * U)[1:2:end], "g+", label="TBD")
-    PyPlot.plot(xdisp, "b1", label="local only")
-    PyPlot.legend()
-    PyPlot.title(L"x")
-    PyPlot.subplot(2, 1, 2)
-    PyPlot.plot(diag(U)[2:2:end], "rx", label="not sure")
-    PyPlot.plot(diag(inv(T + 0.5 * LinearAlgebra.I(size(T)[1])) * U)[2:2:end], "g+", label="TBD")
-    PyPlot.plot(ydisp, "b1", label="local only")
-    PyPlot.legend()
-    PyPlot.title(L"y")
-    PyPlot.show()
-
-    # Show as much as possible in a single figure
+    #! Summary figure
     PyPlot.figure(figsize=(30,20))
 
-    # Traction forcing
+    #! Traction forcing
     PyPlot.subplot(3, 6, 1)
     for i in 1:els.endidx
         PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
@@ -232,7 +215,7 @@ function ex_cylinder()
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 
-    # Induced displacements
+    #! Induced displacements
     PyPlot.subplot(3, 6, 2)
     for i in 1:els.endidx
         PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
@@ -269,7 +252,7 @@ function ex_cylinder()
     PyPlot.subplot(3, 6, 15)
     circle_subplot(x, y, σxy, npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
 
-    # BEM solutions
+    #! BEM solutions
     PyPlot.subplot(3, 6, 4)
     circle_subplot(x, y, stresstrac[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(applied \; tractions)}")
     PyPlot.subplot(3, 6, 5)
@@ -282,8 +265,6 @@ function ex_cylinder()
     circle_subplot(x, y, stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(induced \; displacements)}")
     PyPlot.subplot(3, 6, 12)
     circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(induced \; displacements)}")
-
-    # Removing normalization
     PyPlot.subplot(3, 6, 16)
     circle_subplot(x, y, stresstrac[:, 1] + stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
     PyPlot.subplot(3, 6, 17)
@@ -291,12 +272,6 @@ function ex_cylinder()
     PyPlot.subplot(3, 6, 18)
     circle_subplot(x, y, stresstrac[:, 3] + stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
 
-    # PyPlot.subplot(3, 6, 16)
-    # circle_subplot(x, y, normalizenan(stresstrac[:, 1] + stressdisp[:, 1]), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
-    # PyPlot.subplot(3, 6, 17)
-    # circle_subplot(x, y, normalizenan(stresstrac[:, 2] + stressdisp[:, 2]), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
-    # PyPlot.subplot(3, 6, 18)
-    # circle_subplot(x, y, normalizenan(stresstrac[:, 3] + stressdisp[:, 3]), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
     PyPlot.tight_layout()
     PyPlot.show()
 end
