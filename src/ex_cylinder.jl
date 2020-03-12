@@ -66,15 +66,16 @@ function normalizenan(vec)
 end
 
 function ex_cylinder()
+    PyPlot.close("all")
     mu = 3e10
     nu = 0.25
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
-    θ0 = 20.0 # Arc length over which pressure is applied
+    θ0 = 1.0 # Arc length over which pressure is applied
     # R = 1.0e2 # Radius of disc
     R = 57.296 # Radius of disc
-    mmax = 100 # Max number of terms in Hondros series
+    mmax = 1000 # Max number of terms in Hondros series
     npts = 50
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
     r = @. sqrt(x^2 + y^2)
@@ -178,17 +179,22 @@ function ex_cylinder()
     # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
     dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
 
-    # Strange experiments
-    # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
-    # dispall_Uonly = U * Bem2d.interleave(xtrac, ytrac)
+    # Can I recover the original tractions?  YES!
+    # tracrecovered = inv(U) * (T + 0.5 * LinearAlgebra.I(size(T)[1])) * dispall
+    # PyPlot.figure(figsize=(30, 20))
+    # PyPlot.subplot(2, 1, 1)
+    # PyPlot.plot(xtracscaled, "r+")
+    # PyPlot.plot(tracrecovered[1:2:end], "bx")
+    # PyPlot.subplot(2, 1, 2)
+    # PyPlot.plot(ytracscaled, "r+")
+    # PyPlot.plot(tracrecovered[2:2:end], "bx")
+    # PyPlot.show()
 
     # Streses from tractions
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
 
     # Stresses from traction induced displacements
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
-    # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall_Uonly[1:2:end], dispall_Uonly[2:2:end], mu, nu)
-    # _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], xdisp, ydisp, mu, nu)
 
     # Try setting a few values to NaN and see if we can isolate the circle
     to_nan_idx = findall(x -> x > 0.9 * R, r)
@@ -213,9 +219,16 @@ function ex_cylinder()
     # σyy = -σyy
     # σxy = -σxy
 
+
     # Plot diagnostic and final figures
     fontsize = 24
-    PyPlot.close("all")
+
+    ### Try Crouch and Starfield line style plot ###
+    # xdivr         = [0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9]
+    # sigmaxxdivp
+    # sigmayydivp
+    # return
+
 
     # Look at some of the partials
     # TODO: Split into x and y subplots
