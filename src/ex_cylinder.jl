@@ -179,7 +179,7 @@ function ex_cylinder()
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
     #! Isolate the values inside the circle
-    to_nan_idx = findall(x -> x > 0.9 * R, r)
+    to_nan_idx = findall(x -> x > 0.5 * R, r)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
     σrθ[to_nan_idx] .= NaN
@@ -198,18 +198,17 @@ function ex_cylinder()
     fontsize = 24
 
     #! Estimate average error to compare with what is reported in CS83 text (6-9% away from boundaries)
-
     @show mean(filter(!isnan, σxx))
     @show mean(filter(!isnan, σxx-stressbem[:,1]))
-    @show mean(filter(!isnan, abs.(σxx-stressbem[:,1]) ./ stressbem[:,1]))
+    @show mean(filter(!isnan, abs.((σxx-stressbem[:,1]) ./ stressbem[:,1])))
 
     @show mean(filter(!isnan, σyy))
     @show mean(filter(!isnan, σyy-stressbem[:,2]))
-    @show mean(filter(!isnan, abs.(σyy-stressbem[:,2]) ./ stressbem[:,2]))
+    @show mean(filter(!isnan, abs.((σyy-stressbem[:,2]) ./ stressbem[:,2])))
 
     @show mean(filter(!isnan, σxy))
     @show mean(filter(!isnan, σxy-stressbem[:,3]))
-    @show mean(filter(!isnan, abs.(σxy-stressbem[:,3]) ./ stressbem[:,3]))
+    @show mean(filter(!isnan, abs.((σxy-stressbem[:,3]) ./ stressbem[:,3])))
 
     #! Try Crouch and Starfield line style plot
     # Figure 4.15 in CS1983 doesn't make a lot of sense to me because
