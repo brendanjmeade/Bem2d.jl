@@ -107,22 +107,6 @@ function ex_cylinder()
         σxy[i] = cartesian_stress_tensor[1, 2]
     end
 
-    #! Point source rather than finite arc
-    # The solution due to line sources at each end of cylinder
-    # From: Estimation of the tensile elastic modulus using Brazilian disc by applying
-    # diametrically opposed concentrated loads, Ye Jianhong a,, F.Q. Wu , J.Z. Sun
-    # Equation 6
-    # Sort skeptical about this one because I can't get their (1959) equations to work (Equations 1)
-    l = 1.0 # This is the "length" of the cylinder...I have no idea what this should be
-    σxxline = @. 2*p / (pi*l) * (((R-y)*x^2)/((R-y)^2 + x^2)^2 + ((R+y)*x^2)/((R+y)^2 + x^2)^2 - (1/(2*R)))
-    σyyline = @. 2*p / (pi*l) * (((R-y)^3)/((R-y)^2 + x^2)^2 + ((R+y)^3)/((R+y)^2 + x^2)^2 - (1/(2*R)))
-    σxyline = @. 2*p / (pi*l) * (((R-y)^2*x)/((R-y)^2 + x^2)^2 + ((R+y)^2*x)/((R+y)^2 + x^2)^2 - (1/(2*R)))
-
-    # Just swapped (x,y) to (y,x) to make this with line sources at y = 0 rather than x = 0.
-    # σxxline = @. -2*p / (pi*l) * (((R-x)*y^2)/((R-x)^2 + y^2)^2 + ((R+x)*y^2)/((R+x)^2 + y^2)^2 - (1/(2*R)))
-    # σyyline = @. -2*p / (pi*l) * (((R-x)^3)/((R-x)^2 + y^2)^2 + ((R+x)^3)/((R+x)^2 + y^2)^2 - (1/(2*R)))
-    # σxyline = @. 2*p / (pi*l) * (((R-x)^2*y)/((R-x)^2 + y^2)^2 + ((R+x)^2*y)/((R+x)^2 + y^2)^2 - (1/(2*R)))
-
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
     x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
@@ -157,7 +141,6 @@ function ex_cylinder()
     ytrac[deleteidx] .= 0
 
     # Scale tractions by element lengths
-    # @infiltrate
     xtracscaled = xtrac ./ els.length[1:1:els.endidx]
     ytracscaled = ytrac ./ els.length[1:1:els.endidx]
 
@@ -203,21 +186,12 @@ function ex_cylinder()
     σxx[to_nan_idx] .= NaN
     σyy[to_nan_idx] .= NaN
     σxy[to_nan_idx] .= NaN
-    σxxline[to_nan_idx] .= NaN
-    σyyline[to_nan_idx] .= NaN
-    σxyline[to_nan_idx] .= NaN
     stresstrac[to_nan_idx, 1] .= NaN
     stresstrac[to_nan_idx, 2] .= NaN
     stresstrac[to_nan_idx, 3] .= NaN
     stressdisp[to_nan_idx, 1] .= NaN
     stressdisp[to_nan_idx, 2] .= NaN
     stressdisp[to_nan_idx, 3] .= NaN
-
-    # Try normalizing and sign flips
-    # σxx = -σxx
-    # σyy = -σyy
-    # σxy = -σxy
-
 
     # Plot diagnostic and final figures
     fontsize = 24
@@ -228,9 +202,7 @@ function ex_cylinder()
     # sigmayydivp
     # return
 
-
     # Look at some of the partials
-    # TODO: Split into x and y subplots
     PyPlot.figure(figsize=(10, 10))
     PyPlot.subplot(2, 1, 1)
     PyPlot.plot(diag(U)[1:2:end], "rx", label="not sure")
@@ -284,27 +256,7 @@ function ex_cylinder()
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 
-    # PyPlot.subplot(3, 6, 7)
-    # for i in 1:els.endidx
-    #     PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
-    # end
-    # PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall_Uonly[1:2:end], dispall_Uonly[2:2:end], color="green")
-    # PyPlot.title("induced displacements", fontsize=fontsize)
-    # PyPlot.xticks([])
-    # PyPlot.yticks([])
-    # PyPlot.gca().set_aspect("equal")
-    # PyPlot.gca().tick_params(labelsize=fontsize)
-
-    # Analytic solutions
-
-    # Analytic solutions
-    PyPlot.subplot(3, 6, 7)
-    circle_subplot(x, y, normalizenan(σxxline), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic \; line, \; normalized}")
-    PyPlot.subplot(3, 6, 8)
-    circle_subplot(x, y, normalizenan(σyyline), npts, R, θ0, L"\sigma_{yy} \; \mathrm{(analytic \; line, \; normalized)}")
-    PyPlot.subplot(3, 6, 9)
-    circle_subplot(x, y, normalizenan(σxyline), npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic \; line, \; normalized)}")
-
+    #! Analytic solutions
     # PyPlot.subplot(3, 6, 13)
     # circle_subplot(x, y, normalizenan(σxx), npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
     # PyPlot.subplot(3, 6, 14)
