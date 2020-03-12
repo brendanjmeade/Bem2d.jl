@@ -8,8 +8,8 @@ using Bem2d
 function discretized_arc(θstart, θend, radius, n_pts)
     # Create geometry of discretized arc
     θrange = collect(LinRange(θstart, θend, n_pts + 1))
-    x = @. radius * cosd(θrange)
-    y = @. radius * sind(θrange)
+    x = @. radius * cos(θrange)
+    y = @. radius * sin(θrange)
     x1 = x[1:1:end-1]
     x2 = x[2:1:end]
     y1 = y[1:1:end-1]
@@ -23,7 +23,6 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     contour_color = "white"
     contour_linewidth = 0.5
     color_scale = 1
-    # mat = @. mat / 1e6 # Convert from Pascals to mega Pascals
 
     PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = PyPlot.colorbar(fraction=0.020, pad=0.05, extend = "both")
@@ -32,21 +31,21 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
     PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(title_string, fontsize=fontsize)
     # Draw enditre circle
-    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-k", linewidth=5)
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-k", linewidth=2)
     end
 
     # Draw right-hand side of applied compression arc
     x1, y1, x2, y2 = discretized_arc(-θ0, θ0, R, 50)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=5)
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
     end
 
     # Draw left-hand side of applied compression arc
-    x1, y1, x2, y2 = discretized_arc(-θ0+180, θ0+180, R, 50)
+    x1, y1, x2, y2 = discretized_arc(-θ0+deg2rad(180), θ0+deg2rad(180), R, 50)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=5)
+        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
     end
 
     # PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
@@ -72,14 +71,13 @@ function ex_cylinder()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
-    θ0 = 1.0 # Arc length over which pressure is applied
-    # R = 1.0e2 # Radius of disc
+    θ0 = deg2rad(1) # Arc length over which pressure is applied
     R = 57.296 # Radius of disc
     mmax = 1000 # Max number of terms in Hondros series
     npts = 50
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
     r = @. sqrt(x^2 + y^2)
-    θ = @. rad2deg(atan(y, x))
+    θ = @. atan(y, x)
 
     σrr = zeros(length(x))
     σθθ = zeros(length(x))
@@ -88,9 +86,9 @@ function ex_cylinder()
     σθθconstterm = 2.0 * θ0 * -p / 180
     leadingterm = 2.0 * -p / 180
     for m in 1:mmax
-        σrr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sind(2*m*θ0) * cosd(2*m*θ)
-        σθθ += @. (r/R)^(2*m-2) * (1-(1+1/m)*(r/R)^2) * sind(2*m*θ0) * cosd(2*m*θ)
-        σrθ += @. ((r/R)^(2*m) - (r/R)^(2*m-2)) * sind(2*m*θ0) * sind(2*m*θ)
+        σrr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sin(2*m*θ0) * cos(2*m*θ)
+        σθθ += @. (r/R)^(2*m-2) * (1-(1+1/m)*(r/R)^2) * sin(2*m*θ0) * cos(2*m*θ)
+        σrθ += @. ((r/R)^(2*m) - (r/R)^(2*m-2)) * sin(2*m*θ0) * sin(2*m*θ)
     end
     σrr = @. σrrconstterm + leadingterm * σrr
     σθθ = @. σθθconstterm - leadingterm * σθθ
@@ -102,31 +100,32 @@ function ex_cylinder()
     σxy = zeros(length(x))
     for i in 1:length(x) # Project a single matrix to Cartesian coordinates
         cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
-        transformation_matrix = [cosd(θ[i]) -sind(θ[i]) ; sind(θ[i]) cosd(θ[i])]
+        transformation_matrix = [cos(θ[i]) -sin(θ[i]) ; sin(θ[i]) cos(θ[i])]
         cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
         σxx[i] = cartesian_stress_tensor[1, 1]
         σyy[i] = cartesian_stress_tensor[2, 2]
         σxy[i] = cartesian_stress_tensor[1, 2]
     end
 
+    #! Point source rather than finite arc
     # The solution due to line sources at each end of cylinder
     # From: Estimation of the tensile elastic modulus using Brazilian disc by applying
     # diametrically opposed concentrated loads, Ye Jianhong a,, F.Q. Wu , J.Z. Sun
     # Equation 6
     # Sort skeptical about this one because I can't get their (1959) equations to work (Equations 1)
     l = 1.0 # This is the "length" of the cylinder...I have no idea what this should be
-    # σxxline = @. 2*p / (pi*l) * (((R-y)*x^2)/((R-y)^2 + x^2)^2 + ((R+y)*x^2)/((R+y)^2 + x^2)^2 - (1/(2*R)))
-    # σyyline = @. 2*p / (pi*l) * (((R-y)^3)/((R-y)^2 + x^2)^2 + ((R+y)^3)/((R+y)^2 + x^2)^2 - (1/(2*R)))
-    # σxyline = @. 2*p / (pi*l) * (((R-y)^2*x)/((R-y)^2 + x^2)^2 + ((R+y)^2*x)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+    σxxline = @. 2*p / (pi*l) * (((R-y)*x^2)/((R-y)^2 + x^2)^2 + ((R+y)*x^2)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+    σyyline = @. 2*p / (pi*l) * (((R-y)^3)/((R-y)^2 + x^2)^2 + ((R+y)^3)/((R+y)^2 + x^2)^2 - (1/(2*R)))
+    σxyline = @. 2*p / (pi*l) * (((R-y)^2*x)/((R-y)^2 + x^2)^2 + ((R+y)^2*x)/((R+y)^2 + x^2)^2 - (1/(2*R)))
 
     # Just swapped (x,y) to (y,x) to make this with line sources at y = 0 rather than x = 0.
-    σxxline = @. -2*p / (pi*l) * (((R-x)*y^2)/((R-x)^2 + y^2)^2 + ((R+x)*y^2)/((R+x)^2 + y^2)^2 - (1/(2*R)))
-    σyyline = @. -2*p / (pi*l) * (((R-x)^3)/((R-x)^2 + y^2)^2 + ((R+x)^3)/((R+x)^2 + y^2)^2 - (1/(2*R)))
-    σxyline = @. 2*p / (pi*l) * (((R-x)^2*y)/((R-x)^2 + y^2)^2 + ((R+x)^2*y)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    # σxxline = @. -2*p / (pi*l) * (((R-x)*y^2)/((R-x)^2 + y^2)^2 + ((R+x)*y^2)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    # σyyline = @. -2*p / (pi*l) * (((R-x)^3)/((R-x)^2 + y^2)^2 + ((R+x)^3)/((R+x)^2 + y^2)^2 - (1/(2*R)))
+    # σxyline = @. 2*p / (pi*l) * (((R-x)^2*y)/((R-x)^2 + y^2)^2 + ((R+x)^2*y)/((R+x)^2 + y^2)^2 - (1/(2*R)))
 
     # Start of BEM solution
     els = Bem2d.Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(-180, 180, R, 360)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -142,7 +141,7 @@ function ex_cylinder()
     # Convert from radial to Cartesian
     xtrac = zeros(els.endidx)
     ytrac = zeros(els.endidx)
-    θels = @. rad2deg(atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx]))
+    θels = @. atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx])
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
         normalTractions = [0; p] # Pressure in fault normal component only.
         xtrac[i], ytrac[i] = els.rotmat[i, :, :] * normalTractions
@@ -150,10 +149,10 @@ function ex_cylinder()
 
     # Zero out the tractions on the area without contact
     # What are the boundary conditions on the regions without contact?
-    deleteidx = findall(x -> (x>θ0 && x<180-θ0), θels)
+    deleteidx = findall(x -> (x>θ0 && x<deg2rad(180)-θ0), θels)
     xtrac[deleteidx] .= 0
     ytrac[deleteidx] .= 0
-    deleteidx = findall(x -> (x<-θ0 && x>-180+θ0), θels)
+    deleteidx = findall(x -> (x<-θ0 && x>-deg2rad(180)+θ0), θels)
     xtrac[deleteidx] .= 0
     ytrac[deleteidx] .= 0
 
