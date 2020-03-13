@@ -71,7 +71,7 @@ function ex_cylinder_profile()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
-    θ0 = deg2rad(1) # Arc length over which pressure is applied
+    θ0 = deg2rad(3.6) # Arc length over which pressure is applied
     R = 57.296 # Radius of disc
     # x = @. R * collect(0.0:0.1:1.0)
     # y = zeros(size(x))
