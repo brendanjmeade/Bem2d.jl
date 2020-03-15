@@ -56,6 +56,9 @@ function ex_cylinder_profile()
     mu = 3e10
     nu = 0.25
 
+    # Flip to/from plane strain to plane stress
+    # nu = nu/(1-nu)
+
     #! Try Crouch and Starfield line style plot
     # Figure 4.15 in CS1983 doesn't make a lot of sense to me because
     # it shows a sign change in sigmaxxdivp which is not seen the data given
