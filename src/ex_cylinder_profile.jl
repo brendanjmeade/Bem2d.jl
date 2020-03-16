@@ -25,19 +25,15 @@ function calc_brazil(p, r, θ, θ0, R)
     σrr = zeros(length(r))
     σθθ = zeros(length(r))
     σrθ = zeros(length(r))
-    @show σrrconstterm = 2.0 * θ0 * -p / deg2rad(180)
+    σrrconstterm = 2.0 * θ0 * -p / deg2rad(180)
     σθθconstterm = 2.0 * θ0 * -p / deg2rad(180)
     leadingterm = 2.0 * -p / deg2rad(180)
     for m in 1:mmax
-        σrr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sin(2*m*θ0) * cos(2*m*θ)#
-        # TODO I some how deleted the \theta \theta term!!!
+        σrr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sin(2*m*θ0) * cos(2*m*θ)
+        σθθ += @. (r/R)^(2*m-2) * (1-(1+1/m)*(r/R)^2) * sin(2*m*θ0) * cos(2*m*θ)
         σrθ += @. ((r/R)^(2*m) - (r/R)^(2*m-2)) * sin(2*m*θ0) * sin(2*m*θ)
     end
-    println("σrr pre-full construction")
-    display(σrr)
     σrr = @. σrrconstterm .+ leadingterm .* σrr
-    println("σrr full construction")
-    display(σrr)
     σθθ = @. σθθconstterm .- leadingterm .* σθθ
     σrθ = @. leadingterm .* σrθ
 
@@ -46,14 +42,13 @@ function calc_brazil(p, r, θ, θ0, R)
     σyy = zeros(length(r))
     σxy = zeros(length(r))
     for i in 1:length(r) # Project a single matrix to Cartesian coordinates
-        @show cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
+        cylindrical_stress_tensor = [σrr[i] σrθ[i] ; σrθ[i] σθθ[i]]
         transformation_matrix = [cos(θ[i]) -sin(θ[i]) ; sin(θ[i]) cos(θ[i])]
         cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
         σxx[i] = cartesian_stress_tensor[1, 1]
         σyy[i] = cartesian_stress_tensor[2, 2]
         σxy[i] = cartesian_stress_tensor[1, 2]
     end
-    display(σxx)
     return σrr, σθθ, σrθ, σxx, σyy, σxy
 end
 
@@ -161,13 +156,13 @@ function ex_cylinder_profile()
     # xx component of stresses
     ax = subplot(2, 1, 1)
     ax.tick_params("both", labelsize=fontsize)
-    for i in 1:length(xdivr)
-        if i == 1
-            plot(xdivr[i], Sxxdivp[i], "rs", markersize=markersize, label="CS table 4.1")
-        else
-            plot(xdivr[i], Sxxdivp[i], "rs", markersize=markersize)
-        end
-    end
+    # for i in 1:length(xdivr)
+    #     if i == 1
+    #         plot(xdivr[i], Sxxdivp[i], "rs", markersize=markersize, label="CS table 4.1")
+    #     else
+    #         plot(xdivr[i], Sxxdivp[i], "rs", markersize=markersize)
+    #     end
+    # end
     plot(y[1:end-1]./R, -Sxxhondros[1:end-1] ./ p, "g^", markersize=markersize, label="Hondros")
     plot(y[1:end-1]./R, -Sbem[1:end-1, 1] ./ p, "bs", markersize=markersize, label="BEM")
     legend(fontsize=fontsize)
@@ -177,13 +172,13 @@ function ex_cylinder_profile()
     #! yy component of stresses
     ax = subplot(2, 1, 2)
     ax.tick_params("both", labelsize=fontsize)
-    for i in 1:length(xdivr)
-        if i == 1
-            plot(xdivr[i], Syydivp[i], "rs", markersize=markersize, label="CS table 4.1")
-        else
-            plot(xdivr[i], Syydivp[i], "rs", markersize=markersize)
-        end
-    end
+    # for i in 1:length(xdivr)
+    #     if i == 1
+    #         plot(xdivr[i], Syydivp[i], "rs", markersize=markersize, label="CS table 4.1")
+    #     else
+    #         plot(xdivr[i], Syydivp[i], "rs", markersize=markersize)
+    #     end
+    # end
     plot(y[1:end-1]./R, -Syyhondros[1:end-1] ./ p, "g^", markersize=markersize, label="Hondros")
     plot(y[1:end-1]./R, -Sbem[1:end-1, 2] ./ p, "bs", markersize=markersize, label="BEM")
     legend(fontsize=fontsize)
