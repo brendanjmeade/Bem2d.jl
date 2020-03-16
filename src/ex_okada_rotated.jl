@@ -2,6 +2,7 @@ using Revise
 using PyCall
 using PyPlot
 using LinearAlgebra
+using Infiltrator
 using Bem2d
 
 function stylesubplots_local()
@@ -208,7 +209,7 @@ function ex_okada()
         # Strike-slip
         # _, u, gradu = ow.dc3dwrapper((2.0/3.0), [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 1.0, 0.0])
         # _, u, gradu = ow.dc3dwrapper((2.0/3.0), [0.0, x[i], y[i]-deep], 0.0 + deep, 90.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 0.0, -1.0])
-        _, u, gradu = ow.dc3dwrapper((2.0/3.0), [0.0, x[i], y[i]-deep], 0.0 + deep, 45.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, slipdiag, 0])
+        _, u, gradu = ow.dc3dwrapper((2.0/3.0), [0.0, x[i], y[i]-deep], 0.0 + deep, 45.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 1, 0])
 
         strain = @. 0.5 * (gradu' + gradu)
         stress = mu*LinearAlgebra.I(3)*tr(strain) + 2.0*mu*strain
@@ -231,6 +232,6 @@ function ex_okada()
     
     PyPlot.close("all")
     plot18(els, xobs, yobs, dispbemss, stressbemss, "BEM", dispokadass, stressokadass, "Okada", "strike-slip (BEM vs. Okada)")
-    plot18(els, xobs, yobs, dispbemts, stressbemts, "BEM", dispokadats, stressokadats, "Okada", "tensile-slip (BEM vs. Okada)")
+    # plot18(els, xobs, yobs, dispbemts, stressbemts, "BEM", dispokadats, stressokadats, "Okada", "tensile-slip (BEM vs. Okada)")
 end
 ex_okada()
