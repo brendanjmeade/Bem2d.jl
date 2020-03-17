@@ -72,8 +72,9 @@ function ex_cylinder()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
-    θ0 = deg2rad(45) # Arc length over which pressure is applied
-    R = 57.296 # Radius of disc
+    θ0 = deg2rad(1.0) # Arc length over which pressure is applied
+    nels = 360
+    R = nels / (2 * pi) # Radius of disc ensuring that all elements are 1 unit long
     mmax = 1000 # Max number of terms in Hondros series
     npts = 50
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
@@ -111,7 +112,7 @@ function ex_cylinder()
 
     #! BEM solution
     els = Bem2d.Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -156,10 +157,14 @@ function ex_cylinder()
 
     # Given the other tractions calcuate the induced displacements on the boudaries
     # interleavedtracs = Bem2d.interleave(xtrac, ytrac)
-    T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
-    U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    T, S, H = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    U, D, A = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
     dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
+
+    #! Try displacement discontinuity method...because I'm out of ideas
+    dispall = U * Bem2d.interleave(xtracscaled, ytracscaled)
+
 
     #! Can I recover the original tractions?  YES!
     # tracrecovered = inv(U) * (T + 0.5 * LinearAlgebra.I(size(T)[1])) * dispall
@@ -179,7 +184,7 @@ function ex_cylinder()
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
     #! Isolate the values inside the circle
-    to_nan_idx = findall(x -> x > 0.5 * R, r)
+    to_nan_idx = findall(x -> x > 0.9 * R, r)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
     σrθ[to_nan_idx] .= NaN
