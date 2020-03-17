@@ -19,7 +19,7 @@ function discretized_arc(θstart, θend, radius, n_pts)
 end
 
 function calc_brazil(p, r, θ, θ0, R)
-    mmax = 1000 # Max number of terms in Hondros series
+    mmax = 10000 # Max number of terms in Hondros series
 
     #! Analytic stresses in cylindrical coordinates
     σrr = zeros(length(r))
