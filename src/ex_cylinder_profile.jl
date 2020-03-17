@@ -119,6 +119,10 @@ function ex_cylinder_profile()
     dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
     # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
 
+    #! Try displacement discontinuity
+    # dispall = U * Bem2d.interleave(xtrac, ytrac)
+    # @infiltrate
+
     #! Streses from tractions and displacements
     # _, Strac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
     _, Strac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtrac, ytrac, mu, nu)
