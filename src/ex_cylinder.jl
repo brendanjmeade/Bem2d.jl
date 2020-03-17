@@ -72,7 +72,7 @@ function ex_cylinder()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
-    θ0 = deg2rad(1) # Arc length over which pressure is applied
+    θ0 = deg2rad(45) # Arc length over which pressure is applied
     R = 57.296 # Radius of disc
     mmax = 1000 # Max number of terms in Hondros series
     npts = 50
