@@ -52,31 +52,6 @@ function calc_brazil(p, r, θ, θ0, R)
     return σrr, σθθ, σrθ, σxx, σyy, σxy
 end
 
-# function calc_brazil(P, x, y, θ0, R)
-#     #! Taken from appendix A of:
-#     #! https://www.mdpi.com/1996-1073/11/2/304/htm
-
-#     # T is again some weird little scaleing haveing to do with the length of 
-#     # the compressed cylinder
-#     t = 1
-#     r1 = zeros(size(x))
-#     r2 = zeros(size(x))
-#     theta1 = zeros(size(x))
-#     theta2 = zeros(size(x))
-
-#     #! Analytic stresses in Cartesian coordinates
-#     Sxx = zeros(length(x))
-#     Syy = zeros(length(x))
-#     Sxy = zeros(length(x))
-#     for i in 1:length(x) # Project a single matrix to Cartesian coordinates
-#         Sxx[i] = cartesian_stress_tensor[1, 1]
-#         Syy[i] = cartesian_stress_tensor[2, 2]
-#         Sxy[i] = cartesian_stress_tensor[1, 2]
-#     end
-#     return Sxx, Syy, Sxy
-# end
-
-
 function ex_cylinder_profile()
     PyPlot.close("all")
     mu = 3e10
@@ -92,7 +67,7 @@ function ex_cylinder_profile()
 
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
-    arclen = deg2rad(45.0) # Arc length over which pressure is applied
+    arclen = deg2rad(3.6) # Arc length over which pressure is applied
     R = 57.296 # Radius of disc
     y = @. R * collect(0.0:0.1:1.0)
     x = zeros(size(y))
@@ -104,6 +79,7 @@ function ex_cylinder_profile()
 
     #! BEM solution
     els = Bem2d.Elements(Int(1e5))
+    # x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
@@ -140,11 +116,12 @@ function ex_cylinder_profile()
     # Given the other tractions calcuate the induced displacements on the boudaries
     T, _, _ = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     U, _, _ = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
-    # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
-    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
+    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
+    # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
 
     #! Streses from tractions and displacements
-    _, Strac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
+    # _, Strac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
+    _, Strac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtrac, ytrac, mu, nu)
     _, Sdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
     Sbem = @. Strac + Sdisp
 
@@ -156,13 +133,13 @@ function ex_cylinder_profile()
     # xx component of stresses
     ax = subplot(2, 1, 1)
     ax.tick_params("both", labelsize=fontsize)
-    # for i in 1:length(xdivr)
-    #     if i == 1
-    #         plot(xdivr[i], Sxxdivp[i], "rs", markersize=markersize, label="CS table 4.1")
-    #     else
-    #         plot(xdivr[i], Sxxdivp[i], "rs", markersize=markersize)
-    #     end
-    # end
+    for i in 1:length(xdivr)
+        if i == 1
+            plot(xdivr[i], Sxxdivp[i], "rs", markersize=markersize, label="CS table 4.1")
+        else
+            plot(xdivr[i], Sxxdivp[i], "rs", markersize=markersize)
+        end
+    end
     plot(y[1:end-1]./R, -Sxxhondros[1:end-1] ./ p, "g^", markersize=markersize, label="Hondros")
     plot(y[1:end-1]./R, -Sbem[1:end-1, 1] ./ p, "bs", markersize=markersize, label="BEM")
     legend(fontsize=fontsize)
@@ -172,13 +149,13 @@ function ex_cylinder_profile()
     #! yy component of stresses
     ax = subplot(2, 1, 2)
     ax.tick_params("both", labelsize=fontsize)
-    # for i in 1:length(xdivr)
-    #     if i == 1
-    #         plot(xdivr[i], Syydivp[i], "rs", markersize=markersize, label="CS table 4.1")
-    #     else
-    #         plot(xdivr[i], Syydivp[i], "rs", markersize=markersize)
-    #     end
-    # end
+    for i in 1:length(xdivr)
+        if i == 1
+            plot(xdivr[i], Syydivp[i], "rs", markersize=markersize, label="CS table 4.1")
+        else
+            plot(xdivr[i], Syydivp[i], "rs", markersize=markersize)
+        end
+    end
     plot(y[1:end-1]./R, -Syyhondros[1:end-1] ./ p, "g^", markersize=markersize, label="Hondros")
     plot(y[1:end-1]./R, -Sbem[1:end-1, 2] ./ p, "bs", markersize=markersize, label="BEM")
     legend(fontsize=fontsize)
