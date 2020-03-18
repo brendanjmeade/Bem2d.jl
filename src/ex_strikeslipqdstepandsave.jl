@@ -4,6 +4,7 @@ using JLD2
 using Dates
 using Infiltrator
 using PyPlot
+using Bem2d
 
 function stressfunction(slip, mu, x, y, d1, d2)
     stressd1 = @. slip*mu/(2*pi) * ((y+d1)/(x^2+(y+d1)^2) - (y+d1)/(x^2+(y-d1)^2))
@@ -29,17 +30,14 @@ function interactionmatrix(nels, dtop, dbot, mu)
 end
 
 function derivsconst!(dudt, u, p, t)
-    intidx, nintidx, bemsliptotractotal, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
-    @views multmatvec!(vx, vy, els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
-    @views dtracglobaldt = bemsliptotractotal * [blockvxglobal .- u[1:3:end] blockvyglobal .- u[2:3:end]]'[:]
-    @views multmatvec!(dtracxglobaldt, dtracyglobaldt, els.rotmat[intidx, :, :], dtracglobaldt[1:2:end], dtracglobaldt[2:2:end])
-    for i in 1:nintidx
-        @views dthetadt[i] = thetalaw(abs(vx[i]), abs(u[3:3:end][i]), dc)
-        @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
-        dvydt[i] = 0
+    nels, U2Tmat, eta, thetalaw, dc, blockvel, dthetadt, dvdt, v, dTdt = p
+    @views dTdt = U2Tmat * (blockvel .- u[1:2:end])
+    for i in 1:nels
+#         @views dthetadt[i] = thetalaw(abs(vx[i]), abs(u[3:3:end][i]), dc)
+#         @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
     end
-    @views multmatvec!(dudt[1:3:end], dudt[2:3:end], els.rotmatinv[intidx, :, :], dvxdt, dvydt)
-    dudt[3:3:end] = dthetadt
+    # dudt[2:2:end] = dthetadt
+    dudt[2:2:end] .= 0
     return nothing
 end
 
@@ -66,17 +64,35 @@ function strikeslipstress()
     dc = 0.05
     blockvel = 1e-9
 
-
     #! Calculate full element to element interaction interaction
-    @time mat = interactionmatrix(nels, mindepth, maxdepth, mu)
-    matshow(log10.(abs.(mat))) # Plot interaction matrix
+    @time U2Tmat = interactionmatrix(nels, mindepth, maxdepth, mu)
+    matshow(log10.(abs.(U2Tmat))) # Plot interaction matrix
 
+    #! Set initial conditions and package parameters for pass to integrator
+    ics = zeros(2 * nels)
+    ics[1:2:end] = 1e-3 * blockvel * ones(nels)
+    ics[2:2:end] = 1e8 * ones(nels)
+    dthetadt = zeros(nels)
+    dvdt = zeros(nels)
+    v = zeros(nels)
+    dTdt = zeros(nels)
 
+    #! Set up integrator
+    p = (nels, U2Tmat, eta, thetaaginglaw, dc, blockvel, dthetadt, dvdt, v, dTdt)
+    prob = ODEProblem(derivsconst!, ics, tspan, p)
+    integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
 
+    #! Time integrate
+#     @time for i in 1:nsteps
+#         step!(integrator)
+#         if mod(i, printstep) == 0
+#             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
+#         end    
+#     end
 
     #! Plot and save
     # plotqdtimeseries(integrator.sol, 2, nfault)    
-    # @time @save outfilename integrator.sol els mu nu
+    # @time @save outfilename integrator.sol mu nu
     # println("Wrote integration results to:")
     # println(outfilename)
 end
