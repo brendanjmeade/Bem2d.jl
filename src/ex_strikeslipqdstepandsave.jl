@@ -28,20 +28,6 @@ function interactionmatrix(nels, dtop, dbot, mu)
     return mat
 end
 
-function strikeslipstress()
-    PyPlot.close("all")
-    nels = 100
-    mu = 3e10
-    mindepth = 0e3 # meters
-    maxdepth = 20e3 # meters
-
-    #! Calculate full element to element interaction interaction
-    @time mat = interactionmatrix(nels, mindepth, maxdepth, mu)
-    PyPlot.matshow(log10.(abs.(mat))) # Plot interaction matrix
-end
-strikeslipstress()
-
-
 function derivsconst!(dudt, u, p, t)
     intidx, nintidx, bemsliptotractotal, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
     @views multmatvec!(vx, vy, els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
@@ -57,30 +43,48 @@ function derivsconst!(dudt, u, p, t)
     return nothing
 end
 
-# function ex_qdstepandsaveflat()
-#     # Constants
-#     nsteps = 5000
-#     nfreesurf = 100
-#     nfault = 200
-#     printstep = 100
-#     amplitude = 1.0
-#     outfilename = string(now()) * ".jld2"
-#     siay = 365.25 * 24 * 60 * 60
-#     tspan = (0, siay * 1000)
-#     abstol = 1e-4
-#     reltol = 1e-4
-#     mu = 3e10
-#     nu = 0.25
-#     rho = 2700.0
-#     eta = mu / (2.0 * sqrt(mu / rho))
-#     dc = 0.05
-#     blockvelx = 1e-9
-#     blockvely = 1e-9
+function strikeslipstress()
+    close("all")
 
-#     @time faultsliptosurfacedisp = inv(partialsconst["trac"]["freesurftopo"]["freesurftopo"]) * partialsconst["trac"]["fault"]["freesurftopo"]
-#     faultsliptosurfacedisptofaulttraction = partialsconst["trac"]["freesurftopo"]["fault"] * faultsliptosurfacedisp
-#     bemsliptotractotal = partialsconst["trac"]["fault"]["fault"] - faultsliptosurfacedisptofaulttraction
-    
+    # Constants to calculate interaction matrix
+    nels = 100
+    mu = 3e10
+    mindepth = 0e3 # meters
+    maxdepth = 20e3 # meters
+
+    #! Constants for QD
+    nsteps = 500
+    printstep = 100
+    outfilename = string(now()) * ".jld2"
+    siay = 365.25 * 24 * 60 * 60
+    tspan = (0, siay * 1000)
+    abstol = 1e-4
+    reltol = 1e-4
+    nu = 0.25
+    rho = 2700.0
+    eta = mu / (2.0 * sqrt(mu / rho))
+    dc = 0.05
+    blockvel = 1e-9
+
+
+    #! Calculate full element to element interaction interaction
+    @time mat = interactionmatrix(nels, mindepth, maxdepth, mu)
+    matshow(log10.(abs.(mat))) # Plot interaction matrix
+
+
+
+
+    #! Plot and save
+    # plotqdtimeseries(integrator.sol, 2, nfault)    
+    # @time @save outfilename integrator.sol els mu nu
+    # println("Wrote integration results to:")
+    # println(outfilename)
+end
+strikeslipstress()
+
+
+# function ex_qdstepandsaveflat()
+
 #     # CS elements - Euler style stress integration
 #     nnodes = 1 * nfault
 #     ics = zeros(3 * nnodes)
@@ -106,14 +110,6 @@ end
 #             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
 #         end    
 #     end
-#     plotqdtimeseries(integrator.sol, 3, nfault)
-    
-#     @time @save outfilename integrator.sol els mu nu
-#     println("Wrote integration results to:")
-#     println(outfilename)
-# end
-# ex_qdstepandsaveflat()
-
 
 
 
