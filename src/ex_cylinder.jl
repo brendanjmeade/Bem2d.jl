@@ -160,22 +160,10 @@ function ex_cylinder()
     T, S, H = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     U, D, A = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
-    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
+    dispall1 = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
 
     #! Try displacement discontinuity method...because I'm out of ideas
     dispall = U * Bem2d.interleave(xtracscaled, ytracscaled)
-
-
-    #! Can I recover the original tractions?  YES!
-    # tracrecovered = inv(U) * (T + 0.5 * LinearAlgebra.I(size(T)[1])) * dispall
-    # PyPlot.figure(figsize=(30, 20))
-    # PyPlot.subplot(2, 1, 1)
-    # PyPlot.plot(xtracscaled, "r+")
-    # PyPlot.plot(tracrecovered[1:2:end], "bx")
-    # PyPlot.subplot(2, 1, 2)
-    # PyPlot.plot(ytracscaled, "r+")
-    # PyPlot.plot(tracrecovered[2:2:end], "bx")
-    # PyPlot.show()
 
     #! Streses from tractions
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
@@ -184,7 +172,7 @@ function ex_cylinder()
     _, stressdisp = Bem2d.constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
     #! Isolate the values inside the circle
-    to_nan_idx = findall(x -> x > 0.9 * R, r)
+    to_nan_idx = findall(x -> x > 0.99 * R, r)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
     σrθ[to_nan_idx] .= NaN
@@ -206,22 +194,12 @@ function ex_cylinder()
     @show mean(filter(!isnan, σxx))
     @show mean(filter(!isnan, σxx-stressbem[:,1]))
     @show mean(filter(!isnan, abs.((σxx-stressbem[:,1]) ./ stressbem[:,1])))
-
     @show mean(filter(!isnan, σyy))
     @show mean(filter(!isnan, σyy-stressbem[:,2]))
     @show mean(filter(!isnan, abs.((σyy-stressbem[:,2]) ./ stressbem[:,2])))
-
     @show mean(filter(!isnan, σxy))
     @show mean(filter(!isnan, σxy-stressbem[:,3]))
     @show mean(filter(!isnan, abs.((σxy-stressbem[:,3]) ./ stressbem[:,3])))
-
-    #! Try Crouch and Starfield line style plot
-    # Figure 4.15 in CS1983 doesn't make a lot of sense to me because
-    # it shows a sign change in sigmaxxdivp which is not seen the data given
-    # in table 4.1 
-    # xdivr         = [0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9]
-    # sigmaxxdivp   =  [0.0398 0.0382 0.0339 0.0278 0.0209 0.0144 0.0089 0.0047 0.0019 0.0004 0.000]
-    # sigmayydivp   = -[0.1198 0.1167 0.1078 0.0946 0.0789 0.0624 0.0465 0.0321 0.0195 0.0089 0.000]
 
     #! Summary figure
     PyPlot.figure(figsize=(30,20))
@@ -238,12 +216,24 @@ function ex_cylinder()
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 
-    #! Induced displacements
+    # #! Induced displacements
+    # PyPlot.subplot(3, 6, 2)
+    # for i in 1:els.endidx
+    #     PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
+    # end
+    # PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xdisp, ydisp, color="blue")
+    # PyPlot.title("induced displacements", fontsize=fontsize)
+    # PyPlot.xticks([])
+    # PyPlot.yticks([])
+    # PyPlot.gca().set_aspect("equal")
+    # PyPlot.gca().tick_params(labelsize=fontsize)
+
     PyPlot.subplot(3, 6, 2)
     for i in 1:els.endidx
         PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
     end
-    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xdisp, ydisp, color="blue")
+    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall[1:2:end], dispall[2:2:end], color="green")
+    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall1[1:2:end], dispall1[2:2:end], color="red")
     PyPlot.title("induced displacements", fontsize=fontsize)
     PyPlot.xticks([])
     PyPlot.yticks([])
@@ -254,12 +244,13 @@ function ex_cylinder()
     for i in 1:els.endidx
         PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
     end
-    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall[1:2:end], dispall[2:2:end], color="green")
+    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall1[1:2:end]-dispall[1:2:end], dispall1[2:2:end]-dispall[2:2:end], color="red")
     PyPlot.title("induced displacements", fontsize=fontsize)
     PyPlot.xticks([])
     PyPlot.yticks([])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
+
 
     #! Analytic solutions
     PyPlot.subplot(3, 6, 7)
