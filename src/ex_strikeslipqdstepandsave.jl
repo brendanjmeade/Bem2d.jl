@@ -31,7 +31,7 @@ end
 
 function derivsconst!(dudt, u, p, t)
     nels, U2Tmat, eta, a, b, sigma, thetalaw, dc, blockvel, dthetadt, dvdt, v, dTdt = p
-    @views dTdt = U2Tmat * (blockvel .- u[1:2:end])
+    @views dTdt = -U2Tmat * (blockvel .- u[1:2:end])
     for i in 1:nels
         @views dthetadt[i] = thetalaw(abs(v[i]), abs(u[2:2:end][i]), dc)
         @views dvdt[i] = 1 / (eta / sigma[i] + a[i] / abs(v[i])) * (dTdt[i] / sigma[i] - b[i] * dthetadt[i] / u[1:2:end][i])
@@ -42,7 +42,9 @@ function derivsconst!(dudt, u, p, t)
 end
 
 function strikeslipstress()
+    #! Preliminaries
     close("all")
+    outfilename = string(now()) * ".jld2"
 
     # Constants to calculate interaction matrix
     nels = 100
@@ -94,9 +96,12 @@ function strikeslipstress()
     end
 
     #! Plot and save
-    # plotqdtimeseries(integrator.sol, 2, nfault)    
+    figure()
+    plot(diff(integrator.sol.t))
+
+    # plotqdtimeseries(integrator.sol, 2, nels)    
     # @time @save outfilename integrator.sol mu nu
-    # println("Wrote integration results to:")
-    # println(outfilename)
+    println("Wrote integration results to:")
+    println(outfilename)
 end
 strikeslipstress()
