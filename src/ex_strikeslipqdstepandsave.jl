@@ -32,12 +32,12 @@ function strikeslipstress()
     PyPlot.close("all")
     nels = 100
     mu = 3e10
-    d1 = 20e3 # meters
-    d2 = 10e3 # meters
+    mindepth = 0e3 # meters
+    maxdepth = 20e3 # meters
 
     #! Calculate full element to element interaction interaction
-    @time mat = interactionmatrix(nels, 0e3, 20e3, mu)
-    PyPlot.matshow(mat) # Plot interaction matrix
+    @time mat = interactionmatrix(nels, mindepth, maxdepth, mu)
+    PyPlot.matshow(log10.(abs.(mat))) # Plot interaction matrix
 end
 strikeslipstress()
 
