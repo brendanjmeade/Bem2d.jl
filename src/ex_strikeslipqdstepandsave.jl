@@ -30,14 +30,14 @@ function interactionmatrix(nels, dtop, dbot, mu)
 end
 
 function derivsconst!(dudt, u, p, t)
-    nels, U2Tmat, eta, thetalaw, dc, blockvel, dthetadt, dvdt, v, dTdt = p
+    nels, U2Tmat, eta, a, b, sigma, thetalaw, dc, blockvel, dthetadt, dvdt, v, dTdt = p
     @views dTdt = U2Tmat * (blockvel .- u[1:2:end])
     for i in 1:nels
-#         @views dthetadt[i] = thetalaw(abs(vx[i]), abs(u[3:3:end][i]), dc)
-#         @views dvxdt[i] = 1 / (eta / els.normalstress[intidx[i]] + els.a[intidx[i]] / abs(vx[i])) * (dtracxglobaldt[i] / els.normalstress[intidx[i]] - els.b[intidx[i]] * dthetadt[i] / u[3:3:end][i])
+        @views dthetadt[i] = thetalaw(abs(v[i]), abs(u[2:2:end][i]), dc)
+        @views dvdt[i] = 1 / (eta / sigma[i] + a[i] / abs(v[i])) * (dTdt[i] / sigma[i] - b[i] * dthetadt[i] / u[1:2:end][i])
     end
-    # dudt[2:2:end] = dthetadt
-    dudt[2:2:end] .= 0
+    dudt[1:2:end] = dvdt
+    dudt[2:2:end] = dthetadt
     return nothing
 end
 
@@ -63,6 +63,9 @@ function strikeslipstress()
     eta = mu / (2.0 * sqrt(mu / rho))
     dc = 0.05
     blockvel = 1e-9
+    a = 0.015 * ones(nels)
+    b = 0.020 * ones(nels)
+    sigma = 50e6 * ones(nels)
 
     #! Calculate full element to element interaction interaction
     @time U2Tmat = interactionmatrix(nels, mindepth, maxdepth, mu)
@@ -78,17 +81,17 @@ function strikeslipstress()
     dTdt = zeros(nels)
 
     #! Set up integrator
-    p = (nels, U2Tmat, eta, thetaaginglaw, dc, blockvel, dthetadt, dvdt, v, dTdt)
+    p = (nels, U2Tmat, eta, a, b, sigma, thetaaginglaw, dc, blockvel, dthetadt, dvdt, v, dTdt)
     prob = ODEProblem(derivsconst!, ics, tspan, p)
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
 
     #! Time integrate
-#     @time for i in 1:nsteps
-#         step!(integrator)
-#         if mod(i, printstep) == 0
-#             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
-#         end    
-#     end
+    @time for i in 1:nsteps
+        step!(integrator)
+        if mod(i, printstep) == 0
+            println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
+        end    
+    end
 
     #! Plot and save
     # plotqdtimeseries(integrator.sol, 2, nfault)    
@@ -97,36 +100,3 @@ function strikeslipstress()
     # println(outfilename)
 end
 strikeslipstress()
-
-
-# function ex_qdstepandsaveflat()
-
-#     # CS elements - Euler style stress integration
-#     nnodes = 1 * nfault
-#     ics = zeros(3 * nnodes)
-#     ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
-#     ics[2:3:end] = 1e-3 * blockvely * ones(nnodes)
-#     ics[3:3:end] = 1e8 * ones(nnodes)
-#     intidx = idx["fault"] # indices of elements to integrate
-#     nintidx = length(intidx)
-#     dthetadt = zeros(nintidx)
-#     dvxdt = zeros(nintidx)
-#     dvydt = zeros(nintidx)
-#     vx = zeros(nintidx)
-#     vy = zeros(nintidx)
-#     dtracxglobaldt = zeros(nintidx)
-#     dtracyglobaldt = zeros(nintidx)
-#     dtracglobaldt = zeros(2 * nintidx)
-#     p = (intidx, nintidx, bemsliptotractotal, els, eta, thetaaginglaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
-#     prob = ODEProblem(derivsconst!, ics, tspan, p)
-#     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
-#     @time for i in 1:nsteps
-#         step!(integrator)
-#         if mod(i, printstep) == 0
-#             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
-#         end    
-#     end
-
-
-
-
