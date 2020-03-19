@@ -31,7 +31,9 @@ end
 
 function derivsconst!(dudt, u, p, t)
     nels, U2Tmat, eta, a, b, sigma, thetalaw, dc, blockvel, dthetadt, dvdt, v, dTdt = p
-    @views dTdt = -U2Tmat * (blockvel .- u[1:2:end])
+    # @views dTdt = U2Tmat * (blockvel .- u[1:2:end])
+    @views dTdt = U2Tmat * (blockvel .+ u[1:2:end])
+
     for i in 1:nels
         @views dthetadt[i] = thetalaw(abs(v[i]), abs(u[2:2:end][i]), dc)
         @views dvdt[i] = 1 / (eta / sigma[i] + a[i] / abs(v[i])) * (dTdt[i] / sigma[i] - b[i] * dthetadt[i] / u[1:2:end][i])
@@ -47,7 +49,7 @@ function strikeslipstress()
     outfilename = string(now()) * ".jld2"
 
     # Constants to calculate interaction matrix
-    nels = 100
+    nels = 1000
     mu = 3e10
     mindepth = 0e3 # meters
     maxdepth = 20e3 # meters
@@ -61,17 +63,18 @@ function strikeslipstress()
     abstol = 1e-4
     reltol = 1e-4
     nu = 0.25
-    rho = 2700.0
+    rho = 2700.0 #
     eta = mu / (2.0 * sqrt(mu / rho))
-    dc = 0.05
-    blockvel = 1e-9
+    dc = 0.05 # Erickshon has this at 0.004-0.008
+    blockvel = 1e-9 # from Erickson
     a = 0.015 * ones(nels)
     b = 0.020 * ones(nels)
-    sigma = 50e6 * ones(nels)
+    sigma = 50e6 * ones(nels) # from Erickson
 
     #! Calculate full element to element interaction interaction
-    @time U2Tmat = interactionmatrix(nels, mindepth, maxdepth, mu)
-    matshow(log10.(abs.(U2Tmat))) # Plot interaction matrix
+    @time U2Tmat = -interactionmatrix(nels, mindepth, maxdepth, mu)
+    matshow(U2Tmat) # Plot interaction matrix
+    colorbar()
 
     #! Set initial conditions and package parameters for pass to integrator
     ics = zeros(2 * nels)
