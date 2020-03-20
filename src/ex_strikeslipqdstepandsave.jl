@@ -32,14 +32,8 @@ end
 function derivs!(dudt, u, p, t)
     nels, U2Tmat, eta, a, b, sigma, thetalaw, dc, blockvel, dthetadt, dvdt, v, dTdt = p
     dTdt = U2Tmat * (blockvel .- u[1:2:end])
-    println("here")
-    dthetadt = @. 1 - theta * v / dc
+    dthetadt = @. 1 - u[2:2:end] * u[1:2:end] / dc
     dvdt = @. 1 / (eta / sigma + a / abs(u[1:2:end])) * (dTdt / sigma - b * dthetadt / u[1:2:end])
-
-    # for i in 1:nels
-    #     dthetadt[i] = thetalaw(abs(u[1:2:end][i]), abs(u[2:2:end][i]), dc)
-    #     dvdt[i] = 1 / (eta / sigma[i] + a[i] / abs(u[1:2:end][i])) * (dTdt[i] / sigma[i] - b[i] * dthetadt[i] / u[1:2:end][i])
-    # end
     dudt[1:2:end] = dvdt
     dudt[2:2:end] = dthetadt
     return nothing
@@ -77,7 +71,11 @@ function strikeslipstress()
     @time U2Tmat = -interactionmatrix(nels, mindepth, maxdepth, mu)
     matshow(U2Tmat) # Plot interaction matrix
     colorbar()
-    return
+    
+    figure()
+    im = imshow(U2Tmat, vmin=-.2, vmax=.2, interpolation="nearest", aspect="auto")
+    colorbar(im)
+    # return
 
     #! Set initial conditions and package parameters for pass to integrator
     ics = zeros(2 * nels)
@@ -90,7 +88,6 @@ function strikeslipstress()
 
     #! Set up integrator
     p = (nels, U2Tmat, eta, a, b, sigma, thetaaginglaw, dc, blockvel, dthetadt, dvdt, v, dTdt)
-    # prob = ODEProblem(derivsconst!, ics, tspan, p)
     prob = ODEProblem(derivs!, ics, tspan, p)
 
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
