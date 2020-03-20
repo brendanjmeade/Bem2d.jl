@@ -31,7 +31,7 @@ end
 
 function derivs!(dudt, u, p, t)
     nels, U2Tmat, eta, a, b, sigma, thetalaw, dc, blockvel, dthetadt, dvdt, v, dTdt = p
-    dTdt = U2Tmat * (blockvel .- u[1:2:end])
+    dTdt = U2Tmat * (blockvel .- u[1:2:end]) # Shear stress change due to change in velocity
     dthetadt = @. 1 - u[2:2:end] * u[1:2:end] / dc
     dvdt = @. 1 / (eta / sigma + a / abs(u[1:2:end])) * (dTdt / sigma - b * dthetadt / u[1:2:end])
     dudt[1:2:end] = dvdt
