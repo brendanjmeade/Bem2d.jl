@@ -3,6 +3,7 @@ using DifferentialEquations
 using JLD2
 using Dates
 using Infiltrator
+using PyPlot
 using Bem2d
 
 function derivsconst!(dudt, u, p, t)
@@ -38,8 +39,8 @@ end
 
 function ex_qdstepandsave()
     # Constants
-    nsteps = 5000
-    nfault = 200
+    nsteps = 500
+    nfault = 100
     printstep = 100
     amplitude = 1.0
     outfilename = string(now()) * ".jld2"
@@ -82,6 +83,9 @@ function ex_qdstepandsave()
     println("Calculating velocity to traction matrix")
     @time _, _, partialsconst["trac"]["fault"]["fault"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
     @time _, _, partialsquad["trac"]["fault"]["fault"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+
+    matshow(partialsconst["trac"]["fault"]["fault"])
+    colorbar()
 
     # CS elements - Euler style stress integration
     nnodes = 1 * nfault
