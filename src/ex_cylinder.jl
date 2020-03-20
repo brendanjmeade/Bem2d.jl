@@ -160,10 +160,10 @@ function ex_cylinder()
     T, S, H = Bem2d.partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     U, D, A = Bem2d.partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtrac, ytrac)
-    dispall1 = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
+    dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * Bem2d.interleave(xtracscaled, ytracscaled)
 
     #! Try displacement discontinuity method...because I'm out of ideas
-    dispall = U * Bem2d.interleave(xtracscaled, ytracscaled)
+    # dispall = U * Bem2d.interleave(xtracscaled, ytracscaled)
 
     #! Streses from tractions
     _, stresstrac = Bem2d.constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
@@ -233,23 +233,23 @@ function ex_cylinder()
         PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
     end
     PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall[1:2:end], dispall[2:2:end], color="green")
-    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall1[1:2:end], dispall1[2:2:end], color="red")
+    # PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall1[1:2:end], dispall1[2:2:end], color="red")
     PyPlot.title("induced displacements", fontsize=fontsize)
     PyPlot.xticks([])
     PyPlot.yticks([])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 
-    PyPlot.subplot(3, 6, 3)
-    for i in 1:els.endidx
-        PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
-    end
-    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall1[1:2:end]-dispall[1:2:end], dispall1[2:2:end]-dispall[2:2:end], color="red")
-    PyPlot.title("induced displacements", fontsize=fontsize)
-    PyPlot.xticks([])
-    PyPlot.yticks([])
-    PyPlot.gca().set_aspect("equal")
-    PyPlot.gca().tick_params(labelsize=fontsize)
+    # PyPlot.subplot(3, 6, 3)
+    # for i in 1:els.endidx
+    #     PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
+    # end
+    # PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall1[1:2:end]-dispall[1:2:end], dispall1[2:2:end]-dispall[2:2:end], color="red")
+    # PyPlot.title("induced displacements", fontsize=fontsize)
+    # PyPlot.xticks([])
+    # PyPlot.yticks([])
+    # PyPlot.gca().set_aspect("equal")
+    # PyPlot.gca().tick_params(labelsize=fontsize)
 
 
     #! Analytic solutions
