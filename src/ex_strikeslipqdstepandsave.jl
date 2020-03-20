@@ -29,14 +29,14 @@ function interactionmatrix(nels, dtop, dbot, mu)
     return mat
 end
 
-function derivsconst!(dudt, u, p, t)
+function derivs!(dudt, u, p, t)
     nels, U2Tmat, eta, a, b, sigma, thetalaw, dc, blockvel, dthetadt, dvdt, v, dTdt = p
-    # @views dTdt = U2Tmat * (blockvel .- u[1:2:end])
-    @views dTdt = U2Tmat * (blockvel .+ u[1:2:end])
-
+    dTdt = U2Tmat * (blockvel .- u[1:2:end])
+    println("here")
+    @infiltrate
     for i in 1:nels
-        @views dthetadt[i] = thetalaw(abs(v[i]), abs(u[2:2:end][i]), dc)
-        @views dvdt[i] = 1 / (eta / sigma[i] + a[i] / abs(v[i])) * (dTdt[i] / sigma[i] - b[i] * dthetadt[i] / u[1:2:end][i])
+        dthetadt[i] = thetalaw(abs(u[1:2:end][i]), abs(u[2:2:end][i]), dc)
+        dvdt[i] = 1 / (eta / sigma[i] + a[i] / abs(u[1:2:end][i])) * (dTdt[i] / sigma[i] - b[i] * dthetadt[i] / u[1:2:end][i])
     end
     dudt[1:2:end] = dvdt
     dudt[2:2:end] = dthetadt
@@ -49,14 +49,14 @@ function strikeslipstress()
     outfilename = string(now()) * ".jld2"
 
     # Constants to calculate interaction matrix
-    nels = 1000
+    nels = 100
     mu = 3e10
     mindepth = 0e3 # meters
     maxdepth = 20e3 # meters
 
     #! Constants for QD
     nsteps = 500
-    printstep = 100
+    printstep = 1
     outfilename = string(now()) * ".jld2"
     siay = 365.25 * 24 * 60 * 60
     tspan = (0, siay * 1000)
@@ -72,7 +72,7 @@ function strikeslipstress()
     sigma = 50e6 * ones(nels) # from Erickson
 
     #! Calculate full element to element interaction interaction
-    @time U2Tmat = -interactionmatrix(nels, mindepth, maxdepth, mu)
+    @time U2Tmat = interactionmatrix(nels, mindepth, maxdepth, mu)
     matshow(U2Tmat) # Plot interaction matrix
     colorbar()
 
@@ -87,11 +87,14 @@ function strikeslipstress()
 
     #! Set up integrator
     p = (nels, U2Tmat, eta, a, b, sigma, thetaaginglaw, dc, blockvel, dthetadt, dvdt, v, dTdt)
-    prob = ODEProblem(derivsconst!, ics, tspan, p)
+    # prob = ODEProblem(derivsconst!, ics, tspan, p)
+    prob = ODEProblem(derivs!, ics, tspan, p)
+
     integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
 
     #! Time integrate
     @time for i in 1:nsteps
+        @show i
         step!(integrator)
         if mod(i, printstep) == 0
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
