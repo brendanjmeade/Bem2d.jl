@@ -38,8 +38,9 @@ function derivsquad!(dudt, u, p, t)
 end
 
 function ex_qdstepandsave()
+    close("all")
     # Constants
-    nsteps = 500
+    nsteps = 5000
     nfault = 100
     printstep = 100
     amplitude = 1.0
@@ -87,6 +88,13 @@ function ex_qdstepandsave()
     matshow(partialsconst["trac"]["fault"]["fault"])
     colorbar()
 
+    mat = partialsconst["trac"]["fault"]["fault"][1:2:end, 1:2:end]
+    figure()
+    im = imshow(mat, vmin=-.2, vmax=.2, interpolation="nearest", aspect="auto")
+    colorbar(im)
+    @time @save "edgemat.jld2" mat
+    # return
+
     # CS elements - Euler style stress integration
     nnodes = 1 * nfault
     ics = zeros(3 * nnodes)
@@ -112,34 +120,35 @@ function ex_qdstepandsave()
             println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
         end    
     end
+    figure()
     plotqdtimeseries(integrator.sol, 3, nfault)
     
-    # 3QN elements - Euler style stress integration
-    nnodes = 3 * nfault
-    ics = zeros(3 * nnodes)
-    ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
-    ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
-    ics[3:3:end] = 1e8 * ones(nnodes)
-    intidx = collect(1:1:els.endidx) # indices of elements to integrate
-    nintidx = length(intidx)
-    dthetadt = zeros(3 * nintidx)
-    dvxdt = zeros(3 * nintidx)
-    dvydt = zeros(3 * nintidx)
-    vx = zeros(3 * nintidx)
-    vy = zeros(3 * nintidx)
-    dtracxglobaldt = zeros(3 * nintidx)
-    dtracyglobaldt = zeros(3 * nintidx)
-    dtracglobaldt = zeros(2 * 3 * nintidx)
-    p = (intidx, nintidx, partialsquad, els, eta, thetasliplaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
-    prob = ODEProblem(derivsquad!, ics, tspan, p)
-    integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
-    @time for i in 1:nsteps
-        step!(integrator)
-        if mod(i, printstep) == 0
-            println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
-        end
-    end
-    plotqdtimeseriesquad(integrator.sol, 3, nfault)
+    # # 3QN elements - Euler style stress integration
+    # nnodes = 3 * nfault
+    # ics = zeros(3 * nnodes)
+    # ics[1:3:end] = 1e-3 * blockvelx * ones(nnodes)
+    # ics[2:3:end] = 0.0 * blockvely * ones(nnodes)
+    # ics[3:3:end] = 1e8 * ones(nnodes)
+    # intidx = collect(1:1:els.endidx) # indices of elements to integrate
+    # nintidx = length(intidx)
+    # dthetadt = zeros(3 * nintidx)
+    # dvxdt = zeros(3 * nintidx)
+    # dvydt = zeros(3 * nintidx)
+    # vx = zeros(3 * nintidx)
+    # vy = zeros(3 * nintidx)
+    # dtracxglobaldt = zeros(3 * nintidx)
+    # dtracyglobaldt = zeros(3 * nintidx)
+    # dtracglobaldt = zeros(2 * 3 * nintidx)
+    # p = (intidx, nintidx, partialsquad, els, eta, thetasliplaw, dc, blockvelx, blockvely, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt)
+    # prob = ODEProblem(derivsquad!, ics, tspan, p)
+    # integrator = init(prob, Vern7(), abstol = abstol, reltol = reltol)
+    # @time for i in 1:nsteps
+    #     step!(integrator)
+    #     if mod(i, printstep) == 0
+    #         println("step: " * string(i) * " of " * string(nsteps) * ", time: " * string(integrator.sol.t[end] / siay))
+    #     end
+    # end
+    # plotqdtimeseriesquad(integrator.sol, 3, nfault)
     
     # @time @save outfilename integrator.sol
     # println("Wrote integration results to:")
