@@ -16,3 +16,14 @@ include(“ex_thrusttopo.jl”)
 should produce this figure:
 
 ![ex_thrusttopo](/docs/src/assets/ex_thrusttopo.png)
+
+## Running inside Docker
+
+Bem2d.jl has its own docker image! Before, continuing, follow these directions to make sure you have the latest version of docker and docker-compose:
+
+* https://docs.docker.com/install/ (also, on Linux, make sure to follow the post-install instructions: https://docs.docker.com/install/linux/linux-postinstall/)
+* https://docs.docker.com/compose/install/
+
+To test that out, try running `docker run hello-world`. 
+
+If that works, let's launch a Jupyter notebook with Bem2d.jl installed. Run: `./launch_jupyter` That should first download or build the docker image which includes installing all the dependencies for Bem2d.jl. Afterwards, it'll launch a Jupyter Lab server instance. Find the line in the output saying `[I 19:20:33.891 LabApp] The Jupyter Notebook is running at:`. The next line should tell you what port the server is running on. Open your browser to `localhost:THATPORT` and play around! 

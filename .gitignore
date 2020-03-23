@@ -9,3 +9,6 @@
 *.npy
 *.npz
 .vscode/settings.json
+*.swp
+*.swo
+.ipynb_checkpoints
