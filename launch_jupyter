@@ -1,3 +1,3 @@
 #!/bin/bash
 set -e 
-docker-compose run work jupyter lab --allow-root --ip='*' --NotebookApp.token='' --NotebookApp.password=''
+docker-compose run work bash -c "source /root/.julia/conda/3/bin/activate base; jupyter lab --allow-root --ip='*' --NotebookApp.token='' --NotebookApp.password=''"
