@@ -8,9 +8,6 @@ function stylesubplots_local()
     gca().set_aspect("equal")
     xlim([-200, 200])
     ylim([-200, 200])
-    # gca().# set_xticks([])
-    # gca().
-    # set_yticks([])
     return nothing
 end
 
@@ -76,55 +73,25 @@ function plot18_local(els, x, y, disp1, stress1, string1, disp2, stress2, string
     subplotlocal(els, x, y, stress2[:, 3], contoursdisp, "sxy (" * string2 * ")")
 
     #! Residuals
-    PyPlot.subplot(3, 6, 13)
-    PyPlot.quiver(x[:], y[:], disp1[:, 1]-disp2[:, 1], disp1[:, 2]-disp2[:, 2], units="width", color="b")
+    subplot(3, 6, 13)
+    quiver(x[:], y[:], disp1[:, 1]-disp2[:, 1], disp1[:, 2]-disp2[:, 2], units="width", color="b")
     stylesubplots_local()
-    Bem2d.plotelements(els)
-    PyPlot.title("u", fontsize=fontsize)
+    plotelements(els)
+    title("u", fontsize=fontsize)
+    subplot(nrows, ncols, 14)
+    subplotlocal(els, x, y, disp1[:, 1]-disp2[:, 1], contoursdisp, "ux residuals")
+    subplot(nrows, ncols, 15)
+    subplotlocal(els, x, y, disp1[:, 2]-disp2[:, 2], contoursdisp, "uy residuals")
+    subplot(nrows, ncols, 16)
+    subplotlocal(els, x, y, stress1[:, 1]-stress2[:, 1], contoursdisp, "sxx residuals")
+    subplot(nrows, ncols, 17)
+    subplotlocal(els, x, y, stress1[:, 2]-stress2[:, 2], contoursdisp, "syy residuals")
+    subplot(nrows, ncols, 18)
+    subplotlocal(els, x, y, stress1[:, 3]-stress2[:, 3], contoursdisp, "sxy residuals")
 
-    PyPlot.subplot(3, 6, 14)
-    PyPlot.contourf(x, y, reshape(disp1[:, 1]-disp2[:, 1], size(x)), contoursdisp, cmap=cmap)
-    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(disp1[:, 1]-disp2[:, 1], size(x)), contoursdisp, linewidths=0.25, colors="k")
-    stylesubplots_local()
-    Bem2d.plotelements(els)
-    PyPlot.title("uy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
-    
-    PyPlot.subplot(3, 6, 15)
-    PyPlot.contourf(x, y, reshape(disp1[:, 2]-disp2[:, 2], size(x)), contoursdisp, cmap=cmap)
-    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(disp1[:, 2]-disp2[:, 2], size(x)), contoursdisp, linewidths=0.25, colors="k")
-    stylesubplots_local()
-    Bem2d.plotelements(els)
-    PyPlot.title("uy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
-
-    PyPlot.subplot(3, 6, 16)
-    PyPlot.contourf(x, y, reshape(stress1[:, 1]-stress2[:, 1], size(x)), contourvecstress, cmap=cmap)
-    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(stress1[:, 1]-stress2[:, 1], size(x)), contourvecstress, linewidths=0.25, colors="k")
-    stylesubplots_local()
-    Bem2d.plotelements(els)
-    PyPlot.title("sxx (" * string1 * "-" * string2 * ")", fontsize=fontsize)
-
-    PyPlot.subplot(3, 6, 17)
-    PyPlot.contourf(x, y, reshape(stress1[:, 2]-stress2[:, 2], size(x)), contourvecstress, cmap=cmap)
-    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(stress1[:, 2]-stress2[:, 2], size(x)), contourvecstress, linewidths=0.25, colors="k")
-    stylesubplots_local()
-    Bem2d.plotelements(els)
-    PyPlot.title("syy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
-
-    PyPlot.subplot(3, 6, 18)
-    PyPlot.contourf(x, y, reshape(stress1[:, 3]-stress2[:, 3], size(x)), contourvecstress, cmap=cmap)
-    PyPlot.colorbar(fraction=0.020, pad=0.05, extend="both")
-    PyPlot.contour(x, y, reshape(stress1[:, 3]-stress2[:, 3], size(x)), contourvecstress, linewidths=0.25, colors="k")
-    stylesubplots_local()
-    Bem2d.plotelements(els)
-    PyPlot.title("sxy (" * string1 * "-" * string2 * ")", fontsize=fontsize)
-
-    PyPlot.suptitle(title_string, fontsize=fontsize)
-    PyPlot.tight_layout()
-    PyPlot.show()
+    suptitle(title_string, fontsize=fontsize)
+    tight_layout()
+    show()
 end
 
 function ex_flamantfinite()
@@ -151,7 +118,6 @@ function ex_flamantfinite()
     fyscaled = @. fy / (2*a) #! Strange length dependent normalization
 
     #! Analytic finite Flamant solution
-    # dispanalytic, stressanalytic = flamant(x, y, fx, fy, mididx, mu, nu)
     dispanalytic = zeros(length(x), 2)
     stressanalytic = zeros(length(x), 3)
     r1 = @. (x-a)^2 + y^2
@@ -175,13 +141,13 @@ function ex_flamantfinite()
     idx = getidxdict(els)
 
     #! Direct BEM
-    T, _, _ = partialsconstdispstress(slip2dispstress, els, idx["line"], idx["line"], mu, nu)
-    U, _, _ = partialsconstdispstress(trac2dispstress, els, idx["line"], idx["line"], mu, nu)
-    # dispall = (inv(T + 0.5 * LinearAlgebra.I(size(T)[1]))) * U * interleave(fxscaled, fyscaled)
-    dispall = (inv(T + 0.5 * I(size(T)[1]))) * U * interleave(fxscaled, fyscaled)
+    Tstar, Sstar, Hstar = partialsconstdispstress(slip2dispstress, els, idx["line"], idx["line"], mu, nu)
+    Ustar, Dstar, Astar = partialsconstdispstress(trac2dispstress, els, idx["line"], idx["line"], mu, nu)
+      
+    dispall = (inv(Tstar + 0.5 * I(size(Tstar)[1]))) * Ustar * interleave(fxscaled, fyscaled)
 
     #! Try Indirect DDM...because it worked for the Brazil test
-    dispall = -U * interleave(fx, fy)
+    dispall = -Ustar * interleave(fx, fy)
 
     #! Streses from tractions and induced displacements
     disptrac, stresstrac = constdispstress(trac2dispstress, x, y, els, idx["line"], fxscaled, fyscaled, mu, nu)
@@ -196,19 +162,16 @@ function ex_flamantfinite()
     stresstrac[to_nan_idx, :] .= NaN
     stressdisp[to_nan_idx, :] .= NaN
 
-    #! 18 panel plot
+    #! Multi-panel plot
     close("all")
     # dispbem = disptrac .- dispdisp # Direct BEM
     # stressbem = stresstrac .- stressdisp # Direct BEM
     dispbem = dispdisp # DDM
     stressbem = stressdisp # DDM
-
     xobs = reshape(x, npts, npts)
     yobs = reshape(y, npts, npts)
     plot18_local(els, xobs, yobs, dispbem, stressbem, "BEM",
                  dispanalytic, stressanalytic, "analytic",
                  "Flamant (BEM vs. analytic)")
-    tight_layout()
-    show()
 end
 ex_flamantfinite()
