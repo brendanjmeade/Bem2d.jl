@@ -24,62 +24,6 @@ function subplotlocal(nrows, ncols, plotidx, els, x, y, field, contours, titlest
     return nothing
 end
 
-function plot18_local(els, x, y, disp1, stress1, string1, disp2, stress2, string2, title_string)    
-    # Set contour levels for displacements and stresses
-    # contourvecdispx = collect(LinRange(-1e-11, 1e-11, 51))
-    # contourvecdispy = collect(LinRange(-1e-11, 1e-11, 51))
-    # contourvecdispy = collect(LinRange(-1e-10, 1e-10, 51))
-    contoursdisp = 51
-    # contourvecstress = collect(LinRange(-1e-2, 1e-2, 51))
-    contourvecstress = 51
-
-    cmap = get_cmap("seismic")
-    fontsize = 30
-    nrows = 3
-    ncols = 6
-    figure(figsize=(30, 20))
-
-    #! Fields from first model
-    subplot(nrows, ncols, 1)
-    quiver(x[:], y[:], disp1[:, 1], disp1[:, 2], units="width", color="b")
-    stylesubplots_local()
-    plotelements(els)
-    title("u", fontsize=fontsize)
-    subplotlocal(nrows, ncols, 2, els, x, y, disp1[:, 1], contoursdisp, "ux (" * string1 * ")")
-    subplotlocal(nrows, ncols, 3, els, x, y, disp1[:, 2], contoursdisp, "uy (" * string1 * ")")
-    subplotlocal(nrows, ncols, 4, els, x, y, stress1[:, 1], contoursdisp, "sxx (" * string1 * ")")
-    subplotlocal(nrows, ncols, 5, els, x, y, stress1[:, 2], contoursdisp, "syy (" * string1 * ")")
-    subplotlocal(nrows, ncols, 6, els, x, y, stress1[:, 3], contoursdisp, "sxy (" * string1 * ")")
-
-    #! Fields from second model
-    subplot(nrows, ncols, 7)
-    quiver(x[:], y[:], disp2[:, 1], disp2[:, 2], units="width", color="b")
-    stylesubplots_local()
-    plotelements(els)
-    title("u", fontsize=fontsize)
-    subplotlocal(nrows, ncols, 8, els, x, y, disp2[:, 1], contoursdisp, "ux (" * string2 * ")")
-    subplotlocal(nrows, ncols, 9, els, x, y, disp2[:, 2], contoursdisp, "uy (" * string2 * ")")
-    subplotlocal(nrows, ncols, 10, els, x, y, stress2[:, 1], contoursdisp, "sxx (" * string2 * ")")
-    subplotlocal(nrows, ncols, 11, els, x, y, stress2[:, 2], contoursdisp, "syy (" * string2 * ")")
-    subplotlocal(nrows, ncols, 12, els, x, y, stress2[:, 3], contoursdisp, "sxy (" * string2 * ")")
-
-    #! Residuals
-    subplot(3, 6, 13)
-    quiver(x[:], y[:], disp1[:, 1]-disp2[:, 1], disp1[:, 2]-disp2[:, 2], units="width", color="b")
-    stylesubplots_local()
-    plotelements(els)
-    title("u", fontsize=fontsize)
-    subplotlocal(nrows, ncols, 14, els, x, y, disp1[:, 1]-disp2[:, 1], contoursdisp, "ux residuals")
-    subplotlocal(nrows, ncols, 15, els, x, y, disp1[:, 2]-disp2[:, 2], contoursdisp, "uy residuals")
-    subplotlocal(nrows, ncols, 16, els, x, y, stress1[:, 1]-stress2[:, 1], contoursdisp, "sxx residuals")
-    subplotlocal(nrows, ncols, 17, els, x, y, stress1[:, 2]-stress2[:, 2], contoursdisp, "syy residuals")
-    subplotlocal(nrows, ncols, 18, els, x, y, stress1[:, 3]-stress2[:, 3], contoursdisp, "sxy residuals")
-
-    suptitle(title_string, fontsize=fontsize)
-    tight_layout()
-    show()
-end
-
 function ex_flamantfinite()
     obswidth = 200
 
@@ -154,10 +98,53 @@ function ex_flamantfinite()
     # stressbem = stresstrac .- stressdisp # Direct BEM
     dispbem = dispdisp # DDM
     stressbem = stressdisp # DDM
-    xobs = reshape(x, npts, npts)
-    yobs = reshape(y, npts, npts)
-    plot18_local(els, xobs, yobs, dispbem, stressbem, "BEM",
-                 dispanalytic, stressanalytic, "analytic",
-                 "Flamant (BEM vs. analytic)")
+    xplot = reshape(x, npts, npts)
+    yplot = reshape(y, npts, npts)
+    contoursdisp = 51
+    contourvecstress = 51
+    cmap = get_cmap("seismic")
+    fontsize = 30
+    nrows = 3
+    ncols = 6
+    figure(figsize=(30, 20))
+
+    #! Analytic solution
+    subplot(nrows, ncols, 1)
+    quiver(x[:], y[:], dispanalytic[:, 1], dispanalytic[:, 2], units="width", color="b")
+    stylesubplots_local()
+    plotelements(els)
+    title("u", fontsize=fontsize)
+    subplotlocal(nrows, ncols, 2, els, xplot, yplot, dispanalytic[:, 1], contoursdisp, "ux (analytic)")
+    subplotlocal(nrows, ncols, 3, els, xplot, yplot, dispanalytic[:, 2], contoursdisp, "uy (analytic)")
+    subplotlocal(nrows, ncols, 4, els, xplot, yplot, stressanalytic[:, 1], contoursdisp, "sxx (analytic)")
+    subplotlocal(nrows, ncols, 5, els, xplot, yplot, stressanalytic[:, 2], contoursdisp, "syy (analytic)")
+    subplotlocal(nrows, ncols, 6, els, xplot, yplot, stressanalytic[:, 3], contoursdisp, "sxy (analytic)")
+
+    # #! Fields from second model
+    subplot(nrows, ncols, 7)
+    quiver(x[:], y[:], dispbem[:, 1], dispbem[:, 2], units="width", color="b")
+    stylesubplots_local()
+    plotelements(els)
+    title("u", fontsize=fontsize)
+    subplotlocal(nrows, ncols, 8, els, xplot, yplot, dispbem[:, 1], contoursdisp, "ux (BEM)")
+    subplotlocal(nrows, ncols, 9, els, xplot, yplot, dispbem[:, 2], contoursdisp, "uy (BEM)")
+    subplotlocal(nrows, ncols, 10, els, xplot, yplot, stressbem[:, 1], contoursdisp, "sxx (BEM)")
+    subplotlocal(nrows, ncols, 11, els, xplot, yplot, stressbem[:, 2], contoursdisp, "syy (BEM)")
+    subplotlocal(nrows, ncols, 12, els, xplot, yplot, stressbem[:, 3], contoursdisp, "sxy (BEM)")
+
+    # #! Residuals
+    subplot(3, 6, 13)
+    quiver(x[:], y[:], dispanalytic[:, 1]-dispbem[:, 1], dispanalytic[:, 2]-dispbem[:, 2], units="width", color="b")
+    stylesubplots_local()
+    plotelements(els)
+    title("u", fontsize=fontsize)
+    subplotlocal(nrows, ncols, 14, els, xplot, yplot, dispanalytic[:, 1]-dispbem[:, 1], contoursdisp, "ux residuals")
+    subplotlocal(nrows, ncols, 15, els, xplot, yplot, dispanalytic[:, 2]-dispbem[:, 2], contoursdisp, "uy residuals")
+    subplotlocal(nrows, ncols, 16, els, xplot, yplot, stressanalytic[:, 1]-stressbem[:, 1], contoursdisp, "sxx residuals")
+    subplotlocal(nrows, ncols, 17, els, xplot, yplot, stressanalytic[:, 2]-stressbem[:, 2], contoursdisp, "syy residuals")
+    subplotlocal(nrows, ncols, 18, els, xplot, yplot, stressanalytic[:, 3]-stressbem[:, 3], contoursdisp, "sxy residuals")
+
+    tight_layout()
+    show()
 end
 ex_flamantfinite()
