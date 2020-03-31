@@ -18,23 +18,24 @@ function discretized_arc(θstart, θend, radius, n_pts)
     return x1, y1, x2, y2
 end
 
-function circle_subplot(x, y, mat, npts, R, θ0, title_string)
+function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, θ0, title_string)
     fontsize = 20
     contour_levels = 20
     contour_color = "white"
     contour_linewidth = 0.5
     color_scale = 1
 
-    PyPlot.contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = PyPlot.colorbar(fraction=0.020, pad=0.05, extend = "both")
+    subplot(nrows, ncols, plotidx)
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    cbar = colorbar(fraction=0.020, pad=0.05, extend = "both")
     cbar.ax.tick_params(labelsize=fontsize)
     # cbar.set_label(label=title_string * " (Pa)", fontsize=fontsize)
     PyPlot.contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
     PyPlot.title(title_string, fontsize=fontsize)
-    # Draw enditre circle
+    # Draw entirre circle
     x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     for i in 1:length(x1) # Draw arc where compression is being applied
-        PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-k", linewidth=2)
+        plot([x1[i], x2[i]], [y1[i], y2[i]], "-k", linewidth=2)
     end
 
     # Draw right-hand side of applied compression arc
@@ -49,12 +50,6 @@ function circle_subplot(x, y, mat, npts, R, θ0, title_string)
         PyPlot.plot([x1[i], x2[i]], [y1[i], y2[i]], "-r", linewidth=2)
     end
 
-    # PyPlot.xlabel(L"x \; (m)", fontsize=fontsize)
-    # PyPlot.ylabel(L"y \; (m)", fontsize=fontsize)
-    # PyPlot.xlim([-1100, 1100])
-    # PyPlot.ylim([-1100, 1100])
-    # PyPlot.xticks([])
-    # PyPlot.yticks([])
     PyPlot.gca().set_aspect("equal")
     PyPlot.gca().tick_params(labelsize=fontsize)
 end
@@ -76,7 +71,7 @@ function ex_braziltest()
     nels = 360
     R = nels / (2 * pi) # Radius of disc ensuring that all elements are 1 unit long
     mmax = 1000 # Max number of terms in Hondros series
-    npts = 200
+    npts = 50
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
     r = @. sqrt(x^2 + y^2)
     θ = @. atan(y, x)
@@ -131,6 +126,7 @@ function ex_braziltest()
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
         normalTractions = [0; p] # Pressure in fault normal component only.
         xtrac[i], ytrac[i] = els.rotmat[i, :, :] * normalTractions
+        ytrac[i] = -ytrac[i] # Just a desperate attempt
     end
 
     #! Zero out the tractions on the area without contact
@@ -154,17 +150,18 @@ function ex_braziltest()
     Ustar, Dstar, Astar = partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
 
     #! Induced displacements from Direct BEM
-    # dispall = (inv(Tstar + 0.5 * I(size(T)[1]))) * Ustar * interleave(xtrac, ytrac)
-    dispall = (inv(Tstar + 0.5 * I(2*nels))) * Ustar * interleave(xtracscaled, ytracscaled)
-    dispall = (inv(Astar + 0.5 * I(2*nels))) * Ustar * interleave(xtracscaled, ytracscaled)
+    dispall = (inv(Tstar + 0.5 * I(size(Tstar)[1]))) * Ustar * interleave(xtrac, ytrac)
+
+    #! Displacement discontinuity method (indirect)
+    dispall = Ustar * interleave(xtrac, ytrac)
 
     #! Streses from tractions
-    _, stresstrac = constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
+    _, Strac = constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
 
     #! Stresses from traction induced displacements
-    _, stressdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
+    _, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
-    #! Isolate the values inside the circle
+    # #! Isolate the values inside the circle
     to_nan_idx = findall(x -> x > 0.9 * R, r)
     σrr[to_nan_idx] .= NaN
     σθθ[to_nan_idx] .= NaN
@@ -172,77 +169,63 @@ function ex_braziltest()
     σxx[to_nan_idx] .= NaN
     σyy[to_nan_idx] .= NaN
     σxy[to_nan_idx] .= NaN
-    stresstrac[to_nan_idx, 1] .= NaN
-    stresstrac[to_nan_idx, 2] .= NaN
-    stresstrac[to_nan_idx, 3] .= NaN
-    stressdisp[to_nan_idx, 1] .= NaN
-    stressdisp[to_nan_idx, 2] .= NaN
-    stressdisp[to_nan_idx, 3] .= NaN
-    stressbem = @. stresstrac + stressdisp
+    Strac[to_nan_idx, 1] .= NaN
+    Strac[to_nan_idx, 2] .= NaN
+    Strac[to_nan_idx, 3] .= NaN
+    Sdisp[to_nan_idx, 1] .= NaN
+    Sdisp[to_nan_idx, 2] .= NaN
+    Sdisp[to_nan_idx, 3] .= NaN
+    Sbem = @. Strac + Sdisp
 
     #! Summary figure
     fontsize = 24
-    PyPlot.figure(figsize=(30,20))
+    figure(figsize=(30,20))
+    nrows = 3
+    ncols = 6
 
     #! Traction forcing
-    PyPlot.subplot(3, 6, 1)
+    subplot(3, 6, 1)
     for i in 1:els.endidx
-        PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
     end
-    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xtrac, ytrac)
-    PyPlot.title("applied tractions", fontsize=fontsize)
-    PyPlot.xticks([])
-    PyPlot.yticks([])
-    PyPlot.gca().set_aspect("equal")
-    PyPlot.gca().tick_params(labelsize=fontsize)
+    quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xtrac, ytrac)
+    title("applied tractions", fontsize=fontsize)
+    xticks([])
+    yticks([])
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
 
     #! Induced displacements
-    PyPlot.subplot(3, 6, 2)
+    subplot(3, 6, 2)
     for i in 1:els.endidx
-        PyPlot.plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-k")
     end
-    PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall[1:2:end], dispall[2:2:end], color="green")
-    # PyPlot.quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall1[1:2:end], dispall1[2:2:end], color="red")
-    PyPlot.title("induced displacements", fontsize=fontsize)
-    PyPlot.xticks([])
-    PyPlot.yticks([])
-    PyPlot.gca().set_aspect("equal")
-    PyPlot.gca().tick_params(labelsize=fontsize)
+    quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall[1:2:end], dispall[2:2:end], color="green")
+    title("induced displacements", fontsize=fontsize)
+    xticks([])
+    yticks([])
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
 
     #! Analytic solutions
-    PyPlot.subplot(3, 6, 7)
-    circle_subplot(x, y, σrr, npts, R, θ0, L"\sigma_{rr} \; \mathrm{(analytic}")
-    PyPlot.subplot(3, 6, 8)
-    circle_subplot(x, y, σθθ, npts, R, θ0, L"\sigma_{\theta\theta} \; \mathrm{(analytic)}")
-    PyPlot.subplot(3, 6, 9)
-    circle_subplot(x, y, σrθ, npts, R, θ0, L"\sigma_{r\theta} \; \mathrm{(analytic)}")
-    PyPlot.subplot(3, 6, 13)
-    circle_subplot(x, y, σxx, npts, R, θ0, L"\sigma_{xx} \; \mathrm{(analytic, \; normalized}")
-    PyPlot.subplot(3, 6, 14)
-    circle_subplot(x, y, σyy, npts, R, θ0, L"\sigma_{yy} \; \mathrm{(analytic, \; normalized)}")
-    PyPlot.subplot(3, 6, 15)
-    circle_subplot(x, y, σxy, npts, R, θ0, L"\sigma_{xy} \; \mathrm{(analytic, \; normalized)}")
+    circle_subplot(nrows, ncols, 7, x, y, σrr, npts, R, θ0, "Srr (analytic}")
+    circle_subplot(nrows, ncols, 8, x, y, σθθ, npts, R, θ0, "Sthetatheta (analytic)")
+    circle_subplot(nrows, ncols, 9, x, y, σrθ, npts, R, θ0, "Srtheta(analytic)")
+    circle_subplot(nrows, ncols, 13, x, y, σxx, npts, R, θ0, "Sxx (analytic)")
+    circle_subplot(nrows, ncols, 14, x, y, σyy, npts, R, θ0, "Syy (analytic)")
+    circle_subplot(nrows, ncols, 15, x, y, σxy, npts, R, θ0, "Sxy (analytic)")
 
     #! BEM solutions
-    PyPlot.subplot(3, 6, 4)
-    circle_subplot(x, y, stresstrac[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(applied \; tractions)}")
-    PyPlot.subplot(3, 6, 5)
-    circle_subplot(x, y, stresstrac[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(applied \; tractions)}")
-    PyPlot.subplot(3, 6, 6)
-    circle_subplot(x, y, stresstrac[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(applied \; tractions)}")
-    PyPlot.subplot(3, 6, 10)
-    circle_subplot(x, y, stressdisp[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(induced \; displacements)}")
-    PyPlot.subplot(3, 6, 11)
-    circle_subplot(x, y, stressdisp[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(induced \; displacements)}")
-    PyPlot.subplot(3, 6, 12)
-    circle_subplot(x, y, stressdisp[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(induced \; displacements)}")
-    PyPlot.subplot(3, 6, 16)
-    circle_subplot(x, y, stressbem[:, 1], npts, R, θ0, L"\sigma_{xx} \; \mathrm{(sum, \; normalized)}")
-    PyPlot.subplot(3, 6, 17)
-    circle_subplot(x, y, stressbem[:, 2], npts, R, θ0, L"\sigma_{yy} \; \mathrm{(sum, \; normalized)}")
-    PyPlot.subplot(3, 6, 18)
-    circle_subplot(x, y, stressbem[:, 3], npts, R, θ0, L"\sigma_{xy} \; \mathrm{(sum, \; normalized)}")
-    PyPlot.tight_layout()
-    PyPlot.show()
+    circle_subplot(nrows, ncols, 4, x, y, Strac[:, 1], npts, R, θ0, "Sxx (tractions only)")
+    circle_subplot(nrows, ncols, 5, x, y, Strac[:, 2], npts, R, θ0, "Syy (tractions only)")
+    circle_subplot(nrows, ncols, 6, x, y, Strac[:, 3], npts, R, θ0, "Sxy (tractions only)")
+    circle_subplot(nrows, ncols, 10, x, y, Sdisp[:, 1], npts, R, θ0, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 11, x, y, Sdisp[:, 2], npts, R, θ0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 12, x, y, Sdisp[:, 3], npts, R, θ0, "Sxy (DDM)")
+    circle_subplot(nrows, ncols, 16, x, y, Sbem[:, 1], npts, R, θ0, "Sxx( sum)")
+    circle_subplot(nrows, ncols, 17, x, y, Sbem[:, 2], npts, R, θ0, "Syy (sum)")
+    circle_subplot(nrows, ncols, 18, x, y, Sbem[:, 3], npts, R, θ0, "Sxy (sum)")
+    tight_layout()
+    show()
 end
 ex_braziltest()
