@@ -18,7 +18,7 @@ function discretized_arc(θstart, θend, radius, n_pts)
     return x1, y1, x2, y2
 end
 
-function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, θ0, title_string)
+function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, theta0, title_string)
     fontsize = 20
     contour_levels = 20
     contour_color = "white"
@@ -35,9 +35,9 @@ function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, θ0, title_st
     # Draw entire circle and region of applied tractions
     x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     plot([x1, x2], [y1, y2], "-k", linewidth=2)
-    x1, y1, x2, y2 = discretized_arc(-θ0, θ0, R, 50)
+    x1, y1, x2, y2 = discretized_arc(-theta0, theta0, R, 50)
     plot([x1, x2], [y1, y2], "-r", linewidth=2)
-    x1, y1, x2, y2 = discretized_arc(-θ0+deg2rad(180), θ0+deg2rad(180), R, 50)
+    x1, y1, x2, y2 = discretized_arc(-theta0+deg2rad(180), theta0+deg2rad(180), R, 50)
     plot([x1, x2], [y1, y2], "-r", linewidth=2)
     gca().set_aspect("equal")
     gca().tick_params(labelsize=fontsize)
@@ -57,31 +57,32 @@ function ex_braziltest()
     npts = 50
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
     r = @. sqrt(x^2 + y^2)
-    θ = @. atan(y, x)
+    theta = @. atan(y, x)
 
     #! Analytic stresses in cylindrical coordinates
     Srr = zeros(length(x))
-    Sθθ = zeros(length(x))
-    Srθ = zeros(length(x))
+    Sthetatheta = zeros(length(x))
+    Srtheta = zeros(length(x))
     Srrconstterm = 2.0 * theta0 * -p / deg2rad(180)
-    Sθθconstterm = 2.0 * theta0 * -p / deg2rad(180)
+    Sthetathetaconstterm = 2.0 * theta0 * -p / deg2rad(180)
     leadingterm = 2.0 * -p / deg2rad(180)
     for m in 1:mmax
-        Srr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sin(2*m*theta0) * cos(2*m*θ)
-        Sθθ += @. (r/R)^(2*m-2) * (1-(1+1/m)*(r/R)^2) * sin(2*m*theta0) * cos(2*m*θ)
-        Srθ += @. ((r/R)^(2*m) - (r/R)^(2*m-2)) * sin(2*m*theta0) * sin(2*m*θ)
+        Srr += @. (r/R)^(2*m-2) * (1-(1-1/m)*(r/R)^2) * sin(2*m*theta0) * cos(2*m*theta)
+        Sthetatheta += @. (r/R)^(2*m-2) * (1-(1+1/m)*(r/R)^2) * sin(2*m*theta0) * cos(2*m*theta)
+        Srtheta += @. ((r/R)^(2*m) - (r/R)^(2*m-2)) * sin(2*m*theta0) * sin(2*m*theta)
     end
     Srr = @. Srrconstterm + leadingterm * Srr
-    Sθθ = @. Sθθconstterm - leadingterm * Sθθ
-    Srθ = @. leadingterm * Srθ
+    Sthetatheta = @. Sthetathetaconstterm - leadingterm * Sthetatheta
+    Srtheta = @. leadingterm * Srtheta
 
     #! Convert analytic cylindrical stresses to Cartesian
     Sxx = zeros(length(x))
     Syy = zeros(length(x))
     Sxy = zeros(length(x))
     for i in 1:length(x) # Project a single matrix to Cartesian coordinates
-        cylindrical_stress_tensor = [Srr[i] Srθ[i] ; Srθ[i] Sθθ[i]]
-        transformation_matrix = [cos(θ[i]) -sin(θ[i]) ; sin(θ[i]) cos(θ[i])]
+        cylindrical_stress_tensor = [Srr[i] Srtheta[i] ; Srtheta[i] Sthetatheta[i]]
+        # FIXME IS THIS WRONG?
+        transformation_matrix = [cos(theta[i]) -sin(theta[i]) ; sin(theta[i]) cos(theta[i])]
         cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
         Sxx[i] = cartesian_stress_tensor[1, 1]
         Syy[i] = cartesian_stress_tensor[2, 2]
@@ -132,9 +133,6 @@ function ex_braziltest()
     Tstar, Sstar, Hstar = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     Ustar, Dstar, Astar = partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
 
-    #! Induced displacements from Direct BEM
-    dispall = (inv(Tstar + 0.5 * I(size(Tstar)[1]))) * Ustar * interleave(xtrac, ytrac)
-
     #! Displacement discontinuity method (indirect)
     dispall = Ustar * interleave(xtrac, ytrac)
 
@@ -147,8 +145,8 @@ function ex_braziltest()
     # #! Isolate the values inside the circle
     to_nan_idx = findall(x -> x > 0.9 * R, r)
     Srr[to_nan_idx] .= NaN
-    Sθθ[to_nan_idx] .= NaN
-    Srθ[to_nan_idx] .= NaN
+    Sthetatheta[to_nan_idx] .= NaN
+    Srtheta[to_nan_idx] .= NaN
     Sxx[to_nan_idx] .= NaN
     Syy[to_nan_idx] .= NaN
     Sxy[to_nan_idx] .= NaN
@@ -184,8 +182,8 @@ function ex_braziltest()
 
     #! Analytic solutions
     circle_subplot(nrows, ncols, 7, x, y, Srr, npts, R, theta0, "Srr (analytic}")
-    circle_subplot(nrows, ncols, 8, x, y, Sθθ, npts, R, theta0, "Sthetatheta (analytic)")
-    circle_subplot(nrows, ncols, 9, x, y, Srθ, npts, R, theta0, "Srtheta(analytic)")
+    circle_subplot(nrows, ncols, 8, x, y, Sthetatheta, npts, R, theta0, "Sthetatheta (analytic)")
+    circle_subplot(nrows, ncols, 9, x, y, Srtheta, npts, R, theta0, "Srtheta (analytic)")
     circle_subplot(nrows, ncols, 13, x, y, Sxx, npts, R, theta0, "Sxx (analytic)")
     circle_subplot(nrows, ncols, 14, x, y, Syy, npts, R, theta0, "Syy (analytic)")
     circle_subplot(nrows, ncols, 15, x, y, Sxy, npts, R, theta0, "Sxy (analytic)")
