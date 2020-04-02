@@ -51,7 +51,7 @@ function ex_braziltest()
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
     theta0 = deg2rad(1.0) # Arc length over which pressure is applied
-    nels = 3600
+    nels = 360
     R = nels / (2 * pi) # Radius of disc ensuring that all elements are 1 unit long
     mmax = 1000 # Max number of terms in Hondros series
     npts = 50
@@ -81,7 +81,6 @@ function ex_braziltest()
     Sxy = zeros(length(x))
     for i in 1:length(x) # Project a single matrix to Cartesian coordinates
         cylindrical_stress_tensor = [Srr[i] Srtheta[i] ; Srtheta[i] Sthetatheta[i]]
-        # FIXME IS THIS WRONG?
         transformation_matrix = [cos(theta[i]) -sin(theta[i]) ; sin(theta[i]) cos(theta[i])]
         cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
         Sxx[i] = cartesian_stress_tensor[1, 1]
@@ -110,7 +109,6 @@ function ex_braziltest()
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
         normalTractions = [0; p] # Pressure in fault normal component only.
         xtrac[i], ytrac[i] = els.rotmat[i, :, :] * normalTractions
-        ytrac[i] = -ytrac[i] # TODO.  FIX ME.  Just a desperate attempt
     end
 
     #! Zero out the tractions on the area without contact
@@ -122,8 +120,8 @@ function ex_braziltest()
     ytrac[deleteidx] .= 0
 
     #! Scale tractions by element lengths
-    xtracscaled = xtrac ./ els.length[1:1:els.endidx]
-    ytracscaled = ytrac ./ els.length[1:1:els.endidx]
+    # xtracscaled = xtrac ./ els.length[1:1:els.endidx]
+    # ytracscaled = ytrac ./ els.length[1:1:els.endidx]
 
     #! Kernels
     # U*: traction to displacement
@@ -131,20 +129,12 @@ function ex_braziltest()
     # A*: traction to traction
     # H*: displacement to traction
     Tstar, Sstar, Hstar = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
-    Ustar, Dstar, Astar = partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
-
-    #! Fictious force method (indirect)
-    dispall = Ustar * interleave(xtrac, ytrac)
 
     #! Displacement discontinuity method (indirect)
     dispall = inv(Hstar) * interleave(xtrac, ytrac)
 
-
-    #! Streses from tractions
-    Dtrac, Strac = constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
-
     #! Stresses from traction induced displacements
-    Ddisp, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
+    _, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
 
     # #! Isolate the values inside the circle
     to_nan_idx = findall(x -> x > 0.9 * R, r)
@@ -154,9 +144,6 @@ function ex_braziltest()
     Sxx[to_nan_idx] .= NaN
     Syy[to_nan_idx] .= NaN
     Sxy[to_nan_idx] .= NaN
-    Strac[to_nan_idx, 1] .= NaN
-    Strac[to_nan_idx, 2] .= NaN
-    Strac[to_nan_idx, 3] .= NaN
     Sdisp[to_nan_idx, 1] .= NaN
     Sdisp[to_nan_idx, 2] .= NaN
     Sdisp[to_nan_idx, 3] .= NaN
@@ -165,17 +152,12 @@ function ex_braziltest()
     Sbem[:, 2] = (1.0 .* Sdisp[:, 2] - Syy)
     Sbem[:, 3] = (1.0 .* Sdisp[:, 3] - Sxy)
     
-
     #! Try Emma's summation and nomalization idea (Ben had this idea too)
-    keep = @. ~isnan(Sxx)
-    @show Sxx[keep]
-    figure()
-    plot(Sxx[keep] ./ Sdisp[keep, 1])
-    figure()
-    plot(Syy[keep] ./ Sdisp[keep, 2])
-    figure()
-    plot(Sxy[keep] ./ Sdisp[keep, 3])
-    show()
+    # Calculate % error
+    # keep = @. ~isnan(Sxx)
+    # plot(Sxx[keep] ./ Sdisp[keep, 1])
+    # plot(Syy[keep] ./ Sdisp[keep, 2])
+    # plot(Sxy[keep] ./ Sdisp[keep, 3])
 
     #! Summary figure
     figure(figsize=(30,20))
@@ -190,31 +172,25 @@ function ex_braziltest()
     title("applied tractions", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
-    #! Induced displacements
+    #! Effective displacements
     subplot(3, 2, 3)
     plot(rad2deg.(thetaels), dispall[1:2:end], ".r")
     plot(rad2deg.(thetaels), dispall[2:2:end], "+b")
-    title("calculated displacements", fontsize=fontsize)
+    title("Effective displacements", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
     #! Analytic solutions
-    # circle_subplot(nrows, ncols, 7, x, y, Srr, npts, R, theta0, "Srr (analytic}")
-    # circle_subplot(nrows, ncols, 8, x, y, Sthetatheta, npts, R, theta0, "Sthetatheta (analytic)")
-    # circle_subplot(nrows, ncols, 9, x, y, Srtheta, npts, R, theta0, "Srtheta (analytic)")
     circle_subplot(nrows, ncols, 13, x, y, Sxx, npts, R, theta0, "Sxx (analytic)")
     circle_subplot(nrows, ncols, 14, x, y, Syy, npts, R, theta0, "Syy (analytic)")
     circle_subplot(nrows, ncols, 15, x, y, Sxy, npts, R, theta0, "Sxy (analytic)")
 
     #! BEM solutions
-    circle_subplot(nrows, ncols, 4, x, y, Strac[:, 1], npts, R, theta0, "Sxx (tractions only)")
-    circle_subplot(nrows, ncols, 5, x, y, Strac[:, 2], npts, R, theta0, "Syy (tractions only)")
-    circle_subplot(nrows, ncols, 6, x, y, Strac[:, 3], npts, R, theta0, "Sxy (tractions only)")
     circle_subplot(nrows, ncols, 10, x, y, Sdisp[:, 1], npts, R, theta0, "Sxx (DDM)")
     circle_subplot(nrows, ncols, 11, x, y, Sdisp[:, 2], npts, R, theta0, "Syy (DDM)")
     circle_subplot(nrows, ncols, 12, x, y, Sdisp[:, 3], npts, R, theta0, "Sxy (DDM)")
-    circle_subplot(nrows, ncols, 16, x, y, Sbem[:, 1], npts, R, theta0, "Sxx( sum)")
-    circle_subplot(nrows, ncols, 17, x, y, Sbem[:, 2], npts, R, theta0, "Syy (sum)")
-    circle_subplot(nrows, ncols, 18, x, y, Sbem[:, 3], npts, R, theta0, "Sxy (sum)")
+    circle_subplot(nrows, ncols, 16, x, y, Sbem[:, 1], npts, R, theta0, "Sxx (residual)")
+    circle_subplot(nrows, ncols, 17, x, y, Sbem[:, 2], npts, R, theta0, "Syy (residual)")
+    circle_subplot(nrows, ncols, 18, x, y, Sbem[:, 3], npts, R, theta0, "Sxy (residual)")
     tight_layout()
     show()
 end
