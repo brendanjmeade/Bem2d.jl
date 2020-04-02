@@ -133,8 +133,12 @@ function ex_braziltest()
     Tstar, Sstar, Hstar = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
     Ustar, Dstar, Astar = partialsconstdispstress(trac2dispstress, els, idx["circle"], idx["circle"], mu, nu)
 
-    #! Displacement discontinuity method (indirect)
+    #! Fictious force method (indirect)
     dispall = Ustar * interleave(xtrac, ytrac)
+
+    #! Displacement discontinuity method (indirect)
+    dispall = inv(Hstar) * interleave(xtrac, ytrac)
+
 
     #! Streses from tractions
     Dtrac, Strac = constdispstress(trac2dispstress, x, y, els, idx["circle"], xtracscaled, ytracscaled, mu, nu)
@@ -157,9 +161,9 @@ function ex_braziltest()
     Sdisp[to_nan_idx, 2] .= NaN
     Sdisp[to_nan_idx, 3] .= NaN
     Sbem = zeros(size(Sdisp))
-    Sbem[:, 1] = (4.50 .* Sdisp[:, 1] - Sxx)
-    Sbem[:, 2] = (4.50 .* Sdisp[:, 2] - Syy)
-    Sbem[:, 3] = (4.50 .* Sdisp[:, 3] - Sxy)
+    Sbem[:, 1] = (1.0 .* Sdisp[:, 1] - Sxx)
+    Sbem[:, 2] = (1.0 .* Sdisp[:, 2] - Syy)
+    Sbem[:, 3] = (1.0 .* Sdisp[:, 3] - Sxy)
     
 
     #! Try Emma's summation and nomalization idea (Ben had this idea too)
@@ -189,7 +193,7 @@ function ex_braziltest()
     #! Induced displacements
     subplot(3, 2, 3)
     plot(rad2deg.(thetaels), dispall[1:2:end], ".r")
-    plot(rad2deg.(thetaels), dispall[1:2:end], "+b")
+    plot(rad2deg.(thetaels), dispall[2:2:end], "+b")
     title("calculated displacements", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
