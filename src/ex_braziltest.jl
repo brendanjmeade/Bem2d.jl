@@ -20,7 +20,7 @@ end
 
 function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, theta0, title_string)
     fontsize = 20
-    contour_levels = 20
+    contour_levels = 100
     contour_color = "white"
     contour_linewidth = 0.5
     color_scale = 1
@@ -51,7 +51,7 @@ function ex_braziltest()
     # Solution from Hondros (1959) as summarized by Wei and Chau 2013
     p = -1.0e5 # Applied radial pressure over arc
     theta0 = deg2rad(1.0) # Arc length over which pressure is applied
-    nels = 360
+    nels = 3600
     R = nels / (2 * pi) # Radius of disc ensuring that all elements are 1 unit long
     mmax = 1000 # Max number of terms in Hondros series
     npts = 50
@@ -156,34 +156,47 @@ function ex_braziltest()
     Sdisp[to_nan_idx, 1] .= NaN
     Sdisp[to_nan_idx, 2] .= NaN
     Sdisp[to_nan_idx, 3] .= NaN
-    Sbem = @. Strac + Sdisp
+    Sbem = zeros(size(Sdisp))
+    Sbem[:, 1] = (4.50 .* Sdisp[:, 1] - Sxx)
+    Sbem[:, 2] = (4.50 .* Sdisp[:, 2] - Syy)
+    Sbem[:, 3] = (4.50 .* Sdisp[:, 3] - Sxy)
+    
+
+    #! Try Emma's summation and nomalization idea (Ben had this idea too)
+    keep = @. ~isnan(Sxx)
+    @show Sxx[keep]
+    figure()
+    plot(Sxx[keep] ./ Sdisp[keep, 1])
+    figure()
+    plot(Syy[keep] ./ Sdisp[keep, 2])
+    figure()
+    plot(Sxy[keep] ./ Sdisp[keep, 3])
+    show()
 
     #! Summary figure
-    fontsize = 24
     figure(figsize=(30,20))
+    fontsize = 20
     nrows = 3
     ncols = 6
 
     #! Traction forcing
-    subplot(3, 6, 1)
-    plot([els.x1[1:els.endidx], els.x2[1:els.endidx]], [els.y1[1:els.endidx], els.y2[1:els.endidx]], "-k") 
-    quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], xtrac, ytrac)
+    subplot(3, 2, 1)
+    plot(rad2deg.(thetaels), xtrac, ".r")
+    plot(rad2deg.(thetaels), ytrac, "+b")
     title("applied tractions", fontsize=fontsize)
-    gca().set_aspect("equal")
     gca().tick_params(labelsize=fontsize)
 
     #! Induced displacements
-    subplot(3, 6, 2)
-    plot([els.x1[1:els.endidx], els.x2[1:els.endidx]], [els.y1[1:els.endidx], els.y2[1:els.endidx]], "-k") 
-    quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], dispall[1:2:end], dispall[2:2:end], color="green")
-    title("induced displacements", fontsize=fontsize)
-    gca().set_aspect("equal")
+    subplot(3, 2, 3)
+    plot(rad2deg.(thetaels), dispall[1:2:end], ".r")
+    plot(rad2deg.(thetaels), dispall[1:2:end], "+b")
+    title("calculated displacements", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
     #! Analytic solutions
-    circle_subplot(nrows, ncols, 7, x, y, Srr, npts, R, theta0, "Srr (analytic}")
-    circle_subplot(nrows, ncols, 8, x, y, Sthetatheta, npts, R, theta0, "Sthetatheta (analytic)")
-    circle_subplot(nrows, ncols, 9, x, y, Srtheta, npts, R, theta0, "Srtheta (analytic)")
+    # circle_subplot(nrows, ncols, 7, x, y, Srr, npts, R, theta0, "Srr (analytic}")
+    # circle_subplot(nrows, ncols, 8, x, y, Sthetatheta, npts, R, theta0, "Sthetatheta (analytic)")
+    # circle_subplot(nrows, ncols, 9, x, y, Srtheta, npts, R, theta0, "Srtheta (analytic)")
     circle_subplot(nrows, ncols, 13, x, y, Sxx, npts, R, theta0, "Sxx (analytic)")
     circle_subplot(nrows, ncols, 14, x, y, Syy, npts, R, theta0, "Syy (analytic)")
     circle_subplot(nrows, ncols, 15, x, y, Sxy, npts, R, theta0, "Sxy (analytic)")
