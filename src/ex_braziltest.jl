@@ -66,19 +66,16 @@ function calcbrazil(p, x, y, R, theta0)
     Srtheta = @. leadingterm * Srtheta
 
     # Convert analytic cylindrical stresses to Cartesian
-    Sxxanalytic = zeros(length(x))
-    Syyanalytic = zeros(length(x))
-    Sxyanalytic = zeros(length(x))
+    Sanalytic = zeros(length(x), 3)
     for i in 1:length(x) # Project a single matrix to Cartesian coordinates
         cylindrical_stress_tensor = [Srr[i] Srtheta[i] ; Srtheta[i] Sthetatheta[i]]
         transformation_matrix = [cos(theta[i]) -sin(theta[i]) ; sin(theta[i]) cos(theta[i])]
         cartesian_stress_tensor = transformation_matrix * cylindrical_stress_tensor * transpose(transformation_matrix)
-        Sxxanalytic[i] = cartesian_stress_tensor[1, 1]
-        Syyanalytic[i] = cartesian_stress_tensor[2, 2]
-        Sxyanalytic[i] = cartesian_stress_tensor[1, 2]
+        Sanalytic[i, 1] = cartesian_stress_tensor[1, 1]
+        Sanalytic[i, 2] = cartesian_stress_tensor[2, 2]
+        Sanalytic[i, 3] = cartesian_stress_tensor[1, 2]
     end
-
-    return Sxxanalytic, Syyanalytic, Sxyanalytic
+    return Sanalytic
 end
 
 function ex_braziltest()
@@ -94,7 +91,7 @@ function ex_braziltest()
     r = @. sqrt(x^2 + y^2)
 
     #! Analytic solution
-    Sxxanalytic, Syyanalytic, Sxyanalytic = calcbrazil(p, x, y, R, theta0)
+    Sanalytic = calcbrazil(p, x, y, R, theta0)
 
     #! BEM solution
     els = Bem2d.Elements(Int(1e5))
@@ -137,16 +134,9 @@ function ex_braziltest()
 
     #! Isolate the values inside the circle
     to_nan_idx = findall(x -> x > 0.9 * R, r)
-    Sxxanalytic[to_nan_idx] .= NaN
-    Syyanalytic[to_nan_idx] .= NaN
-    Sxyanalytic[to_nan_idx] .= NaN
-    Sdisp[to_nan_idx, 1] .= NaN
-    Sdisp[to_nan_idx, 2] .= NaN
-    Sdisp[to_nan_idx, 3] .= NaN
-    Sresidual = zeros(size(Sdisp))
-    Sresidual[:, 1] = Sdisp[:, 1] - Sxxanalytic
-    Sresidual[:, 2] = Sdisp[:, 2] - Syyanalytic
-    Sresidual[:, 3] = Sdisp[:, 3] - Sxyanalytic
+    Sanalytic[to_nan_idx, :] .= NaN
+    Sdisp[to_nan_idx, :] .= NaN
+    Sresidual = @. Sdisp - Sanalytic
     
     #! Summary figure
     figure(figsize=(30,20))
@@ -154,14 +144,14 @@ function ex_braziltest()
     nrows = 3
     ncols = 6
 
-    #! Traction forcing
+    # Applied tractions
     subplot(3, 2, 1)
     plot(rad2deg.(thetaels), xtrac, ".r")
     plot(rad2deg.(thetaels), ytrac, "+b")
     title("applied tractions", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
-    #! Effective displacements
+    # Effective displacements
     subplot(3, 2, 3)
     plot(rad2deg.(thetaels), dispall[1:2:end], ".r")
     plot(rad2deg.(thetaels), dispall[2:2:end], "+b")
@@ -169,9 +159,9 @@ function ex_braziltest()
     gca().tick_params(labelsize=fontsize)
 
     #! Analytic solutions
-    circle_subplot(nrows, ncols, 13, x, y, Sxxanalytic, npts, R, theta0, "Sxx (analytic)")
-    circle_subplot(nrows, ncols, 14, x, y, Syyanalytic, npts, R, theta0, "Syy (analytic)")
-    circle_subplot(nrows, ncols, 15, x, y, Sxyanalytic, npts, R, theta0, "Sxy (analytic)")
+    circle_subplot(nrows, ncols, 13, x, y, Sanalytic[:, 1], npts, R, theta0, "Sxx (analytic)")
+    circle_subplot(nrows, ncols, 14, x, y, Sanalytic[:, 2], npts, R, theta0, "Syy (analytic)")
+    circle_subplot(nrows, ncols, 15, x, y, Sanalytic[:, 3], npts, R, theta0, "Sxy (analytic)")
 
     #! BEM solutions
     circle_subplot(nrows, ncols, 10, x, y, Sdisp[:, 1], npts, R, theta0, "Sxx (DDM)")
