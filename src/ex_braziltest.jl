@@ -124,18 +124,14 @@ function ex_braziltest()
     ytracC[deleteidx] .= 0
 
     #! Kernels, T*: displacement to displacement, H*: displacement to traction
-    _, _, HstarC = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
-    _, _, HstarQ = partialsquaddispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    @time _, _, HstarC = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    @time _, _, HstarQ = partialsquaddispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
 
     #! CONSTANT CASE
     #! Applied tractions -> effective displacements -> internal stresses
     @show cond(HstarC)
     DeffC = inv(HstarC) * interleave(xtracC, ytracC)
-    figure()
-    plot(xtracC, "+r")
-    plot(ytracC, ".b")
-    show()
-    _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
+    @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
 
     #! QUADRATIC CASE
     #! Applied tractions -> effective displacements -> internal stresses
@@ -147,56 +143,80 @@ function ex_braziltest()
     ytracQ[1:3:end] = ytracC
     ytracQ[2:3:end] = ytracC
     ytracQ[3:3:end] = ytracC
-
     @show cond(HstarQ)
     DeffQ = inv(HstarQ) * interleave(xtracQ, ytracQ)
     @time _, SdispQ = quaddispstress(slip2dispstress, x, y, els, idx["circle"], quadstack(DeffQ[1:2:end]), quadstack(DeffQ[2:2:end]), mu, nu)
-
-    # figure()
-    # plot(xtracQ, "+r")
-    # plot(ytracQ, ".b")
-    # show()
-    # @infiltrate
-    # return
 
     #! Isolate the values inside the circle
     nanidx = findall(x -> x > R, r)
     Sanalytic[nanidx, :] .= NaN
     SdispC[nanidx, :] .= NaN
+    SdispQ[nanidx, :] .= NaN
     SresidualC = @. SdispC - Sanalytic
+    SresidualQ = @. SdispQ - Sanalytic
     
     #! Summary figure
     figure(figsize=(30,20))
     fontsize = 20
-    nrows = 3
+    nrows = 4
     ncols = 6
 
+    #! Constant dislocation case
     # Applied tractions
-    subplot(3, 2, 1)
+    subplot(nrows, ncols, 1)
     plot(rad2deg.(thetaels), xtracC, ".r")
     plot(rad2deg.(thetaels), ytracC, "+b")
     title("applied tractions", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
     # Effective displacements
-    subplot(3, 2, 3)
+    subplot(nrows, ncols, 2)
     plot(rad2deg.(thetaels), DeffC[1:2:end], ".r")
     plot(rad2deg.(thetaels), DeffC[2:2:end], "+b")
     title("Effective displacements", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
-    #! Analytic solutions
-    circle_subplot(nrows, ncols, 4, x, y, Sanalytic[:, 1], npts, R, theta0, "Sxx (analytic)")
-    circle_subplot(nrows, ncols, 5, x, y, Sanalytic[:, 2], npts, R, theta0, "Syy (analytic)")
-    circle_subplot(nrows, ncols, 6, x, y, Sanalytic[:, 3], npts, R, theta0, "Sxy (analytic)")
+    # Analytic solutions
+    circle_subplot(nrows, ncols, 7, x, y, Sanalytic[:, 1], npts, R, theta0, "Sxx (analytic)")
+    circle_subplot(nrows, ncols, 8, x, y, Sanalytic[:, 2], npts, R, theta0, "Syy (analytic)")
+    circle_subplot(nrows, ncols, 9, x, y, Sanalytic[:, 3], npts, R, theta0, "Sxy (analytic)")
 
-    #! BEM solutions
-    circle_subplot(nrows, ncols, 10, x, y, SdispC[:, 1], npts, R, theta0, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 11, x, y, SdispC[:, 2], npts, R, theta0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 12, x, y, SdispC[:, 3], npts, R, theta0, "Sxy (DDM)")
-    circle_subplot(nrows, ncols, 16, x, y, SresidualC[:, 1], npts, R, theta0, "Sxx (residual)")
-    circle_subplot(nrows, ncols, 17, x, y, SresidualC[:, 2], npts, R, theta0, "Syy (residual)")
-    circle_subplot(nrows, ncols, 18, x, y, SresidualC[:, 3], npts, R, theta0, "Sxy (residual)")
+    # BEM solutions
+    circle_subplot(nrows, ncols, 13, x, y, SdispC[:, 1], npts, R, theta0, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 14, x, y, SdispC[:, 2], npts, R, theta0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 15, x, y, SdispC[:, 3], npts, R, theta0, "Sxy (DDM)")
+    circle_subplot(nrows, ncols, 19, x, y, SresidualC[:, 1], npts, R, theta0, "Sxx (residual)")
+    circle_subplot(nrows, ncols, 20, x, y, SresidualC[:, 2], npts, R, theta0, "Syy (residual)")
+    circle_subplot(nrows, ncols, 21, x, y, SresidualC[:, 3], npts, R, theta0, "Sxy (residual)")
+
+    #! Quadratic case
+    # Applied tractions
+    subplot(nrows, ncols, 4)
+    plot(xtracQ, ".r")
+    plot(ytracQ, "+b")
+    title("applied tractions", fontsize=fontsize)
+    gca().tick_params(labelsize=fontsize)
+
+    # Effective displacements
+    subplot(nrows, ncols, 5)
+    plot(DeffQ[1:2:end], ".r")
+    plot(DeffQ[2:2:end], "+b")
+    title("Effective displacements", fontsize=fontsize)
+    gca().tick_params(labelsize=fontsize)
+
+    # Analytic solutions
+    circle_subplot(nrows, ncols, 10, x, y, Sanalytic[:, 1], npts, R, theta0, "Sxx (analytic)")
+    circle_subplot(nrows, ncols, 11, x, y, Sanalytic[:, 2], npts, R, theta0, "Syy (analytic)")
+    circle_subplot(nrows, ncols, 12, x, y, Sanalytic[:, 3], npts, R, theta0, "Sxy (analytic)")
+
+    # BEM solutions
+    circle_subplot(nrows, ncols, 16, x, y, SdispQ[:, 1], npts, R, theta0, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 17, x, y, SdispQ[:, 2], npts, R, theta0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 18, x, y, SdispQ[:, 3], npts, R, theta0, "Sxy (DDM)")
+    circle_subplot(nrows, ncols, 22, x, y, SresidualQ[:, 1], npts, R, theta0, "Sxx (residual)")
+    circle_subplot(nrows, ncols, 23, x, y, SresidualQ[:, 2], npts, R, theta0, "Syy (residual)")
+    circle_subplot(nrows, ncols, 24, x, y, SresidualQ[:, 3], npts, R, theta0, "Sxy (residual)")
+
     tight_layout()
     show()
 end
