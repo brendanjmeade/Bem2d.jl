@@ -131,16 +131,32 @@ function ex_braziltest()
     #! Applied tractions -> effective displacements -> internal stresses
     @show cond(HstarC)
     DeffC = inv(HstarC) * interleave(xtrac, ytrac)
+    figure()
+    plot(xtrac, "+r")
+    plot(ytrac, ".b")
+    show()
     _, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
 
     #! QUADRATIC CASE
     #! Applied tractions -> effective displacements -> internal stresses
-    xtracQ = collect(transpose(repeat(xtrac', 3)[:]))
-    ytracQ = collect(transpose(repeat(ytrac', 3)[:]))
+    xtracQ = zeros(3 * length(xtrac))
+    ytracQ = zeros(3 * length(ytrac))
+    xtracQ[1:3:end] = xtrac
+    xtracQ[2:3:end] = xtrac
+    xtracQ[3:3:end] = xtrac
+    ytracQ[1:3:end] = ytrac
+    ytracQ[2:3:end] = ytrac
+    ytracQ[3:3:end] = ytrac
+
     @show cond(HstarQ)
-    DeffQ = inv(HstarQ) * interleave(xtracQ', ytracQ')
+    DeffQ = inv(HstarQ) * interleave(xtracQ, ytracQ)
+    figure()
+    plot(xtracQ, "+r")
+    plot(ytracQ, ".b")
+    show()
 
     @infiltrate
+    return
 
     #! Isolate the values inside the circle
     nanidx = findall(x -> x > R, r)
