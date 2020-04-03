@@ -124,18 +124,28 @@ function ex_braziltest()
     ytrac[deleteidx] .= 0
 
     #! Kernels, T*: displacement to displacement, H*: displacement to traction
-    Tstar, Sstar, Hstar = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    _, _, HstarC = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    _, _, HstarQ = partialsquaddispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
 
-    #! Displacement discontinuity method (indirect)
-    dispall = inv(Hstar) * interleave(xtrac, ytrac)
+    #! CONSTANT CASE
+    #! Applied tractions -> effective displacements -> internal stresses
+    @show cond(HstarC)
+    DeffC = inv(HstarC) * interleave(xtrac, ytrac)
+    _, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
 
-    #! Stresses from traction induced displacements
-    _, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], dispall[1:2:end], dispall[2:2:end], mu, nu)
+    #! QUADRATIC CASE
+    #! Applied tractions -> effective displacements -> internal stresses
+    xtracQ = collect(transpose(repeat(xtrac', 3)[:]))
+    ytracQ = collect(transpose(repeat(ytrac', 3)[:]))
+    @show cond(HstarQ)
+    DeffQ = inv(HstarQ) * interleave(xtracQ', ytracQ')
+
+    @infiltrate
 
     #! Isolate the values inside the circle
-    to_nan_idx = findall(x -> x > 0.9 * R, r)
-    Sanalytic[to_nan_idx, :] .= NaN
-    Sdisp[to_nan_idx, :] .= NaN
+    nanidx = findall(x -> x > R, r)
+    Sanalytic[nanidx, :] .= NaN
+    Sdisp[nanidx, :] .= NaN
     Sresidual = @. Sdisp - Sanalytic
     
     #! Summary figure
@@ -153,15 +163,15 @@ function ex_braziltest()
 
     # Effective displacements
     subplot(3, 2, 3)
-    plot(rad2deg.(thetaels), dispall[1:2:end], ".r")
-    plot(rad2deg.(thetaels), dispall[2:2:end], "+b")
+    plot(rad2deg.(thetaels), DeffC[1:2:end], ".r")
+    plot(rad2deg.(thetaels), DeffC[2:2:end], "+b")
     title("Effective displacements", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
     #! Analytic solutions
-    circle_subplot(nrows, ncols, 13, x, y, Sanalytic[:, 1], npts, R, theta0, "Sxx (analytic)")
-    circle_subplot(nrows, ncols, 14, x, y, Sanalytic[:, 2], npts, R, theta0, "Syy (analytic)")
-    circle_subplot(nrows, ncols, 15, x, y, Sanalytic[:, 3], npts, R, theta0, "Sxy (analytic)")
+    circle_subplot(nrows, ncols, 4, x, y, Sanalytic[:, 1], npts, R, theta0, "Sxx (analytic)")
+    circle_subplot(nrows, ncols, 5, x, y, Sanalytic[:, 2], npts, R, theta0, "Syy (analytic)")
+    circle_subplot(nrows, ncols, 6, x, y, Sanalytic[:, 3], npts, R, theta0, "Sxy (analytic)")
 
     #! BEM solutions
     circle_subplot(nrows, ncols, 10, x, y, Sdisp[:, 1], npts, R, theta0, "Sxx (DDM)")
