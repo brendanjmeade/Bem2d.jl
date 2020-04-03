@@ -107,21 +107,21 @@ function ex_braziltest()
     idx = Bem2d.getidxdict(els)
 
     #! Apply normal tractions everywhere and convert from radial to Cartesian
-    xtrac = zeros(els.endidx)
-    ytrac = zeros(els.endidx)
+    xtracC = zeros(els.endidx)
+    ytracC = zeros(els.endidx)
     thetaels = @. atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx])
     for i in 1:els.endidx # Calcuate the x and y components of the tractions
         normalTractions = [0; p] # Pressure in fault normal component only.
-        xtrac[i], ytrac[i] = els.rotmat[i, :, :] * normalTractions
+        xtracC[i], ytracC[i] = els.rotmat[i, :, :] * normalTractions
     end
 
     #! Zero out the tractions on the area without contact
     deleteidx = findall(x -> (x>theta0 && x<deg2rad(180)-theta0), thetaels)
-    xtrac[deleteidx] .= 0
-    ytrac[deleteidx] .= 0
+    xtracC[deleteidx] .= 0
+    ytracC[deleteidx] .= 0
     deleteidx = findall(x -> (x<-theta0 && x>-deg2rad(180)+theta0), thetaels)
-    xtrac[deleteidx] .= 0
-    ytrac[deleteidx] .= 0
+    xtracC[deleteidx] .= 0
+    ytracC[deleteidx] .= 0
 
     #! Kernels, T*: displacement to displacement, H*: displacement to traction
     _, _, HstarC = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
@@ -130,39 +130,40 @@ function ex_braziltest()
     #! CONSTANT CASE
     #! Applied tractions -> effective displacements -> internal stresses
     @show cond(HstarC)
-    DeffC = inv(HstarC) * interleave(xtrac, ytrac)
+    DeffC = inv(HstarC) * interleave(xtracC, ytracC)
     figure()
-    plot(xtrac, "+r")
-    plot(ytrac, ".b")
+    plot(xtracC, "+r")
+    plot(ytracC, ".b")
     show()
-    _, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
+    _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
 
     #! QUADRATIC CASE
     #! Applied tractions -> effective displacements -> internal stresses
-    xtracQ = zeros(3 * length(xtrac))
-    ytracQ = zeros(3 * length(ytrac))
-    xtracQ[1:3:end] = xtrac
-    xtracQ[2:3:end] = xtrac
-    xtracQ[3:3:end] = xtrac
-    ytracQ[1:3:end] = ytrac
-    ytracQ[2:3:end] = ytrac
-    ytracQ[3:3:end] = ytrac
+    xtracQ = zeros(3 * length(xtracC))
+    ytracQ = zeros(3 * length(ytracC))
+    xtracQ[1:3:end] = xtracC
+    xtracQ[2:3:end] = xtracC
+    xtracQ[3:3:end] = xtracC
+    ytracQ[1:3:end] = ytracC
+    ytracQ[2:3:end] = ytracC
+    ytracQ[3:3:end] = ytracC
 
     @show cond(HstarQ)
     DeffQ = inv(HstarQ) * interleave(xtracQ, ytracQ)
-    figure()
-    plot(xtracQ, "+r")
-    plot(ytracQ, ".b")
-    show()
+    @time _, SdispQ = quaddispstress(slip2dispstress, x, y, els, idx["circle"], quadstack(DeffQ[1:2:end]), quadstack(DeffQ[2:2:end]), mu, nu)
 
-    @infiltrate
-    return
+    # figure()
+    # plot(xtracQ, "+r")
+    # plot(ytracQ, ".b")
+    # show()
+    # @infiltrate
+    # return
 
     #! Isolate the values inside the circle
     nanidx = findall(x -> x > R, r)
     Sanalytic[nanidx, :] .= NaN
-    Sdisp[nanidx, :] .= NaN
-    Sresidual = @. Sdisp - Sanalytic
+    SdispC[nanidx, :] .= NaN
+    SresidualC = @. SdispC - Sanalytic
     
     #! Summary figure
     figure(figsize=(30,20))
@@ -172,8 +173,8 @@ function ex_braziltest()
 
     # Applied tractions
     subplot(3, 2, 1)
-    plot(rad2deg.(thetaels), xtrac, ".r")
-    plot(rad2deg.(thetaels), ytrac, "+b")
+    plot(rad2deg.(thetaels), xtracC, ".r")
+    plot(rad2deg.(thetaels), ytracC, "+b")
     title("applied tractions", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
@@ -190,12 +191,12 @@ function ex_braziltest()
     circle_subplot(nrows, ncols, 6, x, y, Sanalytic[:, 3], npts, R, theta0, "Sxy (analytic)")
 
     #! BEM solutions
-    circle_subplot(nrows, ncols, 10, x, y, Sdisp[:, 1], npts, R, theta0, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 11, x, y, Sdisp[:, 2], npts, R, theta0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 12, x, y, Sdisp[:, 3], npts, R, theta0, "Sxy (DDM)")
-    circle_subplot(nrows, ncols, 16, x, y, Sresidual[:, 1], npts, R, theta0, "Sxx (residual)")
-    circle_subplot(nrows, ncols, 17, x, y, Sresidual[:, 2], npts, R, theta0, "Syy (residual)")
-    circle_subplot(nrows, ncols, 18, x, y, Sresidual[:, 3], npts, R, theta0, "Sxy (residual)")
+    circle_subplot(nrows, ncols, 10, x, y, SdispC[:, 1], npts, R, theta0, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 11, x, y, SdispC[:, 2], npts, R, theta0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 12, x, y, SdispC[:, 3], npts, R, theta0, "Sxy (DDM)")
+    circle_subplot(nrows, ncols, 16, x, y, SresidualC[:, 1], npts, R, theta0, "Sxx (residual)")
+    circle_subplot(nrows, ncols, 17, x, y, SresidualC[:, 2], npts, R, theta0, "Syy (residual)")
+    circle_subplot(nrows, ncols, 18, x, y, SresidualC[:, 3], npts, R, theta0, "Sxy (residual)")
     tight_layout()
     show()
 end
