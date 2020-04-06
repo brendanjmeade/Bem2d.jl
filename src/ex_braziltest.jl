@@ -78,6 +78,12 @@ function calcbrazil(p, x, y, R, theta0)
     return Sanalytic
 end
 
+"""
+    braziltest()
+
+Compare the Hondros (1959 analytic soluiton) for the Brazil test 
+with the BEM solution for both constant and quadratic element cases.
+"""
 function ex_braziltest()
     close("all")
     mu = 3e10
@@ -219,5 +225,6 @@ function ex_braziltest()
 
     tight_layout()
     show()
+
 end
 ex_braziltest()
