@@ -3,6 +3,12 @@ using PyCall
 using PyPlot
 using Bem2d
 
+"""
+    plotlocal(els, idx, dispfault, dispfreesurfflat, dispfreesurftopo, stressfault, stressfreesurfflat, stressfreesurftopo, xobs, yobs, npts)
+
+Generate four panel plots to shw displacements and stresses for the
+flat and topographic cases.
+"""
 function plotlocal(els, idx, dispfault, dispfreesurfflat, dispfreesurftopo, stressfault, stressfreesurfflat, stressfreesurftopo, xobs, yobs, npts)
     # Pretty picture of displacements and stresses
     xfreesurf = unique([els.x1[idx["freesurfflat"]] ; els.x2[idx["freesurfflat"]]])
@@ -117,7 +123,14 @@ function plotlocal(els, idx, dispfault, dispfreesurfflat, dispfreesurftopo, stre
     return nothing
 end
 
-function ex_thrusttopo()
+"""
+    thrustfaulttopography()
+
+Comparison of volume displacemnts and stresses from a fault with
+and without topography.  Includes both constant and quadratic
+element cases.
+"""
+function thrustfaulttopography()
     close("all")
     mu = 30e9
     nu = 0.25
@@ -173,9 +186,7 @@ function ex_thrusttopo()
     partialsconst = initpartials(els)
     partialsquad = initpartials(els)
 
-    #
-    # CS elements
-    #
+    #! CS elements
     # Partial derivatves for solving BEM problem
     _, _, partialsconst["trac"]["fault"]["freesurfflat"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurfflat"], mu, nu)
     _, _, partialsconst["trac"]["freesurfflat"]["freesurfflat"] = partialsconstdispstress(slip2dispstress, els, idx["freesurfflat"], idx["freesurfflat"], mu, nu)
@@ -196,9 +207,7 @@ function ex_thrusttopo()
     # Pretty plotting
     plotlocal(els, idx, dispfault, dispfreesurfflat, dispfreesurftopo, stressfault, stressfreesurfflat, stressfreesurftopo, xobs, yobs, npts)
 
-    #
-    # 3QN elements
-    #
+    #! 3QN elements
     # Partial derivatves for solving BEM problem
     _, _, partialsquad["trac"]["fault"]["freesurfflat"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["freesurfflat"], mu, nu)
     _, _, partialsquad["trac"]["freesurfflat"]["freesurfflat"] = partialsquaddispstress(slip2dispstress, els, idx["freesurfflat"], idx["freesurfflat"], mu, nu)
@@ -220,4 +229,4 @@ function ex_thrusttopo()
     plotlocal(els, idx, dispfault, dispfreesurfflat, dispfreesurftopo, stressfault, stressfreesurfflat, stressfreesurftopo, xobs, yobs, npts)
     
 end
-ex_thrusttopo()
+thrustfaulttopography()

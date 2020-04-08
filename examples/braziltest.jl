@@ -6,6 +6,12 @@ using LinearAlgebra
 using Infiltrator
 using Bem2d
 
+
+"""
+    discretized_arc(θstart, θend, radius, n_pts)
+
+Generate regularly spaced eleemnts along an curved arc.
+"""
 function discretized_arc(θstart, θend, radius, n_pts)
     # Create geometry of discretized arc
     θrange = collect(LinRange(θstart, θend, n_pts + 1))
@@ -18,6 +24,12 @@ function discretized_arc(θstart, θend, radius, n_pts)
     return x1, y1, x2, y2
 end
 
+
+"""
+    circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, theta0, title_string)
+
+Plot field (displacement, stress) within a circular disk and style
+"""
 function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, theta0, title_string)
     fontsize = 20
     contour_levels = 100
@@ -43,6 +55,12 @@ function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, theta0, title
     gca().tick_params(labelsize=fontsize)
 end
 
+
+"""
+    calcbrazil(p, x, y, R, theta0)
+
+Calculate stresses predicted from Hondros solution to Brazil test.
+"""
 function calcbrazil(p, x, y, R, theta0)
     #! Solution from Hondros (1959) as summarized by Wei and Chau 2013
     r = @. sqrt(x^2 + y^2)
@@ -78,13 +96,14 @@ function calcbrazil(p, x, y, R, theta0)
     return Sanalytic
 end
 
+
 """
     braziltest()
 
 Compare the Hondros (1959 analytic soluiton) for the Brazil test 
 with the BEM solution for both constant and quadratic element cases.
 """
-function ex_braziltest()
+function braziltest()
     close("all")
     mu = 3e10
     nu = 0.25
@@ -227,4 +246,4 @@ function ex_braziltest()
     show()
 
 end
-ex_braziltest()
+braziltest()

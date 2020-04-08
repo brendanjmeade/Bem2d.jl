@@ -4,6 +4,12 @@ using PyPlot
 using LinearAlgebra
 using Bem2d
 
+
+"""
+    stylesubplots_local()
+
+    Apply consistent axis styling.
+"""
 function stylesubplots_local()
     gca().set_aspect("equal")
     gca().set_xticks([])
@@ -11,6 +17,19 @@ function stylesubplots_local()
     return nothing
 end
 
+
+"""
+    plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, title_string)
+ 
+18 panel plots.  3 rows by 6 columns.  First row: model1, Second row: model2,
+Third row: residuals.
+First column: displacement vectors
+Second column: x-displacement contours
+Third column: y-displacement contours
+Fourth column: xx-stress contours
+Fifth column: yy-stress contours
+Sixth column: xy-stress contours
+"""
 function plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, title_string)
     # Set contour levels for displacements and stresses
     contourvecdisp = collect(LinRange(-0.5, 0.5, 51))
@@ -165,7 +184,12 @@ function plot18(els, x, y, disp1, stress1, string1, disp2, stress2, string2, tit
 end
 
 
-function ex_okada()
+"""
+    bemvsdeepokada()
+
+    Compare CS displacement kernels with a deep buried Okada dislocation
+"""
+function bemvsdeepokada()
     mu = 30e9
     nu = 0.25
 
@@ -222,8 +246,8 @@ function ex_okada()
         stressokadats[i, 3] = stress[2, 3]
     end
     
-    PyPlot.close("all")
+    close("all")
     plot18(els, xobs, yobs, dispbemss, stressbemss, "BEM", dispokadass, stressokadass, "Okada", "strike-slip (BEM vs. Okada)")
     plot18(els, xobs, yobs, dispbemts, stressbemts, "BEM", dispokadats, stressokadats, "Okada", "tensile-slip (BEM vs. Okada)")
 end
-ex_okada()
+bemvsdeepokada()
