@@ -3,7 +3,13 @@ using PyCall
 using PyPlot
 using Bem2d
 
-function ex_freesurface()
+"""
+    thrustfaultfreesurface()
+
+Comparison of surface displacements near a thrust fault dipping
+at 45 degrees.  Includes both constant and quadratic elements.
+"""
+function thrustfaultfreesurface()
     mu = 30e9
     nu = 0.25
 
@@ -74,18 +80,15 @@ function ex_freesurface()
         uyokada[i] = u[3]
     end
 
-    fontsize = 6
-    markersize = 4
-    linewidth = 0.5
+    fontsize = 20
+    markersize = 12
+    linewidth = 2.0
     close("all")
-    figure(figsize = (3, 4))
+    figure(figsize = (12, 12))
 
     ax = subplot(2, 1, 1)
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada")
-
-    # plot(xplotconst, ufullspaceconst[1:2:end], "bo", markeredgewidth=linewidth, markersize=markersize, label = "const fullspace")
-    plot(xplotconst, ufreesurfaceconst[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
-    # plot(xplotquad, ufullspacequad[1:2:end], "r.", markeredgewidth=linewidth, markersize=markersize, label = "quad fullspace")
+    plot(xplotconst, ufreesurfaceconst[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
     plot(xplotquad, ufreesurfacequad[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
     gca().set_xlim([-5, 5]); gca().set_ylim([-1.0, 1.0])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
@@ -95,14 +98,8 @@ function ex_freesurface()
     ylabel(L"$u_x$ (m)", fontsize=fontsize)
 
     ax = subplot(2, 1, 2)
-    # plot(xanalytic, uyanalytic, "-k", linewidth=linewidth, label="analytic")
     plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada")
-
-    # plot(xplotconst, ufreesurfaceconst[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
-
-    # plot(xplotconst, ufullspaceconst[2:2:end], "bo", markeredgewidth=linewidth, markersize=markersize, label = "const fullspace")
-    plot(xplotconst, ufreesurfaceconst[2:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
-    # plot(xplotquad, ufullspacequad[2:2:end], "r.", markeredgewidth=linewidth, markersize=markersize, label = "quad fullspace")
+    plot(xplotconst, ufreesurfaceconst[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
     plot(xplotquad, ufreesurfacequad[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "quad halfspace")
     gca().set_xlim([-5, 5]); gca().set_ylim([-1.0, 1.0])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
@@ -112,4 +109,4 @@ function ex_freesurface()
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
     show()
 end
-ex_freesurface()
+thrustfaultfreesurface()
