@@ -6,6 +6,12 @@ using Infiltrator
 using PyPlot
 using Bem2d
 
+"""
+    derivsconst!()
+
+Time derivatives of stresses, velocities, and state variables for
+the constant displacement element case.  Calculation is in place for speed.
+"""
 function derivsconst!(dudt, u, p, t)
     intidx, nintidx, bemsliptotractotal, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
     @views multmatvec!(vx, vy, els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
@@ -21,6 +27,13 @@ function derivsconst!(dudt, u, p, t)
     return nothing
 end
 
+
+"""
+    derivsquad!()
+
+Time derivatives of stresses, velocities, and state variables for
+the quadratic displacement element case.  Calculation is in place for speed.
+"""
 function derivsquad!(dudt, u, p, t)
     intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
     @views multmatvecquad!(vx, vy, els.rotmat[intidx, :, :], u[1:3:end], u[2:3:end])
@@ -37,7 +50,13 @@ function derivsquad!(dudt, u, p, t)
     return nothing
 end
 
-function ex_qdstepandsaveplanar()
+
+"""
+    qdplanar()
+
+Quasidynamic model of earthquake cycle on a planar fault in a full space.
+"""
+function qdplanar()
     # Constants
     norml = sqrt(2.0) / 2.0
     nsteps = 2000
@@ -128,4 +147,4 @@ function ex_qdstepandsaveplanar()
     println("Wrote integration results to:")
     println(outfoldername)
 end
-ex_qdstepandsaveplanar()
+qdplanar()

@@ -6,6 +6,13 @@ using Infiltrator
 using PyPlot
 using Bem2d
 
+
+"""
+    derivsconst!()
+
+Time derivatives of stresses, velocities, and state variables for
+the constant displacement element case.  Calculation is in place for speed.
+"""
 function derivsconst!(dudt, u, p, t)
     intidx, nintidx, bemsliptotractotal, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
     @views Bem2d.multmatvec!(vx, vy, els.rotmatinv[intidx, :, :], u[1:3:end], u[2:3:end])
@@ -21,6 +28,13 @@ function derivsconst!(dudt, u, p, t)
     return nothing
 end
 
+
+"""
+    derivsquad!()
+
+Time derivatives of stresses, velocities, and state variables for
+the quadratic displacement element case.  Calculation is in place for speed.
+"""
 function derivsquad!(dudt, u, p, t)
     intidx, nintidx, partials, els, eta, thetalaw, dc, blockvxglobal, blockvyglobal, dthetadt, dvxdt, dvydt, vx, vy, dtracxglobaldt, dtracyglobaldt, dtracglobaldt = p
     @views multmatvecquad!(vx, vy, els.rotmatinv[intidx, :, :], u[1:3:end], u[2:3:end])
@@ -37,7 +51,14 @@ function derivsquad!(dudt, u, p, t)
     return nothing
 end
 
-function ex_qdstepandsave()
+
+"""
+    qdtopography()
+
+Quasidynamic model of earthquake cycle on a non-planar fault 
+beneath non-planar topography.
+"""
+function qdtopography()
     # Constants
     nsteps = 10000
     nfreesurf = 100
@@ -189,4 +210,4 @@ function ex_qdstepandsave()
     println("Wrote integration results to:")
     println(outfilename)
 end
-ex_qdstepandsave()
+qdtopography()
