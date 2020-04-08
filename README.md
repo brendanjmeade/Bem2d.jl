@@ -11,7 +11,7 @@ A simple starting example of a thrust fault with a topographic surface can be ge
 
 ```Julia
 using Bem2d
-include(“ex_thrusttopo.jl”)
+include(“examples/thrusttopo.jl”)
 ```
 should produce this figure:
 
