@@ -5,7 +5,16 @@ using PyPlot
 using Statistics
 using Bem2d
 
-function ex_freesurface()
+"""
+    nearsurfaceerror()
+
+Compare BEM errors from constant and quadratic elements.  The reference
+model is an Okada approximation of a 2d thrust fault.  BEM errors are
+evaluated not on any boundary but rather at a small distance away from
+the free surface boundary.  Specifically, a distance equal to the spacing
+between quadratic nodes on a single element.
+"""
+function nearsurfaceerror()
     mu = 30e9
     nu = 0.25
 
@@ -196,4 +205,4 @@ function ex_freesurface()
     tight_layout()
     show()
 end
-ex_freesurface()
+nearsurfaceerror()

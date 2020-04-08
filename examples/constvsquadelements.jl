@@ -1,7 +1,17 @@
 using Revise
 using Bem2d
 
-function ex_constquad()
+
+"""
+    constvsquadelements()
+
+Compare farfield displacements and stresses from constant displacement
+and quadratic displacement elements.  The point of this is to highlight 
+the fact the quadratic elements can be used to create linear slip elements
+that can accurately model a linear displacement gradient with no spurious
+singularities.
+"""
+function constvsquadelements()
     mu = 3e10
     nu = 0.25
 
@@ -61,4 +71,4 @@ function ex_constquad()
 
     return nothing
 end
-ex_constquad()
+constvsquadelements()
