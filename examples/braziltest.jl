@@ -39,9 +39,11 @@ function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, theta0, title
 
     subplot(nrows, ncols, plotidx)
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = colorbar(fraction=0.020, pad=0.05, extend = "both")
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
     cbar.ax.tick_params(labelsize=fontsize)
     contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
     title(title_string, fontsize=fontsize)
 
     # Draw entire circle and region of applied tractions
@@ -111,7 +113,7 @@ function braziltest()
     theta0 = deg2rad(1.0) # Arc length over which pressure is applied
     nels = 360
     R = nels / (2 * pi)
-    npts = 50
+    npts = 200
     x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
     r = @. sqrt(x^2 + y^2)
 
@@ -154,7 +156,6 @@ function braziltest()
 
     #! CONSTANT CASE
     #! Applied tractions -> effective displacements -> internal stresses
-    @show cond(HstarC)
     DeffC = inv(HstarC) * interleave(xtracC, ytracC)
     @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
 
@@ -168,7 +169,6 @@ function braziltest()
     ytracQ[1:3:end] = ytracC
     ytracQ[2:3:end] = ytracC
     ytracQ[3:3:end] = ytracC
-    @show cond(HstarQ)
     DeffQ = inv(HstarQ) * interleave(xtracQ, ytracQ)
     @time _, SdispQ = quaddispstress(slip2dispstress, x, y, els, idx["circle"], quadstack(DeffQ[1:2:end]), quadstack(DeffQ[2:2:end]), mu, nu)
 
@@ -241,9 +241,26 @@ function braziltest()
     circle_subplot(nrows, ncols, 22, x, y, SresidualQ[:, 1], npts, R, theta0, "Sxx (residual)")
     circle_subplot(nrows, ncols, 23, x, y, SresidualQ[:, 2], npts, R, theta0, "Syy (residual)")
     circle_subplot(nrows, ncols, 24, x, y, SresidualQ[:, 3], npts, R, theta0, "Sxy (residual)")
-
     tight_layout()
     show()
 
+    #! 9-panel plot for quadratic only
+    figure(figsize=(15,15))
+    nrows = 3
+    ncols = 3
+    # Analytic solutions
+    circle_subplot(nrows, ncols, 1, x, y, Sanalytic[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(analytic)}")
+    circle_subplot(nrows, ncols, 2, x, y, Sanalytic[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(analytic)}")
+    circle_subplot(nrows, ncols, 3, x, y, Sanalytic[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(analytic)}")
+
+    # BEM solutions
+    circle_subplot(nrows, ncols, 4, x, y, SdispQ[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(BEM)}")
+    circle_subplot(nrows, ncols, 5, x, y, SdispQ[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(BEM)}")
+    circle_subplot(nrows, ncols, 6, x, y, SdispQ[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(BEM)}")
+    circle_subplot(nrows, ncols, 7, x, y, SresidualQ[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(residual)}")
+    circle_subplot(nrows, ncols, 8, x, y, SresidualQ[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(residual)}")
+    circle_subplot(nrows, ncols, 9, x, y, SresidualQ[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(residual)}")
+    tight_layout()
+    show()
 end
 braziltest()
