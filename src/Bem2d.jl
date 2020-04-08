@@ -724,7 +724,14 @@ function partialsquaddispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
     return partialsdisp, partialsstress, partialstrac
 end
 
-# Go from fault slip at 3 nodes to 3 quadratic shape function coefficients
+
+"""
+    slip2coef(xnodes, slip, a)
+
+Given a set of 3 displacements/slips at quadratic nodes convert
+to a set of three phi values neccesary to comput the three quadratic
+functions.
+"""
 function slip2coef(xnodes, slip, a)
     mat = zeros(3, 3)
     mat[:, 1] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .- 3 ./ 4)
@@ -733,7 +740,14 @@ function slip2coef(xnodes, slip, a)
     return inv(mat) * slip
 end
 
-# Go from quadratic coefficients to slip.  Check for correctness
+
+"""
+    coef2slip(xnodes, slip, a)
+
+Given a set of 3 phi values at quadratic nodes convert
+to a set of three displacement/slip values neccesary to 
+physically interpret the results.
+"""
 function coef2slip(xnodes, coef, a)
     mat = zeros(3, 3)
     mat[:, 1] = (xnodes ./ a) .* (9 .* (xnodes ./ a) ./ 8 .- 3 ./ 4)
@@ -742,15 +756,28 @@ function coef2slip(xnodes, coef, a)
     return mat * coef
 end
 
-# Get indices matching label name and report how many are selected
+
 export getidx
+"""
+    getidx(label, els)
+
+Return a vector with the indices of els.name that match label.
+"""
 function getidx(label, els)
     idx = findall(x->x == label, els.name)
     println("getidx found " * string(length(idx)) * " elements with label \"" * label * "\"")
     return idx
 end
 
+
 export getidxdict
+"""
+    getidxdict(els)
+
+Return a dictionary of the arrays containing the indices of els
+associated with each distinct name in els.  The keys to the 
+dictionary are each unique name in els.
+"""
 function getidxdict(els)
     idxdict = Dict()
     names = unique(els.name)
@@ -762,8 +789,14 @@ function getidxdict(els)
     return idxdict
 end
 
-# Create a nested dictionary for storing partial derivatives
+
 export initpartials
+"""
+    initpartials(els)
+
+Create a nested dictionary for storing partial derivatives.
+Should probably change this to Hstar, Sstar, and Tstar notation.
+"""
 function initpartials(els)
     partials = Dict()
     partials["disp"] = Dict()
@@ -782,17 +815,28 @@ function initpartials(els)
     return partials
 end
 
-# Utility function for "stacking" a flattened quad vector
-# Useful for converting results of BEM solve to arguments
-# that can be used with quaddispstress for forward models
+
 export quadstack
+"""
+    quadstack(vec)
+
+Utility function for "stacking" a flattened quad vector
+Useful for converting results of BEM solve to arguments
+that can be used with quaddispstress for forward models
+"""
 function quadstack(vec)
     stack = transpose(reshape(vec, 3, Int(length(vec) / 3)))
     return stack
 end
 
-# Utility function for plotting qd results. Can run out of memory :(
+
 export plotqdtimeseries
+"""
+    plotqdtimeseries(sol, stridesize, nels)
+
+Utility function for plotting quasidynaic results. For constant slip elements.
+Can run out of memory :(
+"""
 function plotqdtimeseries(sol, stridesize, nels)
     siay = 365.25 * 24 * 60 * 60
     t = [x / siay for x in sol.t]
@@ -848,8 +892,14 @@ function plotqdtimeseries(sol, stridesize, nels)
     show()
 end
 
-# Utility function for plotting qd results. Can run out of memory :(
+
 export plotqdtimeseriesquad
+"""
+    plotqdtimeseriesquad(sol, stridesize, nels)
+
+Utility function for plotting quasidynaic results. For quadratic slip elements.
+Can run out of memory :(
+"""
 function plotqdtimeseriesquad(sol, stridesize, nels)
     siay = 365.25 * 24 * 60 * 60
     t = [x / siay for x in sol.t]
