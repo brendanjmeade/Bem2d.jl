@@ -6,25 +6,6 @@ using PyCall
 using PyPlot
 using Infiltrator
 
-export interleave
-function interleave(vec1, vec2)
-    return transpose([vec1 vec2])[:]
-end
-
-export meshgrid
-function meshgrid(xs, ys)
-    xmat = repeat(xs, 1, length(ys))
-    ymat = transpose(repeat(ys, 1, length(xs)))
-    return xmat, ymat
-end
-
-# Create regular grid for plotting simple models
-export obsgrid
-function obsgrid(xmin, ymin, xmax, ymax, npts)
-    T = typeof(xmin)
-    xobs, yobs = meshgrid(LinRange(T(xmin), T(xmax), npts), LinRange(T(ymin), T(ymax), npts))
-    return xobs[:], yobs[:]
-end
 
 export Elements
 mutable struct Elements
@@ -78,13 +59,73 @@ mutable struct Elements
                            0) # endidx
 end
 
+
+export interleave
+"""
+    interleave(vec1, vec2)
+
+Interleave values in two arrays of equal length.
+
+# Example
+```julia-repl
+julia> interleave([1, 2], [3, 4])
+4-element Array{Int64,1}:
+ 1
+ 3
+ 2
+ 4
+```
+"""
+function interleave(vec1, vec2)
+    return transpose([vec1 vec2])[:]
+end
+
+
+export meshgrid
+"""
+    meshgrid(xs, ys)
+
+Replicate Matlab's meshgrid.  Makes plaid grids from two vectors.
+"""
+function meshgrid(xs, ys)
+    xmat = repeat(xs, 1, length(ys))
+    ymat = transpose(repeat(ys, 1, length(xs)))
+    return xmat, ymat
+end
+
+
+export obsgrid
+"""
+    obsgrid(xmin, ymin, xmax, ymax, npts)
+
+Create set of observation corrdinates on a regular rectangular grid.
+"""
+function obsgrid(xmin, ymin, xmax, ymax, npts)
+    T = typeof(xmin)
+    xobs, yobs = meshgrid(LinRange(T(xmin), T(xmax), npts), LinRange(T(ymin), T(ymax), npts))
+    return xobs[:], yobs[:]
+end
+
+
 export updateendidx!
+"""
+    updateendidx!(els)
+
+In place determinate of last index of structures els in which there is data
+"""
 function updateendidx!(els)
     els.endidx = findall(isnan, els.x1)[1] - 1
     return nothing
 end
 
+
 export discretizedline
+"""
+    discretizedline(xstart, ystart, xend, yend, nelements)
+
+Calculated start and endpoint coordinates for a line discretized 
+into nelements
+"""
 function discretizedline(xstart, ystart, xend, yend, nelements)
     npts = nelements + 1
     x = range(xstart, stop = xend, length = npts)
@@ -864,14 +905,27 @@ function plotqdtimeseriesquad(sol, stridesize, nels)
     show()
 end
 
+
 export thetaaginglaw
+"""
+    thetaaginglaw(v, theta, dc)
+
+Aging law in rate and state friction
+"""
 function thetaaginglaw(v, theta, dc)
     return @. 1 - theta * v / dc
 end
 
+
 export thetasliplaw
+"""
+    thetasliplaw(v, theta, dc)
+
+Slip evolution law in rate and state friction
+"""
 function thetasliplaw(v, theta, dc)
     return @. -v * theta / dc * log(v * theta / dc)
 end
+
 
 end
