@@ -67,7 +67,7 @@ function gravitydisc()
     close("all")
     mu = 3e10
     nu = 0.25
-    p = -1.0e5 # Applied radial pressure over arc
+    p = 1.0e-5 # Applied radial pressure over arc
     theta0 = deg2rad(15.0) # Arc length over which pressure is applied
     nels = 360
     R = nels / (2 * pi)
@@ -113,23 +113,25 @@ function gravitydisc()
     #! Applied tractions -> effective displacements -> internal stresses
     DeffC = TstarC * interleave(xtracC, ytracC)
     # @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
-    @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], xtracC, ytracC, mu, nu)
+    @time UdispC, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], xtracC, ytracC, mu, nu)
 
 
     #! Isolate the values inside the circle
     nanidx = findall(x -> x > R, r)
+    UdispC[nanidx, :] .= NaN
     SdispC[nanidx, :] .= NaN
-    # @infiltrate
 
     #! 9-panel plot for quadratic only
-    figure(figsize=(15,15))
+    figure(figsize=(30,15))
     nrows = 1
-    ncols = 3
+    ncols = 5
 
     # BEM solutions
-    circle_subplot(nrows, ncols, 1, x, y, SdispC[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(BEM)}")
-    circle_subplot(nrows, ncols, 2, x, y, SdispC[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(BEM)}")
-    circle_subplot(nrows, ncols, 3, x, y, SdispC[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(BEM)}")
+    circle_subplot(nrows, ncols, 1, x, y, UdispC[:, 1], npts, R, theta0, L"u_{x} \; \mathrm{(BEM)}")
+    circle_subplot(nrows, ncols, 2, x, y, UdispC[:, 2], npts, R, theta0, L"u_{y} \; \mathrm{(BEM)}")
+    circle_subplot(nrows, ncols, 3, x, y, SdispC[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(BEM)}")
+    circle_subplot(nrows, ncols, 4, x, y, SdispC[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(BEM)}")
+    circle_subplot(nrows, ncols, 5, x, y, SdispC[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(BEM)}")
     tight_layout()
     show()
     @infiltrate
