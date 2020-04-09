@@ -137,7 +137,13 @@ function discretizedline(xstart, ystart, xend, yend, nelements)
     return collect(x1), collect(y1), collect(x2), collect(y2)
 end
 
+
 export multmatvec
+"""
+    multmatvec(mats, vec1, vec2)
+
+Matrix vector multiply. Multiple matrices.  Multiple vectors. 
+"""
 function multmatvec(mats, vec1, vec2)
     newvec1 = zeros(size(vec1))
     newvec2 = zeros(size(vec2))
@@ -147,7 +153,13 @@ function multmatvec(mats, vec1, vec2)
     return newvec1, newvec2
 end
 
+
 export multmatvec!
+"""
+    multmatvec!(mats, vec1, vec2)
+
+In place matrix vector multiply. Multiple matrices.  Multiple vectors. 
+"""
 function multmatvec!(vx, vy, mats, vec1, vec2)
     @inbounds for i in 1:length(vec1)
         @views vx[i] = mats[i, 1, 1] * vec1[i] + mats[i, 1, 2] * vec2[i]
@@ -156,7 +168,14 @@ function multmatvec!(vx, vy, mats, vec1, vec2)
     return nothing
 end
 
+
 export multmatvecquad!
+"""
+    multmatvecquad!(mats, vec1, vec2)
+
+In place matrix vector multiply. Multiple matrices.  Multiple vectors. 
+Built for quadratic case.
+"""
 function multmatvecquad!(vx, vy, mats, vec1, vec2)
     for i in 1:length(vec1)
         matidx = Int64(floor((i - 1) / 3) + 1) # Change w/ every 3rd node
@@ -166,7 +185,13 @@ function multmatvecquad!(vx, vy, mats, vec1, vec2)
     return nothing
 end
 
+
 export multmatsinglevec
+"""
+    multmatvecsingle(mats, vec1, vec2)
+
+Matrix vector multiply. Single matrix.  Multiple vectors. 
+"""
 function multmatsinglevec(mat, vec1, vec2)
     newvec1 = zeros(size(vec1))
     newvec2 = zeros(size(vec2))
@@ -176,7 +201,13 @@ function multmatsinglevec(mat, vec1, vec2)
     return newvec1, newvec2
 end
 
+
 export multmatvecsingle
+"""
+    multmatvecsingle(mats, vec1, vec2)
+
+Matrix vector multiply. Multiple matrices.  Single set of vectors. 
+"""
 function multmatvecsingle(mats, vec1, vec2)
     newvec1 = zeros(size(mats)[1])
     newvec2 = zeros(size(mats)[1])
@@ -186,8 +217,13 @@ function multmatvecsingle(mats, vec1, vec2)
     return newvec1, newvec2
 end
 
-# Calculate displacements and stress for constant slip/traction elements
+
 export constdispstress
+"""
+    constdispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
+
+Calculate displacements in global reference frame for constant elements.
+"""
 function constdispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
     disp, stress = zeros(length(x), 2), zeros(length(x), 3)
     _x, _y = zeros(length(x)), zeros(length(x))
@@ -206,8 +242,14 @@ function constdispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
     return disp, stress
 end
 
-# Far-field displacements and stresses for constant quadratic elements
+
 export quaddispstress
+"""
+    quaddispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
+
+Calculate displacements in global reference frame for quadratic elements.
+Far-field case.
+"""
 function quaddispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
     disp = zeros(length(x), 2)
     stress = zeros(length(x), 3)
@@ -217,7 +259,7 @@ function quaddispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
         f = quadkernel_farfield(_x, _y, els.halflength[idx[j]], nu)
         _xcomp, _ycomp = multmatsinglevec(els.rotmatinv[idx[j], :, :], xcomp[j, :], ycomp[j, :])
 
-        # TODO: I think I need to get xnodes is local coordinate system
+        # TODO: I think I need to get xnodes in a local coordinate system
         # This should be a translate and a rotate
         # Should these matrices be moved to standardize_elements?
         xnodes, ynodes = multmatsinglevec(els.rotmatinv[idx[j], :, :], els.xnodes[idx[j], :] .- els.xcenter[idx[j]], els.ynodes[idx[j], :] .- els.ycenter[idx[j]])
@@ -234,8 +276,14 @@ function quaddispstress(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
     return disp, stress
 end
 
-# Far-field displacements and stresses for constant quadratic elements
+
 export quaddispstresscoincident
+"""
+    quaddispstresscoincident(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
+
+Calculate displacements in global reference frame for quadratic elements.
+Coincident case.
+"""
 function quaddispstresscoincident(fun2dispstress, x, y, els, idx, xcomp, ycomp, mu, nu)
     disp = zeros(length(x), 2)
     stress = zeros(length(x), 3)
@@ -258,7 +306,12 @@ function quaddispstresscoincident(fun2dispstress, x, y, els, idx, xcomp, ycomp, 
     return disp, stress
 end
 
-# Constant slip kernels from Starfield and Crouch, pages 49 and 82
+
+"""
+    constkernel(x, y, a, nu)
+
+Calculate constant slip kernels from Starfield and Crouch, pages 49 and 82.
+"""
 function constkernel(x, y, a, nu)
     f = zeros(length(x), 7)
     leadingconst = 1/(4*pi*(1-nu))
@@ -287,9 +340,18 @@ function constkernel(x, y, a, nu)
     return f
 end
 
-# Coincident 3-node quadratic kernels
-# Kernels for coincident integrals f, shape_function_idx, node_idx
+
 export quadkernel_coincident
+"""
+    quadkernel_coincident(a, nu)
+    
+Farfield 3-node quadratic kernels for substitution into CS kernels
+f has dimensions [nobs, f=7, shapefunctions=3]
+
+Note: These were calculated symbolically using Maxima and then
+reduced to eliminate singularites by zeroing out diverging terms.
+This was very tedious.
+"""
 function quadkernel_coincident(a, nu)
     # TODO: Should I swap order: nodeidx, f, shapefunction Probably
     f = zeros(7, 3, 3)
@@ -368,9 +430,16 @@ function quadkernel_coincident(a, nu)
     return f
 end
 
-# Farfield 3-node quadratic kernels
-# f has dimensions [nobs, f=7, shapefunctions=3]
+
 export quadkernel_farfield
+"""
+    quadkernel_farfield(x, y, a, nu)
+    
+Farfield 3-node quadratic kernels for substitution into CS kernels
+f has dimensions [nobs, f=7, shapefunctions=3]
+
+Note: These were calculated symbolically using Maxima.
+"""
 function quadkernel_farfield(x, y, a, nu)
     f = zeros(length(x), 7, 3)
     for i in 1:length(x)
@@ -410,8 +479,13 @@ function quadkernel_farfield(x, y, a, nu)
     return f
 end
 
-# Generalization from Starfield and Crouch
+
 export trac2dispstress
+"""
+    trac2dispstress(xcomp, ycomp, f, y, mu, nu)
+    
+Calculate interior displacements and stresses from boundary tractions
+"""
 function trac2dispstress(xcomp, ycomp, f, y, mu, nu)
     disp = zeros(length(y), 2)
     stress = zeros(length(y), 3)
@@ -430,33 +504,13 @@ function trac2dispstress(xcomp, ycomp, f, y, mu, nu)
     return disp, stress
 end
 
-# Generalization of Starfield and Crouch
-# This is the *old* version with known incorrect x displacements for tensile slip and probably all yy and xy stresses
-# export slip2dispstress
-# function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
-#     disp, stress = zeros(length(y), 2), zeros(length(y), 3)
-#     _xcomp, _ycomp = -xcomp, -ycomp # For Okada consistency
-#     # _xcomp, _ycomp = xcomp, ycomp # TODO: Neglecting the sign flip leads to errors with ...super strange
-#     for i in 1:length(y)
-#         disp[i, 1] = _xcomp * (2.0 * (1.0 - nu) * f[i, 2] - y[i] * f[i, 5]) + _ycomp * (-(1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4])
-#         disp[i, 2] = _xcomp * ((1.0 - 2.0 * nu) * f[i, 3] - y[i] * f[i, 4]) + _ycomp * (2.0 * (1 - nu) * f[i, 2] - y[i] * -f[i, 5])
-#         stress[i, 1] = 2.0 * _xcomp * mu * (2.0 * f[i, 4] + y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] + y[i] * f[i, 7])
-#         stress[i, 2] = 2.0 * _xcomp * mu * (-y[i] * f[i, 6]) + 2.0 * _ycomp * mu * (-f[i, 5] - y[i] * f[i, 7])
-#         stress[i, 3] = 2.0 * _xcomp * mu * (-f[i, 5] + y[i] * f[i, 7]) + 2.0 * _ycomp * mu * (-y[i] * f[i, 6])
-#     end
-#     return disp, stress
-# end
-
-# This is the attempt at re-implementing
-# f(x) = f_1
-# df/dy = f_2
-# df/dx = f_3
-# d2f/dxdy = f_4
-# d2f/dxdx = -d2f/dydy = f_5
-# d3f/dxdydy = -d3f/dxdxdx = f_6
-# d3f/dydydy = -d3f/dxdxdy = f_7
 
 export slip2dispstress
+"""
+    slip2dispstress(xcomp, ycomp, f, y, mu, nu)
+    
+Calculate interior displacements and stresses from boundary slip/displacement
+"""
 function slip2dispstress(xcomp, ycomp, f, y, mu, nu)
     disp, stress = zeros(length(y), 2), zeros(length(y), 3)
     _xcomp, _ycomp = -xcomp, -ycomp # For Okada consistency
