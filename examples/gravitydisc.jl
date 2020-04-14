@@ -88,6 +88,16 @@ end
 
 
 """
+    trianglearea(x1, y1, x2, y2, x3, y3)
+
+    From https://math.stackexchange.com/questions/516219/finding-out-the-area-of-a-triangle-if-the-coordinates-of-the-three-vertices-are
+"""
+function trianglearea(x1, y1, x2, y2, x3, y3)
+    return abs(0.5*(x1*(y2-y3)+x2*(y3-y1)+x3*(y1-y2)))
+end
+
+
+"""
     trimesh(nodes, connectivity, refinefactor)
 
 Calls triangle binary (https://www.cs.cmu.edu/~quake/triangle.html)
@@ -99,8 +109,24 @@ function trimesh(nodes, connectivity, refinefactor)
     set_polygon_point!(poly, nodes)
     set_polygon_segment!(poly, connectivity)
     mesh = create_mesh(poly)
-    mesh = refine(mesh, divide_cell_into=refinefactor, keep_edges=true)
+    if refinefactor > 1
+        mesh = refine(mesh, divide_cell_into=refinefactor, keep_edges=true)
+    end
     return mesh
+end
+
+
+#! Plot mesh
+function plotmesh(mesh)
+    figure()
+    for i in 1:size(mesh.cell)[2]
+        x = mesh.point[1, mesh.cell[:, i]]
+        y = mesh.point[2, mesh.cell[:, i]]
+        fill(x, y, "lightgray", edgecolor="k", linewidth=0.5)
+        plot(mean(x), mean(y), "r.")
+    end
+    show()
+    return nothing
 end
 
 
@@ -134,10 +160,27 @@ function gravitydisc()
     standardize_elements!(els)
     idx = getidxdict(els)
 
-    #! Discretize volume into cells
-    nodes = [0.0 0.0 ; 0.33 0.0 ; 0.33 0.33 ; 0.33 0.0 ; 1.0 0.0 ; 1.0 1.0 ; 0.0 1.0] 
-    connectivity = [1 2 ; 2 3 ; 3 4 ; 4 5 ; 5 6 ; 6 7 ; 7 1]
-    
+    #! Discretize disc volume into cells
+    nodes = [x1 y1]
+    connectivity = Int.(zeros(size(nodes)))
+    connectivity[:, 1] = collect(1:1:length(x1))
+    connectivity[1:end-1, 2] = collect(2:1:length(x1))
+    connectivity[end, 2] = 1
+    mesh = trimesh(nodes, connectivity, 1)
+    plotmesh(mesh)
+
+    #! Loop over each triangle calculate area and contribution to u_eff
+    ntri = size(mesh.cell)[2]
+    for i in 1:ntri
+        @show i
+        xtri = mesh.point[1, mesh.cell[:, i]]
+        ytri = mesh.point[2, mesh.cell[:, i]]
+        @show triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
+        tricentroid = [mean(xtri) mean(ytri)]
+        # Ug, _ = kelvinUD(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], 0, 0, fx, fy, mu, nu)
+    end
+    @infiltrate
+    return
 
     #! Apply normal tractions everywhere and convert from radial to Cartesian
     xtracC = zeros(els.endidx)
