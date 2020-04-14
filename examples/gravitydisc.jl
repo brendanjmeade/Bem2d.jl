@@ -4,6 +4,7 @@ using LaTeXStrings
 using PyPlot
 using LinearAlgebra
 using Infiltrator
+using TriangleMesh
 using Bem2d
 
 
@@ -87,6 +88,23 @@ end
 
 
 """
+    trimesh(nodes, connectivity, refinefactor)
+
+Calls triangle binary (https://www.cs.cmu.edu/~quake/triangle.html)
+Based on example at: https://github.com/konsim83/TriangleMesh.jl/blob/master/docs/src/man/examples.md
+"""
+function trimesh(nodes, connectivity, refinefactor)
+    nnodes = size(nodes)[1]
+    poly = Polygon_pslg(nnodes, 1, 2, nnodes, 0)
+    set_polygon_point!(poly, nodes)
+    set_polygon_segment!(poly, connectivity)
+    mesh = create_mesh(poly)
+    mesh = refine(mesh, divide_cell_into=refinefactor, keep_edges=true)
+    return mesh
+end
+
+
+"""
     gravitydisc()
 
 Experiments with gravity body force.
@@ -116,6 +134,11 @@ function gravitydisc()
     standardize_elements!(els)
     idx = getidxdict(els)
 
+    #! Discretize volume into cells
+    nodes = [0.0 0.0 ; 0.33 0.0 ; 0.33 0.33 ; 0.33 0.0 ; 1.0 0.0 ; 1.0 1.0 ; 0.0 1.0] 
+    connectivity = [1 2 ; 2 3 ; 3 4 ; 4 5 ; 5 6 ; 6 7 ; 7 1]
+    
+
     #! Apply normal tractions everywhere and convert from radial to Cartesian
     xtracC = zeros(els.endidx)
     ytracC = zeros(els.endidx)
@@ -132,6 +155,7 @@ function gravitydisc()
     deleteidx = findall(x -> (x<-theta0 && x>-deg2rad(180)+theta0), thetaels)
     xtracC[deleteidx] .= 0
     ytracC[deleteidx] .= 0
+
 
     #! For each element centroid calculate the effect of a body force
     fx = 0.0
