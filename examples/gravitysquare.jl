@@ -137,10 +137,10 @@ function gravitydisc()
     close("all")
     mu = 3e10
     nu = 0.25
-    nels = 50
-    npts = 300
+    nels = 20
+    npts = 50
     # x, y = obsgrid(0, 0, 1, 1, npts)
-    x, y = obsgrid(1e-8, 1e-8, 1-1e-8, 1-1e-8, npts)
+    x, y = obsgrid(1e-4, 1e-4, 1-1e-4, 1-1e-4, npts)
     fx = 0.0
     fy = 9.81 * 2700.0
 
@@ -203,8 +203,7 @@ function gravitydisc()
     connectivity[:, 1] = collect(1:1:length(xcoords))
     connectivity[1:end-1, 2] = collect(2:1:length(xcoords))
     connectivity[end, 2] = 1
-    mesh = trimesh(nodes, connectivity, 5)
-    plotmesh(mesh)
+    mesh = trimesh(nodes, connectivity, 1)
 
     #! Loop over each triangle calculate area and contribution to u_eff
     #! For each element centroid calculate the effect of a body force
@@ -218,23 +217,33 @@ function gravitydisc()
         Ugi, _ = kelvinUD(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], tricentroid[1], tricentroid[2], fx, fy, mu, nu)
         Ugmesh += @. triarea * Ugi
     end
+    
+    #! What I need is a full forward evaluation at the bottom coordinates only
+    Udispgbottom2, _ = constdispstress(slip2dispstress,
+                                       els.xcenter[idx["bottom"]],
+                                       els.ycenter[idx["bottom"]],
+                                       els,
+                                       collect(1:1:4*nels),
+                                       Ugmesh[:, 1],
+                                       Ugmesh[:, 2],
+                                       mu, nu)
 
-    #! Zero out the tractions on the area without contact
-    Ugmesh[1:nels+1, 1] .= 0.0 # Set a fixed point at bottom
-    Ugmesh[1:nels+1, 2] .= 0.0 # Set a fixed point at bottom
-
-    figure()
-    plot(Ugmesh[:, 1], "-r", label="ux")
-    plot(Ugmesh[:, 2], "-b", label="uy")
-    legend()
-    show()
 
     #! Forward evaluation
-    Udispg, Sdispg = constdispstress(slip2dispstress, x, y, els, collect(1:1:4*nels), Ugmesh[:, 1], Ugmesh[:, 2], mu, nu)
-
+    Udispg, _ = constdispstress(slip2dispstress, x, y, els,
+                                collect(1:1:4*nels),
+                                Ugmesh[:, 1],
+                                Ugmesh[:, 2],
+                                mu, nu)
+    Udispgbottom, _ = constdispstress(slip2dispstress, x, y, els,
+                                      idx["bottom"],
+                                      Udispgbottom2[:, 1],
+                                      Udispgbottom2[:, 2],
+                                      mu, nu)
+    
     #! Plot meshes and fields
-    figure(figsize=(20,15))
-    nrows = 2
+    figure(figsize=(20,20))
+    nrows = 3
     ncols = 3
     fontsize = 20
     contour_levels = 20
@@ -251,36 +260,52 @@ function gravitydisc()
     gca().tick_params(labelsize=fontsize)
 
     subplot(nrows, ncols, 2)
+    plot(Ugmesh[:, 1], "-r", label="ux gravity")
+    plot(Ugmesh[:, 2], "-b", label="uy gravity")
+    plot(Udispgbottom2[:, 1], "xr", label="ux correction")
+    plot(Udispgbottom2[:, 2], ".b", label="uy correction")
+    legend()
+    gca().tick_params(labelsize=fontsize)
+
+    subplot(nrows, ncols, 4)
     mat = Udispg[:, 1]
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
     cbar.ax.tick_params(labelsize=fontsize)
     contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
     title("ux", fontsize=fontsize)
 
-
-    subplot(nrows, ncols, 3)
+    subplot(nrows, ncols, 7)
     mat = Udispg[:, 2]
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
     cbar.ax.tick_params(labelsize=fontsize)
+    clim([0, 2e-8])
     contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
     title("uy", fontsize=fontsize)
 
+    subplot(nrows, ncols, 8)
+    mat = Udispgbottom[:, 2]
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    clim([0, 2e-8])
+    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("uy", fontsize=fontsize)
 
-
-    # circle_subplot(nrows, ncols, 2, x, y, Udispg[:, 1], npts, R, theta0, L"u_{x} \; \mathrm{(gravity \; BEM)}")
-    # circle_subplot(nrows, ncols, 3, x, y, Udispg[:, 2], npts, R, theta0, L"u_{y} \; \mathrm{(gravity \; BEM)}")
-    # circle_subplot(nrows, ncols, 4, x, y, Sdispg[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(gravity \; BEM)}")
-    # circle_subplot(nrows, ncols, 5, x, y, Sdispg[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(gravity \; BEM)}")
-    # circle_subplot(nrows, ncols, 6, x, y, Sdispg[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(gravity \; BEM)}")
     tight_layout()
     show()
-
-    @infiltrate
 end
 gravitydisc()
