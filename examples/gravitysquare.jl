@@ -50,10 +50,6 @@ function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, theta0, title
     # Draw entire circle and region of applied tractions
     x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     plot([x1, x2], [y1, y2], "-k", linewidth=2)
-    # x1, y1, x2, y2 = discretized_arc(-theta0, theta0, R, 50)
-    # plot([x1, x2], [y1, y2], "-r", linewidth=2)
-    # x1, y1, x2, y2 = discretized_arc(-theta0+deg2rad(180), theta0+deg2rad(180), R, 50)
-    # plot([x1, x2], [y1, y2], "-r", linewidth=2)
     gca().set_aspect("equal")
     gca().tick_params(labelsize=fontsize)
 end
@@ -141,113 +137,150 @@ function gravitydisc()
     close("all")
     mu = 3e10
     nu = 0.25
-    p = 1.0e-5 # Applied radial pressure over arc
-    theta0 = deg2rad(15.0) # Arc length over which pressure is applied
-    nels = 36
-    R = nels / (2 * pi)
+    nels = 50
     npts = 300
-    x, y = obsgrid(-R, -R, R, R, npts)
-    r = @. sqrt(x^2 + y^2)
+    # x, y = obsgrid(0, 0, 1, 1, npts)
+    x, y = obsgrid(1e-8, 1e-8, 1-1e-8, 1-1e-8, npts)
     fx = 0.0
     fy = 9.81 * 2700.0
 
-    #! BEM solution
+    #! BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, nels)
+    x1, y1, x2, y2 = discretizedline(0, 0, 1, 0, nels)
+    xbottom = x1
+    ybottom = y1
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
         els.x2[els.endidx + i] = x2[i]
         els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "circle"
+        els.name[els.endidx + i] = "bottom"
+    end
+    standardize_elements!(els)
+
+    x1, y1, x2, y2 = discretizedline(1, 0, 1, 1, nels)
+    xright = x1
+    yright = y1
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "right"
+    end
+    standardize_elements!(els)
+
+    x1, y1, x2, y2 = discretizedline(1, 1, 0, 1, nels)
+    xtop = x1
+    ytop = y1
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "top"
+    end
+    standardize_elements!(els)
+
+    x1, y1, x2, y2 = discretizedline(0, 1, 0, 0, nels)
+    xleft = x1
+    yleft = y1
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "left"
     end
     standardize_elements!(els)
     idx = getidxdict(els)
 
     #! Discretize disc volume into cells
-    nodes = [x1 y1]
+    xcoords = [xbottom;xright;xtop;xleft] 
+    ycoords = [ybottom;yright;ytop;yleft]
+    nodes = [xcoords ycoords]
     connectivity = Int.(zeros(size(nodes)))
-    connectivity[:, 1] = collect(1:1:length(x1))
-    connectivity[1:end-1, 2] = collect(2:1:length(x1))
+    connectivity[:, 1] = collect(1:1:length(xcoords))
+    connectivity[1:end-1, 2] = collect(2:1:length(xcoords))
     connectivity[end, 2] = 1
-    mesh = trimesh(nodes, connectivity, 20)
+    mesh = trimesh(nodes, connectivity, 5)
+    plotmesh(mesh)
 
     #! Loop over each triangle calculate area and contribution to u_eff
+    #! For each element centroid calculate the effect of a body force
     ntri = size(mesh.cell)[2]
-    Ugmesh = zeros(nels, 2)
+    Ugmesh = zeros(els.endidx, 2)
     for i in 1:ntri
-        # @show i
         xtri = mesh.point[1, mesh.cell[:, i]]
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
         tricentroid = [mean(xtri) mean(ytri)]
         Ugi, _ = kelvinUD(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], tricentroid[1], tricentroid[2], fx, fy, mu, nu)
         Ugmesh += @. triarea * Ugi
-        # @show size(Ugi)
-    end
-
-    #! Apply normal tractions everywhere and convert from radial to Cartesian
-    xtracC = zeros(els.endidx)
-    ytracC = zeros(els.endidx)
-    thetaels = @. atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx])
-    for i in 1:els.endidx # Calcuate the x and y components of the tractions
-        normalTractions = [0; p] # Pressure in fault normal component only.
-        xtracC[i], ytracC[i] = els.rotmat[i, :, :] * normalTractions
     end
 
     #! Zero out the tractions on the area without contact
-    deleteidx = findall(x -> (x>theta0 && x<deg2rad(180)-theta0), thetaels)
-    xtracC[deleteidx] .= 0
-    ytracC[deleteidx] .= 0
-    deleteidx = findall(x -> (x<-theta0 && x>-deg2rad(180)+theta0), thetaels)
-    xtracC[deleteidx] .= 0
-    ytracC[deleteidx] .= 0
+    Ugmesh[1:nels+1, 1] .= 0.0 # Set a fixed point at bottom
+    Ugmesh[1:nels+1, 2] .= 0.0 # Set a fixed point at bottom
 
-    #! For each element centroid calculate the effect of a body force
-    Ug, Sg = kelvinUD(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], 0, 0, fx, fy, mu, nu)
-    Ug[9, 1] = 0.0 # Set a fixed point at bottom
-    Ug[10, 1] = 0.0 # Set a fixed point at bottom
-    Ug[9, 2] = 0.0 # Set a fixed point at bottom
-    Ug[10, 2] = 0.0 # Set a fixed point at bottom
-    Ugmesh[9, 1] = 0.0 # Set a fixed point at bottom
-    Ugmesh[10, 1] = 0.0 # Set a fixed point at bottom
-    Ugmesh[9, 2] = 0.0 # Set a fixed point at bottom
-    Ugmesh[10, 2] = 0.0 # Set a fixed point at bottom
+    figure()
+    plot(Ugmesh[:, 1], "-r", label="ux")
+    plot(Ugmesh[:, 2], "-b", label="uy")
+    legend()
+    show()
 
-    
-    #! Forward evaluation.  No BEM solve required for u_eff
-    Udisp, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], xtracC, ytracC, mu, nu)
-    # Udispg, Sdispg = constdispstress(slip2dispstress, x, y, els, idx["circle"], Ug[:, 1], Ug[:, 2], mu, nu)
-    Udispg, Sdispg = constdispstress(slip2dispstress, x, y, els, idx["circle"], Ugmesh[:, 1], Ugmesh[:, 2], mu, nu)
-
-    #! Isolate the values inside the circle
-    nanidx = findall(x -> x > R, r)
-    Udisp[nanidx, :] .= NaN
-    Sdisp[nanidx, :] .= NaN
-    Udispg[nanidx, :] .= NaN
-    Sdispg[nanidx, :] .= NaN
+    #! Forward evaluation
+    Udispg, Sdispg = constdispstress(slip2dispstress, x, y, els, collect(1:1:4*nels), Ugmesh[:, 1], Ugmesh[:, 2], mu, nu)
 
     #! Plot meshes and fields
     figure(figsize=(20,15))
     nrows = 2
     ncols = 3
     fontsize = 20
+    contour_levels = 20
+    contour_color = "white"
+    contour_linewidth = 1.0
+
     subplot(nrows, ncols, 1)
     plotmesh(mesh)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
     title("edge and area meshes", fontsize=fontsize)
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
     plot([x1, x2], [y1, y2], "-k", linewidth=2)
     gca().set_aspect("equal")
     gca().tick_params(labelsize=fontsize)
 
-    circle_subplot(nrows, ncols, 2, x, y, Udispg[:, 1], npts, R, theta0, L"u_{x} \; \mathrm{(gravity \; BEM)}")
-    circle_subplot(nrows, ncols, 3, x, y, Udispg[:, 2], npts, R, theta0, L"u_{y} \; \mathrm{(gravity \; BEM)}")
-    circle_subplot(nrows, ncols, 4, x, y, Sdispg[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(gravity \; BEM)}")
-    circle_subplot(nrows, ncols, 5, x, y, Sdispg[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(gravity \; BEM)}")
-    circle_subplot(nrows, ncols, 6, x, y, Sdispg[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(gravity \; BEM)}")
+    subplot(nrows, ncols, 2)
+    mat = Udispg[:, 1]
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("ux", fontsize=fontsize)
+
+
+    subplot(nrows, ncols, 3)
+    mat = Udispg[:, 2]
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("uy", fontsize=fontsize)
+
+
+
+    # circle_subplot(nrows, ncols, 2, x, y, Udispg[:, 1], npts, R, theta0, L"u_{x} \; \mathrm{(gravity \; BEM)}")
+    # circle_subplot(nrows, ncols, 3, x, y, Udispg[:, 2], npts, R, theta0, L"u_{y} \; \mathrm{(gravity \; BEM)}")
+    # circle_subplot(nrows, ncols, 4, x, y, Sdispg[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(gravity \; BEM)}")
+    # circle_subplot(nrows, ncols, 5, x, y, Sdispg[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(gravity \; BEM)}")
+    # circle_subplot(nrows, ncols, 6, x, y, Sdispg[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(gravity \; BEM)}")
     tight_layout()
     show()
+
+    @infiltrate
 end
 gravitydisc()
