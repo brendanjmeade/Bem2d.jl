@@ -110,22 +110,24 @@ function trimesh(nodes, connectivity, refinefactor)
     set_polygon_segment!(poly, connectivity)
     mesh = create_mesh(poly)
     if refinefactor > 1
-        mesh = refine(mesh, divide_cell_into=refinefactor, keep_edges=true)
+        # mesh = refine(mesh, divide_cell_into=refinefactor, keep_edges=true)
+        mesh = refine(mesh, divide_cell_into=refinefactor, keep_edges=false)
     end
     return mesh
 end
 
 
-#! Plot mesh
+"""
+    plotmesh(mesh)
+
+    Plot mesh with shading, mesh edges, and centroids
+"""
 function plotmesh(mesh)
-    figure()
     for i in 1:size(mesh.cell)[2]
         x = mesh.point[1, mesh.cell[:, i]]
         y = mesh.point[2, mesh.cell[:, i]]
         fill(x, y, "lightgray", edgecolor="k", linewidth=0.5)
-        plot(mean(x), mean(y), "r.")
     end
-    show()
     return nothing
 end
 
@@ -146,6 +148,8 @@ function gravitydisc()
     npts = 300
     x, y = obsgrid(-R, -R, R, R, npts)
     r = @. sqrt(x^2 + y^2)
+    fx = 0.0
+    fy = 9.81 * 2700.0
 
     #! BEM solution
     els = Elements(Int(1e5))
@@ -166,21 +170,21 @@ function gravitydisc()
     connectivity[:, 1] = collect(1:1:length(x1))
     connectivity[1:end-1, 2] = collect(2:1:length(x1))
     connectivity[end, 2] = 1
-    mesh = trimesh(nodes, connectivity, 1)
-    plotmesh(mesh)
+    mesh = trimesh(nodes, connectivity, 20)
 
     #! Loop over each triangle calculate area and contribution to u_eff
     ntri = size(mesh.cell)[2]
+    Ugmesh = zeros(nels, 2)
     for i in 1:ntri
-        @show i
+        # @show i
         xtri = mesh.point[1, mesh.cell[:, i]]
         ytri = mesh.point[2, mesh.cell[:, i]]
-        @show triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
+        triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
         tricentroid = [mean(xtri) mean(ytri)]
-        # Ug, _ = kelvinUD(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], 0, 0, fx, fy, mu, nu)
+        Ugi, _ = kelvinUD(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], tricentroid[1], tricentroid[2], fx, fy, mu, nu)
+        Ugmesh += @. triarea * Ugi
+        # @show size(Ugi)
     end
-    @infiltrate
-    return
 
     #! Apply normal tractions everywhere and convert from radial to Cartesian
     xtracC = zeros(els.endidx)
@@ -199,32 +203,22 @@ function gravitydisc()
     xtracC[deleteidx] .= 0
     ytracC[deleteidx] .= 0
 
-
     #! For each element centroid calculate the effect of a body force
-    fx = 0.0
-    fy = 9.81 * 2700.0
     Ug, Sg = kelvinUD(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], 0, 0, fx, fy, mu, nu)
     Ug[9, 1] = 0.0 # Set a fixed point at bottom
     Ug[10, 1] = 0.0 # Set a fixed point at bottom
     Ug[9, 2] = 0.0 # Set a fixed point at bottom
     Ug[10, 2] = 0.0 # Set a fixed point at bottom
+    Ugmesh[9, 1] = 0.0 # Set a fixed point at bottom
+    Ugmesh[10, 1] = 0.0 # Set a fixed point at bottom
+    Ugmesh[9, 2] = 0.0 # Set a fixed point at bottom
+    Ugmesh[10, 2] = 0.0 # Set a fixed point at bottom
 
-    figure()
-    for i in 1:els.endidx
-        text(els.xcenter[i], els.ycenter[i], string(i))
-    end
-    plot([els.x1[:] els.x2[:]], [els.y1[:] els.y2[:]], "-k")
-    plot([x1, x2], [y1, y2], "-r", linewidth=2)
-    show()
-
-    figure()
-    plot(Ug[:, 1], "r-", label="ux")
-    plot(Ug[:, 2], "b-", label="uy")
-    legend()
-
+    
     #! Forward evaluation.  No BEM solve required for u_eff
     Udisp, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["circle"], xtracC, ytracC, mu, nu)
-    Udispg, Sdispg = constdispstress(slip2dispstress, x, y, els, idx["circle"], Ug[:, 1], Ug[:, 2], mu, nu)
+    # Udispg, Sdispg = constdispstress(slip2dispstress, x, y, els, idx["circle"], Ug[:, 1], Ug[:, 2], mu, nu)
+    Udispg, Sdispg = constdispstress(slip2dispstress, x, y, els, idx["circle"], Ugmesh[:, 1], Ugmesh[:, 2], mu, nu)
 
     #! Isolate the values inside the circle
     nanidx = findall(x -> x > R, r)
@@ -233,24 +227,26 @@ function gravitydisc()
     Udispg[nanidx, :] .= NaN
     Sdispg[nanidx, :] .= NaN
 
-    # figure()
-    # Udispg[:, 2] = @. Udispg[:, 2] - minimum(Udispg[:, 2])
-    # quiver(x, y, Udispg[:, 1],  Udispg[:, 2])
+    #! Plot meshes and fields
+    figure(figsize=(20,15))
+    nrows = 2
+    ncols = 3
+    fontsize = 20
+    subplot(nrows, ncols, 1)
+    plotmesh(mesh)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("edge and area meshes", fontsize=fontsize)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
+    plot([x1, x2], [y1, y2], "-k", linewidth=2)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
 
-    #! 9-panel plot for quadratic only
-    figure(figsize=(30,10))
-    nrows = 1
-    ncols = 5
-    # circle_subplot(nrows, ncols, 1, x, y, Udisp[:, 1], npts, R, theta0, L"u_{x} \; \mathrm{(BEM)}")
-    # circle_subplot(nrows, ncols, 2, x, y, Udisp[:, 2], npts, R, theta0, L"u_{y} \; \mathrm{(BEM)}")
-    # circle_subplot(nrows, ncols, 3, x, y, Sdisp[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(BEM)}")
-    # circle_subplot(nrows, ncols, 4, x, y, Sdisp[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(BEM)}")
-    # circle_subplot(nrows, ncols, 5, x, y, Sdisp[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(BEM)}")
-    circle_subplot(nrows, ncols, 1, x, y, Udispg[:, 1], npts, R, theta0, L"u_{x} \; \mathrm{(gravity BEM)}")
-    circle_subplot(nrows, ncols, 2, x, y, Udispg[:, 2], npts, R, theta0, L"u_{y} \; \mathrm{(gravity BEM)}")
-    circle_subplot(nrows, ncols, 3, x, y, Sdispg[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(gravity BEM)}")
-    circle_subplot(nrows, ncols, 4, x, y, Sdispg[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(gravity BEM)}")
-    circle_subplot(nrows, ncols, 5, x, y, Sdispg[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(gravity BEM)}")
+    circle_subplot(nrows, ncols, 2, x, y, Udispg[:, 1], npts, R, theta0, L"u_{x} \; \mathrm{(gravity \; BEM)}")
+    circle_subplot(nrows, ncols, 3, x, y, Udispg[:, 2], npts, R, theta0, L"u_{y} \; \mathrm{(gravity \; BEM)}")
+    circle_subplot(nrows, ncols, 4, x, y, Sdispg[:, 1], npts, R, theta0, L"\sigma_{xx} \; \mathrm{(gravity \; BEM)}")
+    circle_subplot(nrows, ncols, 5, x, y, Sdispg[:, 2], npts, R, theta0, L"\sigma_{yy} \; \mathrm{(gravity \; BEM)}")
+    circle_subplot(nrows, ncols, 6, x, y, Sdispg[:, 3], npts, R, theta0, L"\sigma_{xy} \; \mathrm{(gravity \; BEM)}")
     tight_layout()
     show()
 end
