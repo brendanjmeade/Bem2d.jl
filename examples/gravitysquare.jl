@@ -93,13 +93,16 @@ function gravitydisc()
     nels = 20
     npts = 50
     # x, y = obsgrid(0, 0, 1, 1, npts)
-    x, y = obsgrid(1e-4, 1e-4, 1-1e-4, 1-1e-4, npts)
+    # x, y = obsgrid(1e-4, 1e-4, 1-1e-4, 1-1e-4, npts)
+    x, y = obsgrid(-1, -1, 1, 1, npts)
+
     fx = 0.0
     fy = 9.81 * 2700.0
 
     #! BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretizedline(0, 0, 1, 0, nels)
+    # x1, y1, x2, y2 = discretizedline(0, 0, 1, 0, nels)
+    x1, y1, x2, y2 = discretizedline(-1, -1, 1, -1, nels)
     xbottom = x1
     ybottom = y1
     for i in 1:length(x1)
@@ -111,7 +114,8 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(1, 0, 1, 1, nels)
+    # x1, y1, x2, y2 = discretizedline(1, 0, 1, 1, nels)
+    x1, y1, x2, y2 = discretizedline(1, -1, 1, 1, nels)
     xright = x1
     yright = y1
     for i in 1:length(x1)
@@ -123,7 +127,8 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(1, 1, 0, 1, nels)
+    # x1, y1, x2, y2 = discretizedline(1, 1, 0, 1, nels)
+    x1, y1, x2, y2 = discretizedline(1, 1, -1, 1, nels)
     xtop = x1
     ytop = y1
     for i in 1:length(x1)
@@ -135,7 +140,8 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(0, 1, 0, 0, nels)
+    # x1, y1, x2, y2 = discretizedline(0, 1, 0, 0, nels)
+    x1, y1, x2, y2 = discretizedline(-1, 1, -1, -1, nels)
     xleft = x1
     yleft = y1
     for i in 1:length(x1)
@@ -156,7 +162,7 @@ function gravitydisc()
     connectivity[:, 1] = collect(1:1:length(xcoords))
     connectivity[1:end-1, 2] = collect(2:1:length(xcoords))
     connectivity[end, 2] = 1
-    mesh = trimesh(nodes, connectivity, 1)
+    mesh = trimesh(nodes, connectivity, 5)
 
     #! Loop over each triangle calculate area and contribution to u_eff
     #! For each element centroid calculate the effect of a body force
@@ -167,7 +173,14 @@ function gravitydisc()
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
         tricentroid = [mean(xtri) mean(ytri)]
-        Ugi, _ = kelvinUD(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx], tricentroid[1], tricentroid[2], fx, fy, mu, nu)
+        Ugi, _ = kelvinUD(els.xcenter[1:1:els.endidx],
+                          els.ycenter[1:1:els.endidx],
+                          tricentroid[1],
+                          tricentroid[2],
+                          fx,
+                          fy,
+                          mu,
+                          nu)
         Uboundarygravity += triarea .* Ugi
     end
     
@@ -201,7 +214,12 @@ function gravitydisc()
                                       Uboundarybottom[:, 2],
                                       mu,
                                       nu)
-    
+    @show Uboundarybottom[:, 1]
+    @show asdf = reshape(Uvolumebottom[:, 1], npts, npts)
+
+    # @infiltrate
+    # return
+
     #! Plot meshes and fields
     figure(figsize=(20,20))
     nrows = 3
@@ -209,7 +227,7 @@ function gravitydisc()
     fontsize = 20
     contour_levels = collect(LinRange(0, 5e-8, 20))
     contour_color = "white"
-    contour_linewidth = 1.0
+    contour_linewidth = 0.5
     markersize = 12
 
     subplot(nrows, ncols, 1)
@@ -226,20 +244,21 @@ function gravitydisc()
     plot(Uboundarygravity[:, 2], "-b", label="y (Uboundarygravity)")
     plot(Uboundarybottom[:, 1], "xr", label="x (Uboundarybottom)")
     plot(Uboundarybottom[:, 2], ".b", label="y (Uboundarybottom)")
-    legend()
+    legend(fontsize=fontsize)
     title("boundary displacements", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
     #! y-components only
     subplot(nrows, ncols, 3) # Plot slices
     xmat = reshape(x, npts, npts)
+    ymat = reshape(y, npts, npts)
     uymat = reshape(Uvolumegravity[:, 2], npts, npts)
     uymatdispgbottom = reshape(Uvolumebottom[:, 2], npts, npts)
-    plot(xmat[:, 1], uymat[:, 1], "-b", label="Uvolumegravity")
-    plot(xmat[:, 1], uymatdispgbottom[:, 1], "b+", markersize=markersize, label="Uvolumebottom")
+    plot(xmat[:, 1], uymat[:, 1], "-r", label="Uvolumegravity", linewidth=2.0)
+    plot(xmat[:, 1], uymatdispgbottom[:, 1], "r+", markersize=markersize, label="Uvolumebottom")
     plot(els.xcenter[idx["bottom"]], Uboundarybottom[:, 2], "bx", markersize=markersize, label="Uboundarybottom")
     gca().tick_params(labelsize=fontsize)
-    legend()
+    legend(fontsize=fontsize)
     title("values at bottom of obs mat", fontsize=fontsize)
 
     subplot(nrows, ncols, 7)
@@ -266,19 +285,19 @@ function gravitydisc()
     ylabel("y (m)", fontsize=fontsize)
     title("Uvolumebottom", fontsize=fontsize)
 
-    subplot(nrows, ncols, 9)
-    mat1 = Uvolumegravity[:, 2] .- minimum(Uvolumegravity[:, 2])
-    mat2 = Uvolumebottom[:, 2] .- minimum(Uvolumebottom[:, 2])
-    mat = mat1 .- mat2
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    cbar.ax.tick_params(labelsize=fontsize)
-    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("uy", fontsize=fontsize)
+    # subplot(nrows, ncols, 9)
+    # mat1 = Uvolumegravity[:, 2] .- minimum(Uvolumegravity[:, 2])
+    # mat2 = Uvolumebottom[:, 2] .- minimum(Uvolumebottom[:, 2])
+    # mat = mat1 .- mat2
+    # contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    # cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    # cbar.ax.tick_params(labelsize=fontsize)
+    # contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    # gca().set_aspect("equal")
+    # gca().tick_params(labelsize=fontsize)
+    # xlabel("x (m)", fontsize=fontsize)
+    # ylabel("y (m)", fontsize=fontsize)
+    # title("uy", fontsize=fontsize)
 
     tight_layout()
     show()
