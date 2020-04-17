@@ -196,7 +196,7 @@ function gravitydisc()
                                        nu)
 
     #! Forward evaluation
-    Uvolumegravity, _ = constdispstress(slip2dispstress,
+    Uvolumegravity, Svolumegravity = constdispstress(slip2dispstress,
                                 x,
                                 y,
                                 els,
@@ -214,8 +214,8 @@ function gravitydisc()
                                       Uboundarybottom[:, 2],
                                       mu,
                                       nu)
-    @show Uboundarybottom[:, 1]
-    @show asdf = reshape(Uvolumebottom[:, 1], npts, npts)
+    # @show Uboundarybottom[:, 1]
+    # @show asdf = reshape(Uvolumebottom[:, 1], npts, npts)
 
     # @infiltrate
     # return
@@ -225,7 +225,7 @@ function gravitydisc()
     nrows = 3
     ncols = 3
     fontsize = 20
-    contour_levels = collect(LinRange(0, 5e-8, 20))
+    contour_levels = collect(LinRange(-2e-8, 10e-8, 30))
     contour_color = "white"
     contour_linewidth = 0.5
     markersize = 12
@@ -255,7 +255,7 @@ function gravitydisc()
     uymat = reshape(Uvolumegravity[:, 2], npts, npts)
     uymatdispgbottom = reshape(Uvolumebottom[:, 2], npts, npts)
     plot(xmat[:, 1], uymat[:, 1], "-r", label="Uvolumegravity", linewidth=2.0)
-    plot(xmat[:, 1], uymatdispgbottom[:, 1], "r+", markersize=markersize, label="Uvolumebottom")
+    plot(xmat[:, 1], 2 .* uymatdispgbottom[:, 1], "r+", markersize=markersize, label="Uvolumebottom")
     plot(els.xcenter[idx["bottom"]], Uboundarybottom[:, 2], "bx", markersize=markersize, label="Uboundarybottom")
     gca().tick_params(labelsize=fontsize)
     legend(fontsize=fontsize)
@@ -285,21 +285,33 @@ function gravitydisc()
     ylabel("y (m)", fontsize=fontsize)
     title("Uvolumebottom", fontsize=fontsize)
 
-    # subplot(nrows, ncols, 9)
-    # mat1 = Uvolumegravity[:, 2] .- minimum(Uvolumegravity[:, 2])
-    # mat2 = Uvolumebottom[:, 2] .- minimum(Uvolumebottom[:, 2])
-    # mat = mat1 .- mat2
-    # contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    # cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    # cbar.ax.tick_params(labelsize=fontsize)
-    # contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    # gca().set_aspect("equal")
-    # gca().tick_params(labelsize=fontsize)
-    # xlabel("x (m)", fontsize=fontsize)
-    # ylabel("y (m)", fontsize=fontsize)
-    # title("uy", fontsize=fontsize)
-
+    subplot(nrows, ncols, 9)
+    mat1 = Uvolumegravity[:, 2] #.- minimum(Uvolumegravity[:, 2])
+    mat2 = 2 .* Uvolumebottom[:, 2] #.- minimum(Uvolumebottom[:, 2])
+    mat = mat1 .- mat2
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("uy", fontsize=fontsize)
     tight_layout()
     show()
+
+    #! Classic 6-panel components only
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uvolumegravity, Svolumegravity, "BEM gravity only")
+    subplot(2, 3, 1) # This overwrites a previous plot...ugly!
+    plotmesh(mesh)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("edge and area meshes", fontsize=fontsize)
+    plot([x1, x2], [y1, y2], "-k", linewidth=2)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    show()
+
 end
 gravitydisc()
