@@ -81,21 +81,29 @@ function thrustfaultfreesurfacelayered()
     standardize_elements!(els)
     idx = getidxdict(els)
 
-    #! Constant slip fault
-    Tfaultsurface, _, Hfaultsurface = partialsconstdispstress(slip2dispstress,
-                                                              els,
-                                                              idx["fault"],
-                                                              idx["surface"],
-                                                              mu,
-                                                              nu)
+    #! Kernels
+    Tfaultsurface, _,
+    Hfaultsurface = partialsconstdispstress(slip2dispstress, els,
+                                            idx["fault"], idx["surface"],
+                                            mu, nu)
 
-    Tsurfacesurface, _, Hsurfacesurface = partialsconstdispstress(slip2dispstress,
-                                                                  els,
-                                                                  idx["surface"],
-                                                                  idx["surface"],
-                                                                  mu,
-                                                                  nu)
+    Tsurfacesurface, _,
+    Hsurfacesurface = partialsconstdispstress(slip2dispstress, els,
+                                              idx["surface"], idx["surface"],
+                                              mu, nu)
 
+    Tfaultinterface, _,
+    Hfaultinterface = partialsconstdispstress(slip2dispstress, els,
+                                              idx["fault"], idx["interface"],
+                                              mu, nu)
+    
+    Tinterfaceinterface, _,
+    Hinterfaceinterface = partialsconstdispstress(slip2dispstress, els,
+                                                  idx["interface"], idx["interface"],
+                                                  mu, nu)
+    
+
+    #! Solve the BEM problem
     faultslip = sqrt(2) / 2 * [1 ; 1]
     ufreesurface = inv(Hsurfacesurface) * (Hfaultsurface * faultslip)
     xplot = els.xcenter[idx["surface"]]
