@@ -2,6 +2,8 @@ using Revise
 using PyCall
 using PyPlot
 using Bem2d
+ow = pyimport("okada_wrapper") # from okada_wrapper import dc3dwrapper
+
 
 """
     thrustfaultfreesurface()
@@ -60,7 +62,6 @@ function thrustfaultfreesurface()
     ufreesurfacequad = inv(partialsquad["trac"]["freesurf"]["freesurf"]) * (partialsquad["trac"]["fault"]["freesurf"] * faultslipquad)
 
     # Okada solution
-    ow = pyimport("okada_wrapper") # from okada_wrapper import dc3dwrapper
     xokada = collect(LinRange(-5, 5, 1000))
     uxokada = zeros(length(xokada))
     uyokada = zeros(length(xokada))
