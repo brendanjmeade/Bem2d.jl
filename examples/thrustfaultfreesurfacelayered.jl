@@ -57,7 +57,6 @@ function thrustfaultfreesurfacelayered()
     standardize_elements!(els)
 
     #! Buried interface
-    # els = Elements(Int(1e5))
     ninterface = 200
     x1, y1, x2, y2 = discretizedline(-10, -2, 10, -2, ninterface)
     for i in 1:length(x1)
@@ -80,50 +79,25 @@ function thrustfaultfreesurfacelayered()
         els.name[els.endidx + i] = "fault"
     end
     standardize_elements!(els)
-
-    # Convencience structures
     idx = getidxdict(els)
-    P = initpartials(els)
 
     #! Constant slip fault
-    # Tfaultfreesurface, _,
-    # Hfaultfreesurface = partialsconstdispstress(slip2dispstress,
-    #                                                          els,
-    #                                                          idx["fault"],
-    #                                                          idx["freesurf"],
-    #                                                          mu,
-    #                                                          nu)
+    Tfaultsurface, _, Hfaultsurface = partialsconstdispstress(slip2dispstress,
+                                                              els,
+                                                              idx["fault"],
+                                                              idx["surface"],
+                                                              mu,
+                                                              nu)
 
-
-    # Tsurface, _,
-    # Hfaultfreesurface = partialsconstdispstress(slip2dispstress,
-    #                                                             els,
-    #                                                             idx["freesurf"],
-    #                                                             idx["freesurf"],
-    #                                                             mu,
-    #                                                             nu)
-
-    P["disp"]["fault"]["surface"],
-    P["stress"]["fault"]["surface"],
-    P["trac"]["fault"]["surface"] = partialsconstdispstress(slip2dispstress,
-                                                             els,
-                                                             idx["fault"],
-                                                             idx["surface"],
-                                                             mu,
-                                                             nu)
-
-    P["disp"]["surface"]["surface"],
-    P["stress"]["surface"]["surface"],
-    P["trac"]["surface"]["surface"] = partialsconstdispstress(slip2dispstress,
-                                                                els,
-                                                                idx["surface"],
-                                                                idx["surface"],
-                                                                mu,
-                                                                nu)
+    Tsurfacesurface, _, Hsurfacesurface = partialsconstdispstress(slip2dispstress,
+                                                                  els,
+                                                                  idx["surface"],
+                                                                  idx["surface"],
+                                                                  mu,
+                                                                  nu)
 
     faultslip = sqrt(2) / 2 * [1 ; 1]
-    ufullspace = P["disp"]["fault"]["surface"] * faultslip
-    ufreesurface = inv(P["trac"]["surface"]["surface"]) * (P["trac"]["fault"]["surface"] * faultslip)
+    ufreesurface = inv(Hsurfacesurface) * (Hfaultsurface * faultslip)
     xplot = els.xcenter[idx["surface"]]
 
     #! Stress and displacement continuity at buried interface
