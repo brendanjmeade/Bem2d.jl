@@ -114,7 +114,9 @@ function discannulus()
     #! CONSTANT CASE
     #! Applied tractions -> effective displacements -> internal stresses
     DeffC = TstarC * interleave(xtracC, ytracC)
-    @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
+    # @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
+    @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], xtracC, ytracC, mu, nu)
+
 
     #! QUADRATIC CASE
     #! Applied tractions -> effective displacements -> internal stresses
@@ -127,7 +129,9 @@ function discannulus()
     ytracQ[2:3:end] = ytracC
     ytracQ[3:3:end] = ytracC
     DeffQ = TstarQ * interleave(xtracQ, ytracQ)
+    # @time _, SdispQ = quaddispstress(slip2dispstress, x, y, els, idx["circle"], quadstack(DeffQ[1:2:end]), quadstack(DeffQ[2:2:end]), mu, nu)
     @time _, SdispQ = quaddispstress(slip2dispstress, x, y, els, idx["circle"], quadstack(DeffQ[1:2:end]), quadstack(DeffQ[2:2:end]), mu, nu)
+
 
     #! Isolate the values inside the circle
     nanidx = findall(x -> x > R, r)
