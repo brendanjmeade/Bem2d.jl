@@ -78,7 +78,7 @@ function discannulus()
     x, y = Bem2d.obsgrid(-r2, -r2, r2, r2, npts)
     r = @. sqrt(x^2 + y^2)
 
-    #! BEM solution
+    #! Define boundaries
     els = Bem2d.Elements(Int(1e5))
     x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), r2, nels)
     for i in 1:length(x1)
@@ -89,19 +89,30 @@ function discannulus()
         els.name[els.endidx + i] = "r2"
     end
     Bem2d.standardize_elements!(els)
+
+    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), r1, nels)
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = "r1"
+    end
+    Bem2d.standardize_elements!(els)
     idx = Bem2d.getidxdict(els)
 
     #! Apply normal displacement boundary conditions
     Ur2x = zeros(length(idx["r2"]))
     Ur2y = zeros(length(idx["r2"]))
-    thetaels = @. atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx])
-    for i in 1:els.endidx # Calcuate the x and y components of the displacements
+    thetaels = @. atan(els.ycenter[idx["r2"]], els.xcenter[idx["r2"]])
+    for i in 1:length(idx["r2"]) # Calcuate the x and y components of the displacements
         Ur2normal = [0; p] # Pressure in fault normal component only.
-        Ur2x[i], Ur2y[i] = els.rotmat[i, :, :] * Ur2normal
+        Ur2x[idx["r2"][i]], Ur2y[idx["r2"][i]] = els.rotmat[idx["r2"][i], :, :] * Ur2normal
     end
 
     #! Zero out the tractions on the area without contact
     deleteidx = findall(x -> (x>theta0 && x<deg2rad(180)-theta0), thetaels)
+    @infiltrate
     Ur2x[deleteidx] .= 0
     Ur2y[deleteidx] .= 0
     deleteidx = findall(x -> (x<-theta0 && x>-deg2rad(180)+theta0), thetaels)
@@ -109,14 +120,15 @@ function discannulus()
     Ur2y[deleteidx] .= 0
 
     #! Kernels, T*: displacement to displacement, H*: displacement to traction
-    @time TstarC, _, HstarC = partialsconstdispstress(slip2dispstress, els, idx["r2"], idx["r2"], mu, nu)
+    Tstarr1, _, Hstarr1 = partialsconstdispstress(slip2dispstress, els, idx["r1"], idx["r1"], mu, nu)
+    Tstarr2, _, Hstarr2 = partialsconstdispstress(slip2dispstress, els, idx["r2"], idx["r2"], mu, nu)
 
     #! Internal stresses from applied displacements
-    @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["r2"], Ur2x, Ur2y, mu, nu)
+    Udisp, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["r2"], Ur2x, Ur2y, mu, nu)
 
     #! Isolate the values inside the circle
     nanidx = findall(x -> x > r2, r)
-    SdispC[nanidx, :] .= NaN
+    Sdisp[nanidx, :] .= NaN
     
     #! Summary figure
     nrows = 3
@@ -124,15 +136,15 @@ function discannulus()
     fontsize = 20
     figure(figsize=(20, 20))
     subplot(nrows, ncols, 1)
-    plot(rad2deg.(thetaels), Ur2x, ".r")
-    plot(rad2deg.(thetaels), Ur2y, "+b")
+    # plot(rad2deg.(thetaels), Ur2x, ".r")
+    # plot(rad2deg.(thetaels), Ur2y, "+b")
     title("applied displacements @ r2", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
     # BEM solutions
-    circle_subplot(nrows, ncols, 4, x, y, SdispC[:, 1], npts, r2, theta0, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 5, x, y, SdispC[:, 2], npts, r2, theta0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 6, x, y, SdispC[:, 3], npts, r2, theta0, "Sxy (DDM)")
+    circle_subplot(nrows, ncols, 4, x, y, Sdisp[:, 1], npts, r2, theta0, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 5, x, y, Sdisp[:, 2], npts, r2, theta0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 6, x, y, Sdisp[:, 3], npts, r2, theta0, "Sxy (DDM)")
 
     tight_layout()
     show()
