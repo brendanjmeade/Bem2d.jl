@@ -72,125 +72,68 @@ function discannulus()
     p = -1.0e5 # Applied radial pressure over arc
     theta0 = deg2rad(45.0) # Arc length over which pressure is applied
     nels = 36
-    R = nels / (2 * pi)
+    r1 = 5 # radius of disc
+    r2 = 10 # outer radius of annulus
     npts = 50
-    x, y = Bem2d.obsgrid(-R, -R, R, R, npts)
+    x, y = Bem2d.obsgrid(-r2, -r2, r2, r2, npts)
     r = @. sqrt(x^2 + y^2)
 
     #! BEM solution
     els = Bem2d.Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, nels)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), r2, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
         els.x2[els.endidx + i] = x2[i]
         els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "circle"
+        els.name[els.endidx + i] = "r2"
     end
     Bem2d.standardize_elements!(els)
     idx = Bem2d.getidxdict(els)
 
-    #! Apply normal tractions everywhere and convert from radial to Cartesian
-    xtracC = zeros(els.endidx)
-    ytracC = zeros(els.endidx)
+    #! Apply normal displacement boundary conditions
+    Ur2x = zeros(length(idx["r2"]))
+    Ur2y = zeros(length(idx["r2"]))
     thetaels = @. atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx])
-    for i in 1:els.endidx # Calcuate the x and y components of the tractions
-        normalTractions = [0; p] # Pressure in fault normal component only.
-        xtracC[i], ytracC[i] = els.rotmat[i, :, :] * normalTractions
+    for i in 1:els.endidx # Calcuate the x and y components of the displacements
+        Ur2normal = [0; p] # Pressure in fault normal component only.
+        Ur2x[i], Ur2y[i] = els.rotmat[i, :, :] * Ur2normal
     end
 
     #! Zero out the tractions on the area without contact
     deleteidx = findall(x -> (x>theta0 && x<deg2rad(180)-theta0), thetaels)
-    xtracC[deleteidx] .= 0
-    ytracC[deleteidx] .= 0
+    Ur2x[deleteidx] .= 0
+    Ur2y[deleteidx] .= 0
     deleteidx = findall(x -> (x<-theta0 && x>-deg2rad(180)+theta0), thetaels)
-    xtracC[deleteidx] .= 0
-    ytracC[deleteidx] .= 0
+    Ur2x[deleteidx] .= 0
+    Ur2y[deleteidx] .= 0
 
     #! Kernels, T*: displacement to displacement, H*: displacement to traction
-    @time TstarC, _, HstarC = partialsconstdispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
-    @time TstarQ, _, HstarQ = partialsquaddispstress(slip2dispstress, els, idx["circle"], idx["circle"], mu, nu)
+    @time TstarC, _, HstarC = partialsconstdispstress(slip2dispstress, els, idx["r2"], idx["r2"], mu, nu)
 
-    #! CONSTANT CASE
-    #! Applied tractions -> effective displacements -> internal stresses
-    DeffC = TstarC * interleave(xtracC, ytracC)
-    # @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], DeffC[1:2:end], DeffC[2:2:end], mu, nu)
-    @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["circle"], xtracC, ytracC, mu, nu)
-
-
-    #! QUADRATIC CASE
-    #! Applied tractions -> effective displacements -> internal stresses
-    xtracQ = zeros(3 * length(xtracC))
-    ytracQ = zeros(3 * length(ytracC))
-    xtracQ[1:3:end] = xtracC
-    xtracQ[2:3:end] = xtracC
-    xtracQ[3:3:end] = xtracC
-    ytracQ[1:3:end] = ytracC
-    ytracQ[2:3:end] = ytracC
-    ytracQ[3:3:end] = ytracC
-    DeffQ = TstarQ * interleave(xtracQ, ytracQ)
-    # @time _, SdispQ = quaddispstress(slip2dispstress, x, y, els, idx["circle"], quadstack(DeffQ[1:2:end]), quadstack(DeffQ[2:2:end]), mu, nu)
-    @time _, SdispQ = quaddispstress(slip2dispstress, x, y, els, idx["circle"], quadstack(DeffQ[1:2:end]), quadstack(DeffQ[2:2:end]), mu, nu)
-
+    #! Internal stresses from applied displacements
+    @time _, SdispC = constdispstress(slip2dispstress, x, y, els, idx["r2"], Ur2x, Ur2y, mu, nu)
 
     #! Isolate the values inside the circle
-    nanidx = findall(x -> x > R, r)
+    nanidx = findall(x -> x > r2, r)
     SdispC[nanidx, :] .= NaN
-    SdispQ[nanidx, :] .= NaN
-    SresidualC = SdispC 
-    SresidualQ = SdispQ
     
     #! Summary figure
-    figure(figsize=(30,20))
+    nrows = 3
+    ncols = 3
     fontsize = 20
-    nrows = 4
-    ncols = 6
-
-    #! Constant dislocation case
-    # Applied tractions
+    figure(figsize=(20, 20))
     subplot(nrows, ncols, 1)
-    plot(rad2deg.(thetaels), xtracC, ".r")
-    plot(rad2deg.(thetaels), ytracC, "+b")
-    title("applied tractions", fontsize=fontsize)
-    gca().tick_params(labelsize=fontsize)
-
-    # Effective displacements
-    subplot(nrows, ncols, 2)
-    plot(rad2deg.(thetaels), DeffC[1:2:end], ".r")
-    plot(rad2deg.(thetaels), DeffC[2:2:end], "+b")
-    title("Effective displacements", fontsize=fontsize)
+    plot(rad2deg.(thetaels), Ur2x, ".r")
+    plot(rad2deg.(thetaels), Ur2y, "+b")
+    title("applied displacements @ r2", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
     # BEM solutions
-    circle_subplot(nrows, ncols, 13, x, y, SdispC[:, 1], npts, R, theta0, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 14, x, y, SdispC[:, 2], npts, R, theta0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 15, x, y, SdispC[:, 3], npts, R, theta0, "Sxy (DDM)")
-    circle_subplot(nrows, ncols, 19, x, y, SresidualC[:, 1], npts, R, theta0, "Sxx (residual)")
-    circle_subplot(nrows, ncols, 20, x, y, SresidualC[:, 2], npts, R, theta0, "Syy (residual)")
-    circle_subplot(nrows, ncols, 21, x, y, SresidualC[:, 3], npts, R, theta0, "Sxy (residual)")
+    circle_subplot(nrows, ncols, 4, x, y, SdispC[:, 1], npts, r2, theta0, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 5, x, y, SdispC[:, 2], npts, r2, theta0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 6, x, y, SdispC[:, 3], npts, r2, theta0, "Sxy (DDM)")
 
-    #! Quadratic case
-    # Applied tractions
-    subplot(nrows, ncols, 4)
-    plot(xtracQ, ".r")
-    plot(ytracQ, "+b")
-    title("applied tractions", fontsize=fontsize)
-    gca().tick_params(labelsize=fontsize)
-
-    # Effective displacements
-    subplot(nrows, ncols, 5)
-    plot(DeffQ[1:2:end], ".r")
-    plot(DeffQ[2:2:end], "+b")
-    title("Effective displacements", fontsize=fontsize)
-    gca().tick_params(labelsize=fontsize)
-
-    # BEM solutions
-    circle_subplot(nrows, ncols, 16, x, y, SdispQ[:, 1], npts, R, theta0, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 17, x, y, SdispQ[:, 2], npts, R, theta0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 18, x, y, SdispQ[:, 3], npts, R, theta0, "Sxy (DDM)")
-    circle_subplot(nrows, ncols, 22, x, y, SresidualQ[:, 1], npts, R, theta0, "Sxx (residual)")
-    circle_subplot(nrows, ncols, 23, x, y, SresidualQ[:, 2], npts, R, theta0, "Syy (residual)")
-    circle_subplot(nrows, ncols, 24, x, y, SresidualQ[:, 3], npts, R, theta0, "Sxy (residual)")
     tight_layout()
     show()
 end
