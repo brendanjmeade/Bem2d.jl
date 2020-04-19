@@ -14,14 +14,34 @@ using Bem2d
    Analytic point source Kelvin solution from Crouch and Starfield
    section 4.2.
 """
+# function kelvinUD(x, y, xoffset, yoffset, fx, fy, mu, nu)
+#     x = x .- xoffset
+#     y = y .- yoffset
+#     Ukelvin = zeros(length(x), 2)
+#     Skelvin = zeros(length(x), 3)
+#     C = 1/(4*pi*(1-nu))
+#     r = sqrt.(x.^2 .+ y.^2)
+#     g = -C .* log.(r)
+#     gx = @. -C * x/(x^2+y^2)
+#     gy = @. -C * y/(x^2+y^2)
+#     gxy = @. C * 2*x*y/(x^2+y^2)^2
+#     gxx = @. C * (x^2-y^2)/(x^2+y^2)^2
+#     gyy = -gxx
+#     Ukelvin[:, 1] = @. fx/(2*mu)*((3-4*nu)*g-x*gx) + fy/(2*mu)*(-y*gx)
+#     Ukelvin[:, 2] = @. fx/(2*mu)*(-x*gy) + fy/(2*mu)*((3-4*nu)*g-y*gy)
+#     Skelvin[:, 1] = @. fx*(2*(1-nu)*gx-x*gxx) + fy*(2*nu*gy-y*gxx)
+#     Skelvin[:, 2] = @. fx*(2*nu*gx-x*gyy) + fy*(2*(1-nu)*gy-y*gyy)
+#     Skelvin[:, 3] = @. fx*((1-2*nu)*gy-x*gxy) + fy*((1-2*nu)*gx-y*gxy)
+#     return Ukelvin, Skelvin
+# end
 function kelvinUD(x, y, xoffset, yoffset, fx, fy, mu, nu)
-    x = x .- xoffset
-    y = y .- yoffset
+    x = @. x - xoffset
+    y = @. y - yoffset
     Ukelvin = zeros(length(x), 2)
     Skelvin = zeros(length(x), 3)
     C = 1/(4*pi*(1-nu))
-    r = sqrt.(x.^2 .+ y.^2)
-    g = -C .* log.(r)
+    r = @. sqrt(x^2 + y^2)
+    g = @. -C * log(r)
     gx = @. -C * x/(x^2+y^2)
     gy = @. -C * y/(x^2+y^2)
     gxy = @. C * 2*x*y/(x^2+y^2)^2
@@ -39,6 +59,7 @@ end
 """
     trianglearea(x1, y1, x2, y2, x3, y3)
 
+    It's just half the absolute value of the determinant: 
     From https://math.stackexchange.com/questions/516219/finding-out-the-area-of-a-triangle-if-the-coordinates-of-the-three-vertices-are
 """
 function trianglearea(x1, y1, x2, y2, x3, y3)
@@ -91,17 +112,15 @@ function gravitydisc()
     mu = 3e10
     nu = 0.25
     nels = 20
-    npts = 50
+    npts = 25
     # x, y = obsgrid(0, 0, 1, 1, npts)
     # x, y = obsgrid(1e-4, 1e-4, 1-1e-4, 1-1e-4, npts)
     x, y = obsgrid(-1, -1, 1, 1, npts)
-
     fx = 0.0
-    fy = 9.81 * 2700.0
+    fy = -9.81 * 2700.0
 
     #! BEM geometry
     els = Elements(Int(1e5))
-    # x1, y1, x2, y2 = discretizedline(0, 0, 1, 0, nels)
     x1, y1, x2, y2 = discretizedline(-1, -1, 1, -1, nels)
     xbottom = x1
     ybottom = y1
@@ -114,7 +133,6 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    # x1, y1, x2, y2 = discretizedline(1, 0, 1, 1, nels)
     x1, y1, x2, y2 = discretizedline(1, -1, 1, 1, nels)
     xright = x1
     yright = y1
@@ -127,7 +145,6 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    # x1, y1, x2, y2 = discretizedline(1, 1, 0, 1, nels)
     x1, y1, x2, y2 = discretizedline(1, 1, -1, 1, nels)
     xtop = x1
     ytop = y1
@@ -140,7 +157,6 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    # x1, y1, x2, y2 = discretizedline(0, 1, 0, 0, nels)
     x1, y1, x2, y2 = discretizedline(-1, 1, -1, -1, nels)
     xleft = x1
     yleft = y1
@@ -168,7 +184,11 @@ function gravitydisc()
     #! For each element centroid calculate the effect of a body force
     ntri = size(mesh.cell)[2]
     Uboundarygravity = zeros(els.endidx, 2)
-    for i in 1:ntri
+    Ugfield = zeros(length(x), 2)
+
+    # for i in 1:ntri
+    itri = 1000
+    for i in itri:itri
         xtri = mesh.point[1, mesh.cell[:, i]]
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
@@ -182,7 +202,41 @@ function gravitydisc()
                           mu,
                           nu)
         Uboundarygravity += triarea .* Ugi
+        Ugfield, _ = kelvinUD(x, y,
+                          tricentroid[1],
+                          tricentroid[2],
+                          fx, fy, mu, nu)
+        # Ugfield, _ = kelvinUD(x, y,
+        #                   -1,
+        #                   0,
+        #                   fx, fy, mu, nu)
+
     end
+
+    #! Quick plot of a single triangle
+    # TODO: Check against basic Kelvin fields...this looks wrong!!!
+    figure(figsize=(15, 15))
+    xtri = mesh.point[1, mesh.cell[:, itri]]
+    ytri = mesh.point[2, mesh.cell[:, itri]]
+    tricentroid = [mean(xtri) mean(ytri)]
+    plot(xtri, ytri, "r+")
+    fill(xtri, ytri, "r")
+    plot(tricentroid[1], tricentroid[2], "r.")
+    quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx],
+           Uboundarygravity[:, 1], Uboundarygravity[:, 2])
+    quiver(x, y, Ugfield[:, 1], Ugfield[:, 2])
+
+    figure()
+    contourf(reshape(Ugfield[:, 1], npts, npts))
+    colorbar()
+    title("ux")
+
+    figure()
+    contourf(reshape(Ugfield[:, 2], npts, npts))
+    colorbar()
+    title("uy")
+
+    return
     
     #! What I need is a full forward evaluation at the bottom coordinates only
     Uboundarybottom, _ = constdispstress(slip2dispstress,
