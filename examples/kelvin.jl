@@ -221,13 +221,13 @@ function kelvin()
 
     # Observation coordinates
     npts = 50
-    obswidth = 1000
+    obswidth = 5
     x, y = Bem2d.obsgrid(-obswidth, -obswidth, obswidth, obswidth, npts)
     fx = 0.0
     fy = 1.0
 
     # Offset from origin
-    xoffset = 500.0
+    xoffset = 0.0
     yoffset = 0.0
 
     # Analytic Kelvin point source solution
@@ -250,7 +250,7 @@ function kelvin()
     fontsize = 20
     xobs = reshape(x, npts, npts)
     yobs = reshape(y, npts, npts)
-    plot18(els, xobs, yobs, Ubem, Sbem, "BEM", Ukelvin, Skelvin, "Kelvin point", "fx (BEM vs. Kelvin point)")
+    plot18(els, xobs, yobs, Ubem, Sbem, "BEM", Ukelvin, Skelvin, "Kelvin point", "fy (BEM vs. Kelvin point)")
     tight_layout()
     show()
 end
