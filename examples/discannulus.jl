@@ -112,7 +112,6 @@ function discannulus()
 
     #! Zero out the tractions on the area without contact
     deleteidx = findall(x -> (x>theta0 && x<deg2rad(180)-theta0), thetaels)
-    @infiltrate
     Ur2x[deleteidx] .= 0
     Ur2y[deleteidx] .= 0
     deleteidx = findall(x -> (x<-theta0 && x>-deg2rad(180)+theta0), thetaels)
@@ -121,7 +120,15 @@ function discannulus()
 
     #! Kernels, T*: displacement to displacement, H*: displacement to traction
     Tstarr1, _, Hstarr1 = partialsconstdispstress(slip2dispstress, els, idx["r1"], idx["r1"], mu, nu)
-    Tstarr2, _, Hstarr2 = partialsconstdispstress(slip2dispstress, els, idx["r2"], idx["r2"], mu, nu)
+    Tstarr2, _, Hstarr2 = partialsconstdispstress(slip2dispstress, els, idx["r2"], idx["r2"], mu, 0.5 * nu)
+    Tr1Q, _, Hr1Q = partialsquaddispstress(slip2dispstress, els, idx["r1"], idx["r1"], mu, nu)
+    Tr2Q, _, Hr2Q = partialsquaddispstress(slip2dispstress, els, idx["r2"], idx["r2"], mu, 0.5 * nu)
+
+
+    @show cond(Tstarr1)
+    @show cond(Tstarr2)
+    @show cond(Tstarr1 - Tstarr2)
+    @infiltrate
 
     #! Internal stresses from applied displacements
     Udisp, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["r2"], Ur2x, Ur2y, mu, nu)
