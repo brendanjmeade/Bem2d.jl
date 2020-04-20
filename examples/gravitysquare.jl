@@ -314,7 +314,7 @@ function gravitysquare()
     legend(fontsize=fontsize)
     title("values at bottom of obs mat", fontsize=fontsize)
 
-    #! x-components only
+    #! x-components
     subplot(nrows, ncols, 4)
     mat = Uvolumegravity[:, 1] #.- minimum(Uvolumegravity[:, 2]) 
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
@@ -325,7 +325,7 @@ function gravitysquare()
     gca().tick_params(labelsize=fontsize)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
-    title("Uvolumegravity", fontsize=fontsize)
+    title("ux (Uvolumegravity)", fontsize=fontsize)
 
     subplot(nrows, ncols, 5)
     mat = Uvolumebottom[:, 1] #.- minimum(Udispgbottom[:, 2])
@@ -337,7 +337,7 @@ function gravitysquare()
     gca().tick_params(labelsize=fontsize)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
-    title("Uvolumebottom", fontsize=fontsize)
+    title("ux (Uvolumebottom)", fontsize=fontsize)
 
     subplot(nrows, ncols, 6)
     mat1 = Uvolumegravity[:, 1] #.- minimum(Uvolumegravity[:, 2])
@@ -351,9 +351,9 @@ function gravitysquare()
     gca().tick_params(labelsize=fontsize)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
-    title("ux", fontsize=fontsize)
+    title("ux (total)", fontsize=fontsize)
 
-    #! y-components only
+    #! y-components
     subplot(nrows, ncols, 7)
     mat = Uvolumegravity[:, 2] #.- minimum(Uvolumegravity[:, 2]) 
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
@@ -364,7 +364,7 @@ function gravitysquare()
     gca().tick_params(labelsize=fontsize)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
-    title("Uvolumegravity", fontsize=fontsize)
+    title("uy (Uvolumegravity)", fontsize=fontsize)
 
     subplot(nrows, ncols, 8)
     mat = Uvolumebottom[:, 2] #.- minimum(Udispgbottom[:, 2])
@@ -376,7 +376,7 @@ function gravitysquare()
     gca().tick_params(labelsize=fontsize)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
-    title("Uvolumebottom", fontsize=fontsize)
+    title("uy (Uvolumebottom)", fontsize=fontsize)
 
     subplot(nrows, ncols, 9)
     mat1 = Uvolumegravity[:, 2] #.- minimum(Uvolumegravity[:, 2])
@@ -390,10 +390,9 @@ function gravitysquare()
     gca().tick_params(labelsize=fontsize)
     xlabel("x (m)", fontsize=fontsize)
     ylabel("y (m)", fontsize=fontsize)
-    title("uy", fontsize=fontsize)
+    title("uy (total)", fontsize=fontsize)
     tight_layout()
     show()
-
 
     #! Quiver plot of total displacement field
     figure(figsize=(15, 15))
