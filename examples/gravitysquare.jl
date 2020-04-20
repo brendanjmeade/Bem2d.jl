@@ -103,7 +103,7 @@ end
 
 
 """
-    gravitydisc()
+    gravitysquare()
 
 Experiments with gravity body force.
 """
@@ -113,8 +113,6 @@ function gravitysquare()
     nu = 0.25
     nels = 20
     npts = 25
-    # x, y = obsgrid(0, 0, 1, 1, npts)
-    # x, y = obsgrid(1e-4, 1e-4, 1-1e-4, 1-1e-4, npts)
     L = 1e4
     x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
     fx = 0.0
@@ -186,12 +184,7 @@ function gravitysquare()
     ntri = size(mesh.cell)[2]
     Uboundarygravity = zeros(els.endidx, 2)
     Ugfield = zeros(length(x), 2)
-
-    # for i in 1:ntri
-    itri = 1200
-    # for i in itri:itri
     for i in 1:ntri
-
         xtri = mesh.point[1, mesh.cell[:, i]]
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
@@ -205,81 +198,34 @@ function gravitysquare()
                           mu,
                           nu)
         Uboundarygravity += triarea .* Ugi
-        Ugfield, _ = kelvinUD(x, y,
-                          tricentroid[1],
-                          tricentroid[2],
-                          fx, fy, mu, nu)
     end
-
-    #! Quick plot of a single triangle
-    # TODO: Check against basic Kelvin fields...this looks wrong!!!
-    # figure(figsize=(15, 15))
-    # xtri = mesh.point[1, mesh.cell[:, itri]]
-    # ytri = mesh.point[2, mesh.cell[:, itri]]
-    # tricentroid = [mean(xtri) mean(ytri)]
-    # plot(xtri, ytri, "r+")
-    # fill(xtri, ytri, "r")
-    # plot(tricentroid[1], tricentroid[2], "r.")
-    # quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx],
-    #        Uboundarygravity[:, 1], Uboundarygravity[:, 2])
-    # quiver(x, y, Ugfield[:, 1], Ugfield[:, 2])
-
-    # figure()
-    # contourf(reshape(Ugfield[:, 1], npts, npts))
-    # colorbar()
-    # title("ux")
-
-    # figure()
-    # contourf(reshape(Ugfield[:, 2], npts, npts))
-    # colorbar()
-    # title("uy")
-
-    # return
     
     #! What I need is a full forward evaluation at the bottom coordinates only
     Uboundarybottom, _ = constdispstress(slip2dispstress,
-                                       els.xcenter[idx["bottom"]],
-                                       els.ycenter[idx["bottom"]],
-                                       els,
-                                       collect(1:1:4*nels),
-                                       Uboundarygravity[:, 1],
-                                       Uboundarygravity[:, 2],
-                                       mu,
-                                       nu)
+                                         els.xcenter[idx["bottom"]],
+                                         els.ycenter[idx["bottom"]],
+                                         els, collect(1:1:4*nels),
+                                         Uboundarygravity[:, 1],
+                                         Uboundarygravity[:, 2],
+                                         mu, nu)
 
-    #! Forward evaluation
-    Uvolumegravity, Svolumegravity = constdispstress(slip2dispstress,
-                                x,
-                                y,
-                                els,
-                                collect(1:1:4*nels),
-                                Uboundarygravity[:, 1],
-                                Uboundarygravity[:, 2],
-                                mu,
-                                nu)
-    Uvolumebottom, _ = constdispstress(slip2dispstress,
-                                      x,
-                                      y,
-                                      els,
-                                      idx["bottom"],
-                                      Uboundarybottom[:, 1],
-                                      Uboundarybottom[:, 2],
-                                      mu,
-                                      nu)
-    # @show Uboundarybottom[:, 1]
-    # @show asdf = reshape(Uvolumebottom[:, 1], npts, npts)
-
-    # @infiltrate
-    # return
+    #! Forward evaluation of interior fields
+    Uvolumegravity, _ = constdispstress(slip2dispstress, x, y,
+                                        els, collect(1:1:4*nels),
+                                        Uboundarygravity[:, 1],
+                                        Uboundarygravity[:, 2],
+                                        mu, nu)
+    Uvolumebottom, _ = constdispstress(slip2dispstress, x, y,
+                                       els, idx["bottom"],
+                                       Uboundarybottom[:, 1], Uboundarybottom[:, 2],
+                                       mu, nu)
 
     #! Plot meshes and fields
     figure(figsize=(20,20))
     nrows = 3
     ncols = 3
     fontsize = 20
-    # contour_levels = collect(LinRange(-2e-8, 10e-8, 30))
     contour_levels = collect(LinRange(-200.0, 200.0, 100))
-    # contour_levels = 50
     contour_color = "white"
     contour_linewidth = 0.5
     markersize = 12
@@ -400,19 +346,6 @@ function gravitysquare()
     yvec = Uvolumegravity[:, 2] .- 2 .* Uvolumebottom[:, 2] #.- minimum(Uvolumebottom[:, 2])
     quiver(x, y, xvec, yvec)
     show()
-
-    # #! Classic 6-panel components only
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uvolumegravity, Svolumegravity, "BEM gravity only")
-    # subplot(2, 3, 1) # This overwrites a previous plot...ugly!
-    # plotmesh(mesh)
-    # xlabel("x (m)", fontsize=fontsize)
-    # ylabel("y (m)", fontsize=fontsize)
-    # title("edge and area meshes", fontsize=fontsize)
-    # plot([x1, x2], [y1, y2], "-k", linewidth=2)
-    # gca().set_aspect("equal")
-    # gca().tick_params(labelsize=fontsize)
-    # show()
-
     @infiltrate
 end
 gravitysquare()
