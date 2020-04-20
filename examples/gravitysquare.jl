@@ -107,7 +107,7 @@ end
 
 Experiments with gravity body force.
 """
-function gravitydisc()
+function gravitysquare()
     close("all")
     mu = 3e10
     nu = 0.25
@@ -115,13 +115,14 @@ function gravitydisc()
     npts = 25
     # x, y = obsgrid(0, 0, 1, 1, npts)
     # x, y = obsgrid(1e-4, 1e-4, 1-1e-4, 1-1e-4, npts)
-    x, y = obsgrid(-1, -1, 1, 1, npts)
+    L = 1e4
+    x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
     fx = 0.0
-    fy = -9.81 * 2700.0
+    fy = 9.81 * 2700.0
 
     #! BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretizedline(-1, -1, 1, -1, nels)
+    x1, y1, x2, y2 = discretizedline(-L, -L, L, -L, nels)
     xbottom = x1
     ybottom = y1
     for i in 1:length(x1)
@@ -133,7 +134,7 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(1, -1, 1, 1, nels)
+    x1, y1, x2, y2 = discretizedline(L, -L, L, L, nels)
     xright = x1
     yright = y1
     for i in 1:length(x1)
@@ -145,7 +146,7 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(1, 1, -1, 1, nels)
+    x1, y1, x2, y2 = discretizedline(L, L, -L, L, nels)
     xtop = x1
     ytop = y1
     for i in 1:length(x1)
@@ -157,7 +158,7 @@ function gravitydisc()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(-1, 1, -1, -1, nels)
+    x1, y1, x2, y2 = discretizedline(-L, L, -L, -L, nels)
     xleft = x1
     yleft = y1
     for i in 1:length(x1)
@@ -187,8 +188,10 @@ function gravitydisc()
     Ugfield = zeros(length(x), 2)
 
     # for i in 1:ntri
-    itri = 1000
-    for i in itri:itri
+    itri = 1200
+    # for i in itri:itri
+    for i in 1:ntri
+
         xtri = mesh.point[1, mesh.cell[:, i]]
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
@@ -206,37 +209,32 @@ function gravitydisc()
                           tricentroid[1],
                           tricentroid[2],
                           fx, fy, mu, nu)
-        # Ugfield, _ = kelvinUD(x, y,
-        #                   -1,
-        #                   0,
-        #                   fx, fy, mu, nu)
-
     end
 
     #! Quick plot of a single triangle
     # TODO: Check against basic Kelvin fields...this looks wrong!!!
-    figure(figsize=(15, 15))
-    xtri = mesh.point[1, mesh.cell[:, itri]]
-    ytri = mesh.point[2, mesh.cell[:, itri]]
-    tricentroid = [mean(xtri) mean(ytri)]
-    plot(xtri, ytri, "r+")
-    fill(xtri, ytri, "r")
-    plot(tricentroid[1], tricentroid[2], "r.")
-    quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx],
-           Uboundarygravity[:, 1], Uboundarygravity[:, 2])
-    quiver(x, y, Ugfield[:, 1], Ugfield[:, 2])
+    # figure(figsize=(15, 15))
+    # xtri = mesh.point[1, mesh.cell[:, itri]]
+    # ytri = mesh.point[2, mesh.cell[:, itri]]
+    # tricentroid = [mean(xtri) mean(ytri)]
+    # plot(xtri, ytri, "r+")
+    # fill(xtri, ytri, "r")
+    # plot(tricentroid[1], tricentroid[2], "r.")
+    # quiver(els.xcenter[1:1:els.endidx], els.ycenter[1:1:els.endidx],
+    #        Uboundarygravity[:, 1], Uboundarygravity[:, 2])
+    # quiver(x, y, Ugfield[:, 1], Ugfield[:, 2])
 
-    figure()
-    contourf(reshape(Ugfield[:, 1], npts, npts))
-    colorbar()
-    title("ux")
+    # figure()
+    # contourf(reshape(Ugfield[:, 1], npts, npts))
+    # colorbar()
+    # title("ux")
 
-    figure()
-    contourf(reshape(Ugfield[:, 2], npts, npts))
-    colorbar()
-    title("uy")
+    # figure()
+    # contourf(reshape(Ugfield[:, 2], npts, npts))
+    # colorbar()
+    # title("uy")
 
-    return
+    # return
     
     #! What I need is a full forward evaluation at the bottom coordinates only
     Uboundarybottom, _ = constdispstress(slip2dispstress,
@@ -279,7 +277,9 @@ function gravitydisc()
     nrows = 3
     ncols = 3
     fontsize = 20
-    contour_levels = collect(LinRange(-2e-8, 10e-8, 30))
+    # contour_levels = collect(LinRange(-2e-8, 10e-8, 30))
+    contour_levels = collect(LinRange(-200.0, 200.0, 100))
+    # contour_levels = 50
     contour_color = "white"
     contour_linewidth = 0.5
     markersize = 12
@@ -302,7 +302,6 @@ function gravitydisc()
     title("boundary displacements", fontsize=fontsize)
     gca().tick_params(labelsize=fontsize)
 
-    #! y-components only
     subplot(nrows, ncols, 3) # Plot slices
     xmat = reshape(x, npts, npts)
     ymat = reshape(y, npts, npts)
@@ -315,6 +314,46 @@ function gravitydisc()
     legend(fontsize=fontsize)
     title("values at bottom of obs mat", fontsize=fontsize)
 
+    #! x-components only
+    subplot(nrows, ncols, 4)
+    mat = Uvolumegravity[:, 1] #.- minimum(Uvolumegravity[:, 2]) 
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("Uvolumegravity", fontsize=fontsize)
+
+    subplot(nrows, ncols, 5)
+    mat = Uvolumebottom[:, 1] #.- minimum(Udispgbottom[:, 2])
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("Uvolumebottom", fontsize=fontsize)
+
+    subplot(nrows, ncols, 6)
+    mat1 = Uvolumegravity[:, 1] #.- minimum(Uvolumegravity[:, 2])
+    mat2 = 2 .* Uvolumebottom[:, 1] #.- minimum(Uvolumebottom[:, 2])
+    mat = mat1 .- mat2
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("ux", fontsize=fontsize)
+
+    #! y-components only
     subplot(nrows, ncols, 7)
     mat = Uvolumegravity[:, 2] #.- minimum(Uvolumegravity[:, 2]) 
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
@@ -355,17 +394,26 @@ function gravitydisc()
     tight_layout()
     show()
 
-    #! Classic 6-panel components only
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uvolumegravity, Svolumegravity, "BEM gravity only")
-    subplot(2, 3, 1) # This overwrites a previous plot...ugly!
-    plotmesh(mesh)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("edge and area meshes", fontsize=fontsize)
-    plot([x1, x2], [y1, y2], "-k", linewidth=2)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
+
+    #! Quiver plot of total displacement field
+    figure(figsize=(15, 15))
+    xvec = Uvolumegravity[:, 1] .- 2 .* Uvolumebottom[:, 1] #.- minimum(Uvolumebottom[:, 2])
+    yvec = Uvolumegravity[:, 2] .- 2 .* Uvolumebottom[:, 2] #.- minimum(Uvolumebottom[:, 2])
+    quiver(x, y, xvec, yvec)
     show()
 
+    # #! Classic 6-panel components only
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uvolumegravity, Svolumegravity, "BEM gravity only")
+    # subplot(2, 3, 1) # This overwrites a previous plot...ugly!
+    # plotmesh(mesh)
+    # xlabel("x (m)", fontsize=fontsize)
+    # ylabel("y (m)", fontsize=fontsize)
+    # title("edge and area meshes", fontsize=fontsize)
+    # plot([x1, x2], [y1, y2], "-k", linewidth=2)
+    # gca().set_aspect("equal")
+    # gca().tick_params(labelsize=fontsize)
+    # show()
+
+    @infiltrate
 end
-gravitydisc()
+gravitysquare()
