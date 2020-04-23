@@ -102,6 +102,17 @@ function plotmesh(mesh)
 end
 
 
+
+"""
+    localsubplot(???)
+
+    Common plotting commands
+"""
+function localsubplot(x, y, mat, titlestring, contourlabels)
+    return nothing
+end
+
+
 """
     gravitysquare()
 
@@ -111,7 +122,7 @@ function gravitysquare()
     close("all")
     mu = 3e10
     nu = 0.25
-    nels = 20
+    nels = 40
     npts = 25
     L = 1e4
     x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
@@ -230,6 +241,7 @@ function gravitysquare()
     contour_linewidth = 0.5
     markersize = 12
 
+    #! Mesh
     subplot(nrows, ncols, 1)
     plotmesh(mesh)
     xlabel("x (m)", fontsize=fontsize)
@@ -239,28 +251,33 @@ function gravitysquare()
     gca().set_aspect("equal")
     gca().tick_params(labelsize=fontsize)
 
+    #! Bottom boundary y-displacements
     subplot(nrows, ncols, 2)
-    plot(Uboundarygravity[:, 1], "-r", label="x (Uboundarygravity)")
-    plot(Uboundarygravity[:, 2], "-b", label="y (Uboundarygravity)")
-    plot(Uboundarybottom[:, 1], "xr", label="x (Uboundarybottom)")
-    plot(Uboundarybottom[:, 2], ".b", label="y (Uboundarybottom)")
-    legend(fontsize=fontsize)
-    title("boundary displacements", fontsize=fontsize)
+    xmat = reshape(x, npts, npts)
+    ymat = reshape(y, npts, npts)
+    uymat = reshape(Uvolumegravity[:, 1], npts, npts)
+    uymatdispgbottom = reshape(Uvolumebottom[:, 1], npts, npts)
+    plot(xmat[:, 1], uymat[:, 1], "-r", label="Uvolumegravity", linewidth=2.0)
+    plot(els.xcenter[idx["bottom"]], Uboundarybottom[:, 1], "-b", markersize=markersize, label="Uboundarybottom")
+    plot(xmat[:, 1], 2 .* uymatdispgbottom[:, 1], "-k", markersize=markersize, label="Uvolumebottom")
     gca().tick_params(labelsize=fontsize)
+    legend(fontsize=fontsize)
+    title("x-displacements at bottom", fontsize=fontsize)
 
-    subplot(nrows, ncols, 3) # Plot slices
+    #! Bottom boundary y-displacements
+    subplot(nrows, ncols, 3)
     xmat = reshape(x, npts, npts)
     ymat = reshape(y, npts, npts)
     uymat = reshape(Uvolumegravity[:, 2], npts, npts)
     uymatdispgbottom = reshape(Uvolumebottom[:, 2], npts, npts)
     plot(xmat[:, 1], uymat[:, 1], "-r", label="Uvolumegravity", linewidth=2.0)
-    plot(xmat[:, 1], 2 .* uymatdispgbottom[:, 1], "r+", markersize=markersize, label="Uvolumebottom")
-    plot(els.xcenter[idx["bottom"]], Uboundarybottom[:, 2], "bx", markersize=markersize, label="Uboundarybottom")
+    plot(els.xcenter[idx["bottom"]], Uboundarybottom[:, 2], "-b", markersize=markersize, label="Uboundarybottom")
+    plot(xmat[:, 1], 2 .* uymatdispgbottom[:, 1], "-k", markersize=markersize, label="Uvolumebottom")
     gca().tick_params(labelsize=fontsize)
     legend(fontsize=fontsize)
-    title("values at bottom of obs mat", fontsize=fontsize)
+    title("y-displacements at bottom", fontsize=fontsize)
 
-    #! x-components
+    #! Interior x-displacements
     subplot(nrows, ncols, 4)
     mat = Uvolumegravity[:, 1] #.- minimum(Uvolumegravity[:, 2]) 
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
@@ -299,7 +316,7 @@ function gravitysquare()
     ylabel("y (m)", fontsize=fontsize)
     title("ux (total)", fontsize=fontsize)
 
-    #! y-components
+    #! Interior y-displacements
     subplot(nrows, ncols, 7)
     mat = Uvolumegravity[:, 2] #.- minimum(Uvolumegravity[:, 2]) 
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
@@ -313,7 +330,7 @@ function gravitysquare()
     title("uy (Uvolumegravity)", fontsize=fontsize)
 
     subplot(nrows, ncols, 8)
-    mat = Uvolumebottom[:, 2] #.- minimum(Udispgbottom[:, 2])
+    mat = Uvolumebottom[:, 2] 
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
     cbar.ax.tick_params(labelsize=fontsize)
@@ -325,8 +342,8 @@ function gravitysquare()
     title("uy (Uvolumebottom)", fontsize=fontsize)
 
     subplot(nrows, ncols, 9)
-    mat1 = Uvolumegravity[:, 2] #.- minimum(Uvolumegravity[:, 2])
-    mat2 = 2 .* Uvolumebottom[:, 2] #.- minimum(Uvolumebottom[:, 2])
+    mat1 = Uvolumegravity[:, 2]
+    mat2 = 2 .* Uvolumebottom[:, 2]
     mat = mat1 .- mat2
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
