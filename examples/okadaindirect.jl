@@ -49,6 +49,10 @@ function thrustfaultfreesurface()
     ufreesurfaceconst = inv(Hfreesurffreesurf) * (Hfaultfreesurf * faultslipconst)
     xplotconst = els.xcenter[idx["freesurf"]]
 
+    #! Formal indirect version
+    # T(obs_fault, src_fault)       H(obs_fault, src_surface)
+    # T(obs_surface, src_fault)     H(obs_surface, src_surface)
+
     # Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
     uxokada = zeros(length(xokada))
