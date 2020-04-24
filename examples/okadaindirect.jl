@@ -123,5 +123,7 @@ function thrustfaultfreesurface()
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
     show()
+
+    @infiltrate
 end
 thrustfaultfreesurface()
