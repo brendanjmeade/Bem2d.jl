@@ -1,6 +1,7 @@
 using Revise
 using PyCall
 using PyPlot
+using Infiltrator
 using Bem2d
 ow = pyimport("okada_wrapper") # from okada_wrapper import dc3dwrapper
 
@@ -52,6 +53,27 @@ function thrustfaultfreesurface()
     #! Formal indirect version
     # T(obs_fault, src_fault)       H(obs_fault, src_surface)
     # T(obs_surface, src_fault)     H(obs_surface, src_surface)
+    Tfaultfault, _, _ = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    _, _, Hfaultfreesurf = PUSTC(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
+    Tfreesurffault, _, _ = PUSTC(slip2dispstress, els, idx["freesurf"], idx["fault"], mu, nu)
+    Tfreesurffreesurf, _, Hfreesurffreesurf = PUSTC(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
+    mat = zeros(2*els.endidx, 2*els.endidx)
+    mat[1:2, 1:2] = Tfaultfault
+    mat[1:2, 3:end] = Hfaultfreesurf
+    mat[3:end, 1:2] = Tfreesurffault
+    mat[3:end, 3:end] = Hfreesurffreesurf
+    bcs = zeros(2*els.endidx)
+    bcs[1:2] = faultslipconst
+    ueff = inv(mat) * bcs
+
+    # Forward evaluation at free surface
+    mat = zeros(2*length(idx["freesurf"]), 2*els.endidx)
+    mat[:, 1:2] = Tfreesurffault
+    mat[:, 3:end] = Tfreesurffreesurf
+    usurf = mat * ueff
+
+    # @infiltrate
+    # return
 
     # Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
@@ -82,6 +104,7 @@ function thrustfaultfreesurface()
     ax = subplot(2, 1, 1)
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada")
     plot(xplotconst, ufreesurfaceconst[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
+    plot(xplotconst, usurf[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "indirect")
     gca().set_xlim([-5, 5]); gca().set_ylim([-1.0, 1.0])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
     gca().set_yticks([-1.00, -0.75, -0.50, -0.25, 0.0, 0.25, 0.50, 0.75, 1.00])
@@ -92,6 +115,7 @@ function thrustfaultfreesurface()
     ax = subplot(2, 1, 2)
     plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada")
     plot(xplotconst, ufreesurfaceconst[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "const halfspace")
+    plot(xplotconst, usurf[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "indirect")
     gca().set_xlim([-5, 5]); gca().set_ylim([-1.0, 1.0])
     gca().set_xticks([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5])
     gca().set_yticks([-1.00, -0.75, -0.50, -0.25, 0.0, 0.25, 0.50, 0.75, 1.00])
