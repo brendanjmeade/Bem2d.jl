@@ -697,6 +697,19 @@ function rycroftcmap()
 end
 
 
+export PUSTC
+"""
+    PUSTC(fun2dispstress, els, obsidx, srcidx, mu, nu)
+
+Conveinece function to calcualtion partial derivates of displacement,
+stress, and tractions for constant slip/displacement elements.  This 
+simple swaps the order of arguments (srcidx, obsidx) -> (obsidx, srcidx)
+"""
+function PUSTC(fun2dispstress, els, obsidx, srcidx, mu, nu)
+    return partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
+end
+
+    
 export partialsconstdispstress
 """
     partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
