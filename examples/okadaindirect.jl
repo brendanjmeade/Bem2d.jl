@@ -42,7 +42,7 @@ function thrustfaultfreesurface()
     standardize_elements!(els)
     idx = getidxdict(els)
 
-    #! Hack old version
+    #! Hacky old version
     Tfaultfreesurf, _, Hfaultfreesurf = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
     Tfreesurffreesurf, _, Hfreesurffreesurf = partialsconstdispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
     faultslipconst = sqrt(2) / 2 * [1 ; 1]
@@ -50,30 +50,42 @@ function thrustfaultfreesurface()
     ufreesurfaceconst = inv(Hfreesurffreesurf) * (Hfaultfreesurf * faultslipconst)
     xplotconst = els.xcenter[idx["freesurf"]]
 
+    # #! Formal indirect version
+    # Tfaultfault, _, _ = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    # _, _, Hfaultfreesurf = PUSTC(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
+    # Tfreesurffault, _, _ = PUSTC(slip2dispstress, els, idx["freesurf"], idx["fault"], mu, nu)
+    # Tfreesurffreesurf, _, Hfreesurffreesurf = PUSTC(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
+    # mat = zeros(2*els.endidx, 2*els.endidx)
+    # mat[1:2, 1:2] = Tfaultfault
+    # mat[1:2, 3:end] = Hfaultfreesurf
+    # mat[3:end, 1:2] = Tfreesurffault
+    # mat[3:end, 3:end] = Hfreesurffreesurf
+    # bcs = zeros(2*els.endidx)
+    # bcs[1:2] = faultslipconst
+    # ueff = inv(mat) * bcs
+
     #! Formal indirect version
-    # T(obs_fault, src_fault)       H(obs_fault, src_surface)
-    # T(obs_surface, src_fault)     H(obs_surface, src_surface)
-    Tfaultfault, _, _ = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    _, _, Hfaultfreesurf = PUSTC(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
-    Tfreesurffault, _, _ = PUSTC(slip2dispstress, els, idx["freesurf"], idx["fault"], mu, nu)
-    Tfreesurffreesurf, _, Hfreesurffreesurf = PUSTC(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
+    Tfault, _, Hfault = PUSTC(slip2dispstress, els, idx["fault"], collect(1:1:els.endidx), mu, nu)
+    Tfreesurf, _, Hfreesurf = PUSTC(slip2dispstress, els, idx["freesurf"], collect(1:1:els.endidx), mu, nu)
     mat = zeros(2*els.endidx, 2*els.endidx)
-    mat[1:2, 1:2] = Tfaultfault
-    mat[1:2, 3:end] = Hfaultfreesurf
-    mat[3:end, 1:2] = Tfreesurffault
-    mat[3:end, 3:end] = Hfreesurffreesurf
+    @infiltrate
+    return
+    
+    mat[1:2, 1:2] = Tfault
+    mat[1:2, 3:end] = Hfault
+    mat[3:end, 1:2] = Tfreesurf
+    mat[3:end, 3:end] = Hfreesurf
     bcs = zeros(2*els.endidx)
     bcs[1:2] = faultslipconst
     ueff = inv(mat) * bcs
 
-    # Forward evaluation at free surface
-    mat = zeros(2*length(idx["freesurf"]), 2*els.endidx)
-    mat[:, 1:2] = Tfreesurffault
-    mat[:, 3:end] = Tfreesurffreesurf
-    usurf = mat * ueff
 
-    # @infiltrate
-    # return
+
+    # Forward evaluation at free surface
+    matinterior = zeros(2*length(idx["freesurf"]), 2*els.endidx)
+    matinterior[:, 1:2] = Tfreesurffault
+    matinterior[:, 3:end] = Tfreesurffreesurf
+    usurf = matinterior * ueff
 
     # Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
@@ -124,6 +136,5 @@ function thrustfaultfreesurface()
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
     show()
 
-    @infiltrate
 end
 thrustfaultfreesurface()
