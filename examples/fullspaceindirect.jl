@@ -60,7 +60,7 @@ function thrustfaultfreesurface()
     mat = zeros(2*els.endidx, 2*els.endidx)
     mat[1:2, 1:2] = 1 .* Tfaultfault
     mat[1:2, 3:end] = 0 .* Tfaultfreesurf
-    mat[3:end, 1:2] = 0 .* Hfreesurffault
+    mat[3:end, 1:2] = 1 .* Hfreesurffault
     mat[3:end, 3:end] = Hfreesurffreesurf
     bcs = zeros(2*els.endidx)
     bcs[1:2] = faultslipconst
@@ -130,6 +130,7 @@ function thrustfaultfreesurface()
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$u_y$ (m)", fontsize=fontsize)
     show()
+    @infiltrate
 
 end
 thrustfaultfreesurface()
