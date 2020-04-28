@@ -73,8 +73,8 @@ function thrustfaultfreesurface()
     standardize_elements!(els)
 
     # Free surface
-    nfreesurf = 200
-    x1, y1, x2, y2 = discretizedline(-50, 0, 50, 0, nfreesurf)
+    nfreesurf = 20
+    x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -158,5 +158,7 @@ function thrustfaultfreesurface()
     ylabel(L"$u_y$ (m)", fontsize=fontsize)
     plotformat(fontsize)
     show()
+
+    @infiltrate
 end
 thrustfaultfreesurface()
