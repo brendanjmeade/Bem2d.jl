@@ -125,7 +125,7 @@ function okadaindirect()
     matinterior[:, 1:2] = T_psurface_qfault
     matinterior[:, 3:end] = T_psurface_qsurface
     @show size(T_psurface_qfault)
-    usurfaceindirect = matinterior * ueff
+    uhalfspaceindirect = matinterior * ueff
 
     #! Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
@@ -142,7 +142,7 @@ function okadaindirect()
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
     plot(xbem, ufullspacehacky[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
     plot(xbem, uhalfspacehacky[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
-    plot(xbem, usurfaceindirect[1:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
+    plot(xbem, uhalfspaceindirect[1:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
     ylabel(L"$u_x$ (m)", fontsize=fontsize)
     plotformat(fontsize)
 
@@ -150,7 +150,7 @@ function okadaindirect()
     plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
     plot(xbem, ufullspacehacky[2:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
     plot(xbem, uhalfspacehacky[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
-    plot(xbem, usurfaceindirect[2:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
+    plot(xbem, uhalfspaceindirect[2:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
     ylabel(L"$u_y$ (m)", fontsize=fontsize)
     plotformat(fontsize)
     show()
