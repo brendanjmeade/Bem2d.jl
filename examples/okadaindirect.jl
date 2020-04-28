@@ -113,8 +113,8 @@ function okadaindirect()
     T_psurface_qsurface, _, H_psurface_qsurface = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
     mat = zeros(2*els.endidx, 2*els.endidx)
     mat[1:2, 1:2] = T_pfault_qfault
-    mat[3:end, 1:2] = T_psurface_qfault
-    mat[1:2, 3:end] = H_pfault_qsurface
+    mat[3:end, 1:2] = T_psurface_qfault #TODO: I think this should be T_pfault_qsurface
+    mat[1:2, 3:end] = H_pfault_qsurface  #TODO: I think this should be T_psurface_qfault
     mat[3:end, 3:end] = H_psurface_qsurface
     bcs = zeros(2*els.endidx)
     bcs[1:2] = faultslip
