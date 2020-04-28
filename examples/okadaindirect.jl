@@ -50,12 +50,26 @@ end
 
 
 """
-    thrustfaultfreesurface()
+    hackybem(els, mu, nu)
+
+Hacky BEM approximation to Okada profile for a 45 dipping fault.
+"""
+function hackybem(els, idx, faultslip, mu, nu)
+    Tfaultsurface, _, Hfaultsurface = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
+    Tsurfacesurface, _, Hsurfacesurface = partialsconstdispstress(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
+    ufullspacehacky = Tfaultsurface * faultslip
+    usurfacehacky = inv(Hsurfacesurface) * (Hfaultsurface * faultslip)
+    return ufullspacehacky, usurfacehacky
+end
+
+
+"""
+    okadaindirect()
 
 Comparison of surface displacements near a thrust fault dipping
 at 45 degrees.  Includes both constant and quadratic elements.
 """
-function thrustfaultfreesurface()
+function okadaindirect()
     mu = 30e9
     nu = 0.25
 
@@ -85,80 +99,62 @@ function thrustfaultfreesurface()
     standardize_elements!(els)
     idx = getidxdict(els)
 
-    #! Hacky old version
-    Tfaultfreesurf, _, Hfaultfreesurf = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
-    Tfreesurffreesurf, _, Hfreesurffreesurf = partialsconstdispstress(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
+    #! Parameters for BEM solutions
     faultslip = sqrt(2) / 2 * [1 ; 1]
-    ufullspaceconst = Tfaultfreesurf * faultslip
-    ufreesurfaceconst = inv(Hfreesurffreesurf) * (Hfaultfreesurf * faultslip)
-    xplotconst = els.xcenter[idx["surface"]]
+    xbem = els.xcenter[idx["surface"]]
 
-    # #! Formal indirect version
-    Tfaultfault, _, _ = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    _, _, Hfaultfreesurf = PUSTC(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
-    Tfreesurffault, _, _ = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
-    Tfreesurffreesurf, _, Hfreesurffreesurf = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
+    #! Hacky BEM
+    ufullspacehacky, uhalfspacehacky = hackybem(els, idx, faultslip, mu, nu)
+
+    #! Formal indirect BEM
+    T_pfault_qfault, _, _ = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    _, _, H_pfault_qsurface = PUSTC(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
+    T_psurface_qfault, _, _ = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
+    T_psurface_qsurface, _, H_psurface_qsurface = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
     mat = zeros(2*els.endidx, 2*els.endidx)
-    mat[1:2, 1:2] = Tfaultfault
-    mat[1:2, 3:end] = Hfaultfreesurf
-    mat[3:end, 1:2] = Tfreesurffault
-    mat[3:end, 3:end] = Hfreesurffreesurf
+    mat[1:2, 1:2] = T_pfault_qfault
+    mat[1:2, 3:end] = H_pfault_qsurface
+    mat[3:end, 1:2] = T_psurface_qfault
+    mat[3:end, 3:end] = H_psurface_qsurface
     bcs = zeros(2*els.endidx)
     bcs[1:2] = faultslip
     ueff = inv(mat) * bcs
-    matold = mat
 
-    #! Formal indirect version
-    # Tfault, _, Hfault = PUSTC(slip2dispstress, els, idx["fault"], collect(1:1:els.endidx), mu, nu)
-    # Tsurface, _, Hsurface = PUSTC(slip2dispstress, els, idx["freesurf"], collect(1:1:els.endidx), mu, nu)
-
-    # @show size(Tfault)
-    # @show size(Hfault)
-    # @show size(Tsurface)
-    # @show size(Hsurface)
-
-    # mat = zeros(2*els.endidx, 2*els.endidx)
-    # mat[1:2, :] = Tfault
-    # mat[3:end, :] = Hsurface
-    # bcs = zeros(2*els.endidx)
-    # bcs[1:2] = faultslipconst
-    # ueff = inv(mat) * bcs
-
-    # @infiltrate
-    # return
-
-    # Forward evaluation at free surface
+    # Interior evaluation at free surface
     matinterior = zeros(2*length(idx["surface"]), 2*els.endidx)
-    matinterior[:, 1:2] = Tfreesurffault
-    matinterior[:, 3:end] = Tfreesurffreesurf
-    usurf = matinterior * ueff
+    matinterior[:, 1:2] = T_psurface_qfault
+    matinterior[:, 3:end] = T_psurface_qsurface
+    @show size(T_psurface_qfault)
+    usurfaceindirect = matinterior * ueff
 
     #! Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
     uxokada, uyokada = okadalocal(xokada)
 
-    #! Plot comparison between BEM and analytic
+    #! Plot comparison between BEM and Okada
     fontsize = 20
     markersize = 12
     linewidth = 2.0
     close("all")
-    figure(figsize = (12, 12))
+    figure(figsize = (20, 20))
 
     ax = subplot(2, 1, 1)
-    plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada")
-    plot(xplotconst, ufreesurfaceconst[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM")
-    plot(xplotconst, usurf[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM")
+    plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
+    plot(xbem, ufullspacehacky[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
+    plot(xbem, uhalfspacehacky[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
+    plot(xbem, usurfaceindirect[1:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
     ylabel(L"$u_x$ (m)", fontsize=fontsize)
     plotformat(fontsize)
 
     ax = subplot(2, 1, 2)
-    plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada")
-    plot(xplotconst, ufreesurfaceconst[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM")
-    plot(xplotconst, usurf[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM")
+    plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
+    plot(xbem, ufullspacehacky[2:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
+    plot(xbem, uhalfspacehacky[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
+    plot(xbem, usurfaceindirect[2:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
     ylabel(L"$u_y$ (m)", fontsize=fontsize)
     plotformat(fontsize)
     show()
 
     @infiltrate
 end
-thrustfaultfreesurface()
+okadaindirect()
