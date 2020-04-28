@@ -80,24 +80,24 @@ function thrustfaultfreesurface()
         els.y1[els.endidx + i] = y1[i]
         els.x2[els.endidx + i] = x2[i]
         els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "freesurf"
+        els.name[els.endidx + i] = "surface"
     end
     standardize_elements!(els)
     idx = getidxdict(els)
 
     #! Hacky old version
-    Tfaultfreesurf, _, Hfaultfreesurf = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
-    Tfreesurffreesurf, _, Hfreesurffreesurf = partialsconstdispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
+    Tfaultfreesurf, _, Hfaultfreesurf = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
+    Tfreesurffreesurf, _, Hfreesurffreesurf = partialsconstdispstress(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
     faultslip = sqrt(2) / 2 * [1 ; 1]
     ufullspaceconst = Tfaultfreesurf * faultslip
     ufreesurfaceconst = inv(Hfreesurffreesurf) * (Hfaultfreesurf * faultslip)
-    xplotconst = els.xcenter[idx["freesurf"]]
+    xplotconst = els.xcenter[idx["surface"]]
 
     # #! Formal indirect version
     Tfaultfault, _, _ = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    _, _, Hfaultfreesurf = PUSTC(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
-    Tfreesurffault, _, _ = PUSTC(slip2dispstress, els, idx["freesurf"], idx["fault"], mu, nu)
-    Tfreesurffreesurf, _, Hfreesurffreesurf = PUSTC(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
+    _, _, Hfaultfreesurf = PUSTC(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
+    Tfreesurffault, _, _ = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
+    Tfreesurffreesurf, _, Hfreesurffreesurf = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
     mat = zeros(2*els.endidx, 2*els.endidx)
     mat[1:2, 1:2] = Tfaultfault
     mat[1:2, 3:end] = Hfaultfreesurf
@@ -128,7 +128,7 @@ function thrustfaultfreesurface()
     # return
 
     # Forward evaluation at free surface
-    matinterior = zeros(2*length(idx["freesurf"]), 2*els.endidx)
+    matinterior = zeros(2*length(idx["surface"]), 2*els.endidx)
     matinterior[:, 1:2] = Tfreesurffault
     matinterior[:, 3:end] = Tfreesurffreesurf
     usurf = matinterior * ueff
