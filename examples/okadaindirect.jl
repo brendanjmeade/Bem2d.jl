@@ -113,8 +113,8 @@ function okadaindirect()
     T_psurface_qsurface, _, H_psurface_qsurface = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
     mat = zeros(2*els.endidx, 2*els.endidx)
     mat[1:2, 1:2] = T_pfault_qfault
-    mat[1:2, 3:end] = H_pfault_qsurface
     mat[3:end, 1:2] = T_psurface_qfault
+    mat[1:2, 3:end] = H_pfault_qsurface
     mat[3:end, 3:end] = H_psurface_qsurface
     bcs = zeros(2*els.endidx)
     bcs[1:2] = faultslip
@@ -125,6 +125,7 @@ function okadaindirect()
     matinterior[:, 1:2] = T_psurface_qfault
     matinterior[:, 3:end] = T_psurface_qsurface
     @show size(T_psurface_qfault)
+    ufullspaceindirect = T_psurface_qfault * (ueff[1:2])
     uhalfspaceindirect = matinterior * ueff
 
     #! Okada solution
@@ -140,9 +141,10 @@ function okadaindirect()
 
     ax = subplot(2, 1, 1)
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
-    plot(xbem, ufullspacehacky[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
-    plot(xbem, uhalfspacehacky[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
-    plot(xbem, uhalfspaceindirect[1:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
+    plot(xbem, ufullspacehacky[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label="hacky BEM (fullspace)")
+    plot(xbem, uhalfspacehacky[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label="hacky BEM (halfspace)")
+    plot(xbem, ufullspaceindirect[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label="indirect BEM (fullspace)")
+    plot(xbem, uhalfspaceindirect[1:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label="indirect BEM (halfspace)")
     ylabel(L"$u_x$ (m)", fontsize=fontsize)
     plotformat(fontsize)
 
@@ -150,6 +152,7 @@ function okadaindirect()
     plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
     plot(xbem, ufullspacehacky[2:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
     plot(xbem, uhalfspacehacky[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
+    plot(xbem, ufullspaceindirect[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label="indirect BEM (fullspace)")
     plot(xbem, uhalfspaceindirect[2:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
     ylabel(L"$u_y$ (m)", fontsize=fontsize)
     plotformat(fontsize)
