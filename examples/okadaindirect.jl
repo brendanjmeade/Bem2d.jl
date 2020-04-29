@@ -70,6 +70,7 @@ Comparison of surface displacements near a thrust fault dipping
 at 45 degrees.  Includes both constant and quadratic elements.
 """
 function okadaindirect()
+    close("all")
     mu = 30e9
     nu = 0.25
 
@@ -107,24 +108,51 @@ function okadaindirect()
     ufullspacehacky, uhalfspacehacky = hackybem(els, idx, faultslip, mu, nu)
 
     #! Formal indirect BEM
-    T_pfault_qfault, _, _ = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    _, _, H_pfault_qsurface = PUSTC(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
-    T_psurface_qfault, _, _ = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
+    # T_pfault_qfault, _, _ = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    # _, _, H_pfault_qsurface = PUSTC(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
+    # T_psurface_qfault, _, _ = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
+    # T_psurface_qsurface, _, H_psurface_qsurface = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
+    # mat = zeros(2*els.endidx, 2*els.endidx)
+    # mat[1:2, 1:2] = T_pfault_qfault
+    # mat[3:end, 1:2] = T_psurface_qfault #TODO: I think this should be T_pfault_qsurface
+    # mat[1:2, 3:end] = H_pfault_qsurface  #TODO: I think this should be T_psurface_qfault
+    # mat[3:end, 3:end] = H_psurface_qsurface
+    # bcs = zeros(2*els.endidx)
+    # bcs[1:2] = faultslip
+    # ueff = inv(mat) * bcs
+
+    #! Formal indirect BEM (flipped matrices)
+    T_pfault_qfault, _, H_pfault_qfault = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
+    T_pfault_qsurface, _, H_pfault_qsurface = PUSTC(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
+    T_psurface_qfault, _, H_psurface_qfault = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
     T_psurface_qsurface, _, H_psurface_qsurface = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
+
     mat = zeros(2*els.endidx, 2*els.endidx)
     mat[1:2, 1:2] = T_pfault_qfault
-    mat[3:end, 1:2] = T_psurface_qfault #TODO: I think this should be T_pfault_qsurface
-    mat[1:2, 3:end] = H_pfault_qsurface  #TODO: I think this should be T_psurface_qfault
+    # mat[3:end, 1:2] = T_psurface_qfault #TODO: I think this should be T_pfault_qsurface
+    # mat[1:2, 3:end] = H_pfault_qsurface  #TODO: I think this should be T_psurface_qfault
+    mat[3:end, 1:2] = T_psurface_qfault #TODO: I think this should be T_psurface_qfault
+    mat[1:2, 3:end] = H_pfault_qsurface #TODO: I think this should be T_pfault_qsurface
     mat[3:end, 3:end] = H_psurface_qsurface
     bcs = zeros(2*els.endidx)
     bcs[1:2] = faultslip
     ueff = inv(mat) * bcs
 
+    figure(figsize=(30, 20))
+    subplot(2, 4, 1); imshow(T_pfault_qfault); colorbar(); title("T_pfault_qfault")
+    # subplot(2, 4, 2); imshow(T_pfault_qsurface'); colorbar(); title("T_pfault_qsurface")
+    subplot(2, 4, 3); imshow(T_psurface_qfault); colorbar(); title("T_psurface_qfault")
+    # subplot(2, 4, 4); imshow(T_psurface_qsurface); colorbar(); title("T_psurface_qsurface")
+    # subplot(2, 4, 5); imshow(H_pfault_qfault); colorbar(); title("H_pfault_qfault")
+    subplot(2, 4, 6); imshow(H_pfault_qsurface); colorbar(); title("H_pfault_qsurface")
+    # subplot(2, 4, 7); imshow(H_psurface_qfault'); colorbar(); title("H_psurface_qfault")
+    subplot(2, 4, 8); imshow(H_psurface_qsurface); colorbar(); title("H_psurface_qsurface")
+    show()
+
     # Interior evaluation at free surface
     matinterior = zeros(2*length(idx["surface"]), 2*els.endidx)
     matinterior[:, 1:2] = T_psurface_qfault
     matinterior[:, 3:end] = T_psurface_qsurface
-    @show size(T_psurface_qfault)
     ufullspaceindirect = T_psurface_qfault * (ueff[1:2])
     uhalfspaceindirect = matinterior * ueff
 
@@ -136,7 +164,6 @@ function okadaindirect()
     fontsize = 20
     markersize = 12
     linewidth = 2.0
-    close("all")
     figure(figsize = (20, 20))
 
     ax = subplot(2, 1, 1)
