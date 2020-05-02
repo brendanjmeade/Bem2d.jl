@@ -53,6 +53,9 @@ end
     hackybem(els, mu, nu)
 
 Hacky BEM approximation to Okada profile for a 45 dipping fault.
+The purpose of keeping this is that while a little "hacky" it 
+demonstrates the conceptual behind a mechanical interpretation of
+the indirect BEM for the okada problem
 """
 function hackybem(els, idx, faultslip, mu, nu)
     Tfaultsurface, _, Hfaultsurface = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
@@ -125,7 +128,6 @@ function okadaindirect()
 
     ax = subplot(2, 1, 1)
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
-    # plot(xbem, ufullspacehacky[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label="hacky BEM (fullspace)")
     plot(xbem, uhalfspacehacky[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label="hacky BEM (halfspace)")
     plot(xbem, uhalfspaceindirect[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label="indirect BEM (halfspace)")
     ylabel(L"$u_x$ (m)", fontsize=fontsize)
@@ -133,12 +135,10 @@ function okadaindirect()
 
     ax = subplot(2, 1, 2)
     plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
-    # plot(xbem, ufullspacehacky[2:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
     plot(xbem, uhalfspacehacky[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
     plot(xbem, uhalfspaceindirect[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
     ylabel(L"$u_y$ (m)", fontsize=fontsize)
     plotformat(fontsize)
     show()
-    @infiltrate
 end
 okadaindirect()
