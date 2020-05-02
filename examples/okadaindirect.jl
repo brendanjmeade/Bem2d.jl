@@ -91,7 +91,7 @@ function okadaindirect()
     standardize_elements!(els)
 
     # Free surface
-    nfreesurf = 20
+    nfreesurf = 60
     x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
@@ -110,11 +110,17 @@ function okadaindirect()
     ufullspacehacky, uhalfspacehacky = hackybem(els, idx, sqrt(2)/2 .* ones(2*nfault), mu, nu)
 
     #! Formal indirect BEM
-    _, H_psurface_qfault = PUTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
-    _, H_psurface_qsurface = PUTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
+    T_psurface_qfault, H_psurface_qfault = PUTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
+    T_psurface_qsurface, H_psurface_qsurface = PUTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
     bcs = sqrt(2.0)/2.0 * ones(2*nfault)
     ueff = inv(H_psurface_qsurface) * H_psurface_qfault * bcs
     uhalfspaceindirect = ueff
+
+    #! Interior evaluation
+    #TODO: This does not give the right answer at the surface
+    uinterior = T_psurface_qsurface * ueff + T_psurface_qfault * bcs
+    # uinterior = T_psurface_qsurface * ueff
+    # uinterior = T_psurface_qfault * bcs
 
     #! Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
@@ -130,6 +136,7 @@ function okadaindirect()
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
     plot(xbem, uhalfspacehacky[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label="hacky BEM (halfspace)")
     plot(xbem, uhalfspaceindirect[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label="indirect BEM (halfspace)")
+    plot(xbem, uinterior[1:2:end], ".g", markeredgewidth=linewidth, markersize=markersize, label = "interior BEM (halfspace)")
     ylabel(L"$u_x$ (m)", fontsize=fontsize)
     plotformat(fontsize)
 
@@ -137,6 +144,7 @@ function okadaindirect()
     plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
     plot(xbem, uhalfspacehacky[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
     plot(xbem, uhalfspaceindirect[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
+    plot(xbem, uinterior[2:2:end], ".g", markeredgewidth=linewidth, markersize=markersize, label = "interior BEM (halfspace)")
     ylabel(L"$u_y$ (m)", fontsize=fontsize)
     plotformat(fontsize)
     show()
