@@ -110,8 +110,8 @@ function okadaindirect()
     ufullspacehacky, uhalfspacehacky = hackybem(els, idx, sqrt(2)/2 .* ones(2*nfault), mu, nu)
 
     #! Formal indirect BEM
-    _, _, H_psurface_qfault = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
-    _, _, H_psurface_qsurface = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
+    _, H_psurface_qfault = PUTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
+    _, H_psurface_qsurface = PUTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
     bcs = sqrt(2.0)/2.0 * ones(2*nfault)
     ueff = inv(H_psurface_qsurface) * H_psurface_qfault * bcs
     uhalfspaceindirect = ueff
