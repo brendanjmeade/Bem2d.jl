@@ -106,18 +106,12 @@ function okadaindirect()
     #! Hacky BEM
     ufullspacehacky, uhalfspacehacky = hackybem(els, idx, sqrt(2)/2 .* ones(2*nfault), mu, nu)
 
-    #! Formal indirect BEM (flipped matrices)
-    T_pfault_qfault, _, H_pfault_qfault = PUSTC(slip2dispstress, els, idx["fault"], idx["fault"], mu, nu)
-    T_pfault_qsurface, _, H_pfault_qsurface = PUSTC(slip2dispstress, els, idx["fault"], idx["surface"], mu, nu)
-    T_psurface_qfault, _, H_psurface_qfault = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
-    T_psurface_qsurface, _, H_psurface_qsurface = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
-
-    bcs = zeros(2*nfault)
-    bcs[:] .= sqrt(2)/2.0
-    println("here")
-    ueff = -inv(H_psurface_qsurface) * H_pfault_qsurface' * bcs
+    #! Formal indirect BEM
+    _, _, H_psurface_qfault = PUSTC(slip2dispstress, els, idx["surface"], idx["fault"], mu, nu)
+    _, _, H_psurface_qsurface = PUSTC(slip2dispstress, els, idx["surface"], idx["surface"], mu, nu)
+    bcs = sqrt(2.0)/2.0 * ones(2*nfault)
+    ueff = inv(H_psurface_qsurface) * H_psurface_qfault * bcs
     uhalfspaceindirect = ueff
-    println("here")
 
     #! Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
@@ -131,19 +125,20 @@ function okadaindirect()
 
     ax = subplot(2, 1, 1)
     plot(xokada, uxokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
-    plot(xbem, ufullspacehacky[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label="hacky BEM (fullspace)")
+    # plot(xbem, ufullspacehacky[1:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label="hacky BEM (fullspace)")
     plot(xbem, uhalfspacehacky[1:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label="hacky BEM (halfspace)")
-    plot(xbem, uhalfspaceindirect[1:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label="indirect BEM (halfspace)")
+    plot(xbem, uhalfspaceindirect[1:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label="indirect BEM (halfspace)")
     ylabel(L"$u_x$ (m)", fontsize=fontsize)
     plotformat(fontsize)
 
     ax = subplot(2, 1, 2)
     plot(xokada, uyokada, "-k", linewidth=linewidth, label="Okada (halfspace)")
-    plot(xbem, ufullspacehacky[2:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
+    # plot(xbem, ufullspacehacky[2:2:end], "b+", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (fullspace)")
     plot(xbem, uhalfspacehacky[2:2:end], "bx", markeredgewidth=linewidth, markersize=markersize, label = "hacky BEM (halfspace)")
-    plot(xbem, uhalfspaceindirect[2:2:end], "rx", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
+    plot(xbem, uhalfspaceindirect[2:2:end], "r+", markeredgewidth=linewidth, markersize=markersize, label = "indirect BEM (halfspace)")
     ylabel(L"$u_y$ (m)", fontsize=fontsize)
     plotformat(fontsize)
     show()
+    @infiltrate
 end
 okadaindirect()
