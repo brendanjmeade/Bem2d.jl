@@ -79,7 +79,7 @@ function okadaindirect()
 
     # 45 degree dipping fault
     els = Elements(Int(1e5))
-    nfault = 10
+    nfault = 20
     x1, y1, x2, y2 = discretizedline(-1, -1, 0, 0, nfault)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
@@ -118,9 +118,35 @@ function okadaindirect()
 
     #! Interior evaluation
     #TODO: This does not give the right answer at the surface
+    nobs = 50
+    x, y = obsgrid(-5, -5, 5, 0, nobs)
+    # x, y = obsgrid(-1, -1, 1, 1, nobs)
+
     uinterior = T_psurface_qsurface * ueff + T_psurface_qfault * bcs
     # uinterior = T_psurface_qsurface * ueff
     # uinterior = T_psurface_qfault * bcs
+    @time Usurface, Ssurface = constdispstress(slip2dispstress, x, y, els, idx["surface"], ueff[1:2:end], ueff[2:2:end], mu, nu)
+    @time Ufault, Sfault = constdispstress(slip2dispstress, x, y, els, idx["fault"], bcs[1:2:end], bcs[2:2:end], mu, nu)
+    # @time Ufault, Sfault = constdispstress(slip2dispstress, x, y, els, idx["fault"], 1, 1, mu, nu)
+    # @time Usurface, Ssurface = constdispstress(slip2dispstress, x, y, els, idx["surface"], 1, 0, mu, nu)
+
+    figure()
+    # quiver(x, y, Ufault[:, 1], Ufault[:, 2])
+    quiver(x, y, -Usurface[:, 1] + Ufault[:, 1], -Usurface[:, 2] + Ufault[:, 2])
+    # quiver(x, y, Usurface[:, 1], Usurface[:, 2])
+
+    # xmat = reshape(x, nobs, nobs)
+    # ymat = reshape(y, nobs, nobs)
+    # umat = reshape(Ufault[1:2:end], nobs, nobs)
+    # contourf(xmat, ymat, umat)
+    # colorbar()
+    xlabel("x (m)")
+    ylabel("y (m)")
+    title("ux (fault)")
+    @infiltrate
+    return
+
+
 
     #! Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
@@ -147,6 +173,8 @@ function okadaindirect()
     plot(xbem, uinterior[2:2:end], ".g", markeredgewidth=linewidth, markersize=markersize, label = "interior BEM (halfspace)")
     ylabel(L"$u_y$ (m)", fontsize=fontsize)
     plotformat(fontsize)
+
     show()
+    @infiltrate
 end
 okadaindirect()
