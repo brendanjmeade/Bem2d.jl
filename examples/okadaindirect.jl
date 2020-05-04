@@ -49,6 +49,34 @@ function okadalocal(xokada)
 end
 
 
+
+"""
+    okadalocalinterior(xokada)
+
+Okada profile for a 45 dipping fault.
+"""
+function okadalocalinterior(x, y)
+    uxokada = zeros(length(x))
+    uyokada = zeros(length(x))
+
+    for i in 1:length(x)
+        # Fault dipping at 45 degrees
+        _, u, _ = ow.dc3dwrapper(
+            2.0 / 3.0,
+            [0, x[i] + 0.5, y[i]],
+            0.5,
+            45,  # 135
+            [-1000, 1000],
+            [-sqrt(2) / 2, sqrt(2) / 2],
+            [0.0, 1.0, 0.0],
+        )
+        uxokada[i] = u[2]
+        uyokada[i] = u[3]
+    end
+    return uxokada, uyokada
+end
+
+
 """
     hackybem(els, mu, nu)
 
@@ -143,6 +171,13 @@ function okadaindirect()
     xlabel("x (m)")
     ylabel("y (m)")
     title("ux (fault)")
+
+    #! Okada interior evaluation
+    uxokadainterior, uyokadainterior = okadalocalinterior(x, y)
+    figure()
+    quiver(x, y, uxokadainterior, uyokadainterior)
+
+
     @infiltrate
     return
 
