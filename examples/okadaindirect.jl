@@ -59,20 +59,20 @@ function okadalocalinterior(x, y)
     uxokada = zeros(length(x))
     uyokada = zeros(length(x))
 
-    for i in 1:length(x)
-        # Fault dipping at 45 degrees
+    for i in 1:length(x) # Fault dipping at 45 degrees
         _, u, _ = ow.dc3dwrapper(
             2.0 / 3.0,
-            [0, x[i] + 0.5, y[i]],
-            0.5,
+            [0, x[i] + 10e3 * 0.5, y[i]],
+            10e3 * 0.5,
             45,  # 135
-            [-1000, 1000],
-            [-sqrt(2) / 2, sqrt(2) / 2],
+            [-1000e3, 1000e3],
+            [-10e3 * sqrt(2) / 2, 10e3 * sqrt(2) / 2],
             [0.0, 1.0, 0.0],
         )
         uxokada[i] = u[2]
         uyokada[i] = u[3]
     end
+
     return uxokada, uyokada
 end
 
@@ -108,7 +108,7 @@ function okadaindirect()
     # 45 degree dipping fault
     els = Elements(Int(1e5))
     nfault = 20
-    x1, y1, x2, y2 = discretizedline(-1, -1, 0, 0, nfault)
+    x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -121,7 +121,7 @@ function okadaindirect()
     # Free surface
     nfreesurf = 100
     # x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
-    x1, y1, x2, y2 = discretizedline(-20, 0, 20, 0, nfreesurf)
+    x1, y1, x2, y2 = discretizedline(-200e3, 0, 200e3, 0, nfreesurf)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -148,7 +148,7 @@ function okadaindirect()
     #! Interior evaluation
     #TODO: This does not give the right answer at the surface
     nobs = 50
-    x, y = obsgrid(-5, -5, 5, 0, nobs)
+    x, y = obsgrid(-50e3, -50e3, 50e3, -1, nobs)
 
     @time Usurface, Ssurface = constdispstress(slip2dispstress, x, y, els, idx["surface"], ueff[1:2:end], ueff[2:2:end], mu, nu)
     @time Ufault, Sfault = constdispstress(slip2dispstress, x, y, els, idx["fault"], bcs[1:2:end], bcs[2:2:end], mu, nu)
@@ -198,9 +198,9 @@ function okadaindirect()
     quiver(x, y, uxbem, uybem)
     gca().set_aspect("equal")
     gca().tick_params(labelsize=fontsize)
-    xlabel("x (m)")
-    ylabel("y (m)")
-    title("ux (fault)")
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    title("u_x (fault)", fontsize=fontsize)
 
     subplot(nrows, ncols, 5)
     umat = reshape(uxbem, nobs, nobs)
