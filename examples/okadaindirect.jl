@@ -119,8 +119,9 @@ function okadaindirect()
     standardize_elements!(els)
 
     # Free surface
-    nfreesurf = 60
-    x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
+    nfreesurf = 100
+    # x1, y1, x2, y2 = discretizedline(-5, 0, 5, 0, nfreesurf)
+    x1, y1, x2, y2 = discretizedline(-20, 0, 20, 0, nfreesurf)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -148,6 +149,7 @@ function okadaindirect()
     #TODO: This does not give the right answer at the surface
     nobs = 50
     x, y = obsgrid(-5, -5, 5, 0, nobs)
+
     @time Usurface, Ssurface = constdispstress(slip2dispstress, x, y, els, idx["surface"], ueff[1:2:end], ueff[2:2:end], mu, nu)
     @time Ufault, Sfault = constdispstress(slip2dispstress, x, y, els, idx["fault"], bcs[1:2:end], bcs[2:2:end], mu, nu)
     uxbem = -Usurface[:, 1] + Ufault[:, 1]
@@ -165,7 +167,6 @@ function okadaindirect()
     xmat = reshape(x, nobs, nobs)
     ymat = reshape(y, nobs, nobs)
     contourvec = collect(LinRange(-0.5, 0.5, 20))
-
     figure(figsize=(30, 20))
 
     # Okada results
@@ -191,7 +192,6 @@ function okadaindirect()
     contour(xmat, ymat, umat, levels=contourvec, colors="k", linewidths=0.5)
     gca().set_aspect("equal")
     gca().tick_params(labelsize=fontsize)
-
 
     # IBEM results
     subplot(nrows, ncols, 4)
