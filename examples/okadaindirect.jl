@@ -148,49 +148,112 @@ function okadaindirect()
     #TODO: This does not give the right answer at the surface
     nobs = 50
     x, y = obsgrid(-5, -5, 5, 0, nobs)
-    # x, y = obsgrid(-1, -1, 1, 1, nobs)
-
-    uinterior = T_psurface_qsurface * ueff + T_psurface_qfault * bcs
-    # uinterior = T_psurface_qsurface * ueff
-    # uinterior = T_psurface_qfault * bcs
     @time Usurface, Ssurface = constdispstress(slip2dispstress, x, y, els, idx["surface"], ueff[1:2:end], ueff[2:2:end], mu, nu)
     @time Ufault, Sfault = constdispstress(slip2dispstress, x, y, els, idx["fault"], bcs[1:2:end], bcs[2:2:end], mu, nu)
-    # @time Ufault, Sfault = constdispstress(slip2dispstress, x, y, els, idx["fault"], 1, 1, mu, nu)
-    # @time Usurface, Ssurface = constdispstress(slip2dispstress, x, y, els, idx["surface"], 1, 0, mu, nu)
+    uxbem = -Usurface[:, 1] + Ufault[:, 1]
+    uybem = -Usurface[:, 2] + Ufault[:, 2]
 
-    figure()
-    # quiver(x, y, Ufault[:, 1], Ufault[:, 2])
-    quiver(x, y, -Usurface[:, 1] + Ufault[:, 1], -Usurface[:, 2] + Ufault[:, 2])
-    # quiver(x, y, Usurface[:, 1], Usurface[:, 2])
+    #! Okada interior evaluation
+    uxokadainterior, uyokadainterior = okadalocalinterior(x, y)
 
-    # xmat = reshape(x, nobs, nobs)
-    # ymat = reshape(y, nobs, nobs)
-    # umat = reshape(Ufault[1:2:end], nobs, nobs)
-    # contourf(xmat, ymat, umat)
-    # colorbar()
+    #! 18 panel plot
+    fontsize = 20
+    markersize = 12
+    linewidth = 2.0
+    nrows = 3
+    ncols = 3
+    xmat = reshape(x, nobs, nobs)
+    ymat = reshape(y, nobs, nobs)
+    contourvec = collect(LinRange(-0.5, 0.5, 20))
+
+    figure(figsize=(30, 20))
+
+    # Okada results
+    subplot(nrows, ncols, 1)
+    quiver(x, y, uxokadainterior, uyokadainterior)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+
+    subplot(nrows, ncols, 2)
+    umat = reshape(uxokadainterior, nobs, nobs)
+    contourf(xmat, ymat, umat, levels=contourvec)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(xmat, ymat, umat, levels=contourvec, colors="k", linewidths=0.5)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+
+    subplot(nrows, ncols, 3)
+    umat = reshape(uyokadainterior, nobs, nobs)
+    contourf(xmat, ymat, umat, levels=contourvec)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(xmat, ymat, umat, levels=contourvec, colors="k", linewidths=0.5)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+
+
+    # IBEM results
+    subplot(nrows, ncols, 4)
+    quiver(x, y, uxbem, uybem)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
     xlabel("x (m)")
     ylabel("y (m)")
     title("ux (fault)")
 
-    #! Okada interior evaluation
-    uxokadainterior, uyokadainterior = okadalocalinterior(x, y)
-    figure()
-    quiver(x, y, uxokadainterior, uyokadainterior)
+    subplot(nrows, ncols, 5)
+    umat = reshape(uxbem, nobs, nobs)
+    contourf(xmat, ymat, umat, levels=contourvec)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(xmat, ymat, umat, levels=contourvec, colors="k", linewidths=0.5)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+
+    subplot(nrows, ncols, 6)
+    umat = reshape(uybem, nobs, nobs)
+    contourf(xmat, ymat, umat, levels=contourvec)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(xmat, ymat, umat, levels=contourvec, colors="k", linewidths=0.5)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+
+    # Residuals
+    subplot(nrows, ncols, 7)
+    quiver(x, y, uxbem .- uxokadainterior, uybem - uyokadainterior)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+
+    subplot(nrows, ncols, 8)
+    umat = reshape(uxbem .- uxokadainterior, nobs, nobs)
+    contourf(xmat, ymat, umat, levels=contourvec)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(xmat, ymat, umat, levels=contourvec, colors="k", linewidths=0.5)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+
+    subplot(nrows, ncols, 9)
+    umat = reshape(uybem .- uyokadainterior, nobs, nobs)
+    contourf(xmat, ymat, umat, levels=contourvec)
+    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
+    cbar.ax.tick_params(labelsize=fontsize)
+    contour(xmat, ymat, umat, levels=contourvec, colors="k", linewidths=0.5)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+
 
 
     @infiltrate
     return
-
-
 
     #! Okada solution
     xokada = collect(LinRange(-5, 5, 1000))
     uxokada, uyokada = okadalocal(xokada)
 
     #! Plot comparison between BEM and Okada
-    fontsize = 20
-    markersize = 12
-    linewidth = 2.0
     figure(figsize = (20, 20))
 
     ax = subplot(2, 1, 1)
