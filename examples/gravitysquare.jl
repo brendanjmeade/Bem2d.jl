@@ -34,7 +34,7 @@ using Bem2d
 #     Skelvin[:, 3] = @. fx*((1-2*nu)*gy-x*gxy) + fy*((1-2*nu)*gx-y*gxy)
 #     return Ukelvin, Skelvin
 # end
-function kelvinUD(x, y, xoffset, yoffset, fx, fy, mu, nu)
+function kelvinUS(x, y, xoffset, yoffset, fx, fy, mu, nu)
     x = @. x - xoffset
     y = @. y - yoffset
     Ukelvin = zeros(length(x), 2)
@@ -200,7 +200,7 @@ function gravitysquare()
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
         tricentroid = [mean(xtri) mean(ytri)]
-        Ugi, _ = kelvinUD(els.xcenter[1:1:els.endidx],
+        Ugi, _ = kelvinUS(els.xcenter[1:1:els.endidx],
                           els.ycenter[1:1:els.endidx],
                           tricentroid[1],
                           tricentroid[2],
