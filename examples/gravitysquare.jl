@@ -35,6 +35,7 @@ using Bem2d
 #     return Ukelvin, Skelvin
 # end
 function kelvinUS(x, y, xoffset, yoffset, fx, fy, mu, nu)
+    println("Made it to kelvinUS")
     x = @. x - xoffset
     y = @. y - yoffset
     Ukelvin = zeros(length(x), 2)
@@ -47,11 +48,16 @@ function kelvinUS(x, y, xoffset, yoffset, fx, fy, mu, nu)
     gxy = @. C * 2*x*y/(x^2+y^2)^2
     gxx = @. C * (x^2-y^2)/(x^2+y^2)^2
     gyy = -gxx
+
+    #! THERE IS AN ERROR IN HOW THIS WORKS FOR PARTIALS....WHAA?!?!?!
     Ukelvin[:, 1] = @. fx/(2*mu)*((3-4*nu)*g-x*gx) + fy/(2*mu)*(-y*gx)
+    println("Still going")
+
     Ukelvin[:, 2] = @. fx/(2*mu)*(-x*gy) + fy/(2*mu)*((3-4*nu)*g-y*gy)
     Skelvin[:, 1] = @. fx*(2*(1-nu)*gx-x*gxx) + fy*(2*nu*gy-y*gxx)
     Skelvin[:, 2] = @. fx*(2*nu*gx-x*gyy) + fy*(2*(1-nu)*gy-y*gyy)
     Skelvin[:, 3] = @. fx*((1-2*nu)*gy-x*gxy) + fy*((1-2*nu)*gx-y*gxy)
+    println("HIIIII")
     return Ukelvin, Skelvin
 end
 
@@ -119,7 +125,7 @@ end
 Kernel relating body forces to boundary displacements and tractions.
 Uses Kelvin kernels.
 """
-function PUTK(els, obsidx, srcmesh, mu, nu)
+function PUTK(els, obsidx, mesh, mu, nu)
     ntri = size(mesh.cell)[2]
     nobs = length(obsidx)
     Ku = zeros(2*nobs, 2*ntri)
@@ -129,15 +135,21 @@ function PUTK(els, obsidx, srcmesh, mu, nu)
     _Kt = zeros(2, 2)
     for iobs in 1:nobs # Should I loop over obs or src?  src is easier to write.
         for isrc in 1:ntri
+            @show iobs, isrc
             # Triangle areas and centroids
-            xtri = mesh.point[1, mesh.cell[:, itri]]
-            ytri = mesh.point[2, mesh.cell[:, itri]]
+            xtri = mesh.point[1, mesh.cell[:, isrc]]
+            ytri = mesh.point[2, mesh.cell[:, isrc]]
             triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
             tricentroid = [mean(xtri) mean(ytri)]
 
             # Calculate displacement and stress kernels
-            _Ku[:, 1], _Ks[:, 1] = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
-            _Ku[:, 2], _Ks[:, 2] = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
+            # _Ku[:, 1], _Ks[:, 1] = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
+            # _Ku[:, 2], _Ks[:, 2] = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
+            a, b = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
+            # c, d = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
+            @infiltrate
+
+            println("HERE")
 
             # Calculate traction kernels from stress kernels
             _Kt[:, 1] = stress2trac(_Ks[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
@@ -251,23 +263,23 @@ function gravitysquare()
     #! Loop over each triangle calculate area and contribution to u_eff
     #! For each element centroid calculate the effect of a body force
     ntri = size(mesh.cell)[2]
-    Uboundarygravity = zeros(els.endidx, 2)
-    Ugfield = zeros(length(x), 2)
-    for i in 1:ntri
-        xtri = mesh.point[1, mesh.cell[:, i]]
-        ytri = mesh.point[2, mesh.cell[:, i]]
-        triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
-        tricentroid = [mean(xtri) mean(ytri)]
-        Ugi, _ = kelvinUS(els.xcenter[1:1:els.endidx],
-                          els.ycenter[1:1:els.endidx],
-                          tricentroid[1],
-                          tricentroid[2],
-                          fx,
-                          fy,
-                          mu,
-                          nu)
-        Uboundarygravity += triarea .* Ugi
-    end
+    # Uboundarygravity = zeros(els.endidx, 2)
+    # Ugfield = zeros(length(x), 2)
+    # for i in 1:ntri
+    #     xtri = mesh.point[1, mesh.cell[:, i]]
+    #     ytri = mesh.point[2, mesh.cell[:, i]]
+    #     triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
+    #     tricentroid = [mean(xtri) mean(ytri)]
+    #     Ugi, _ = kelvinUS(els.xcenter[1:1:els.endidx],
+    #                       els.ycenter[1:1:els.endidx],
+    #                       tricentroid[1],
+    #                       tricentroid[2],
+    #                       fx,
+    #                       fy,
+    #                       mu,
+    #                       nu)
+    #     Uboundarygravity += triarea .* Ugi
+    # end
     
     #! Kernels matrices for edges
     Bidx = idx["B"]
@@ -277,28 +289,33 @@ function gravitysquare()
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
 
+    #! Kernel matrices volume -> boundary
+    Ku, Kt = PUTK(els, BRTLidx, mesh, mu, nu)
+
     @infiltrate
     return
 
-    #! What I need is a full forward evaluation at the bottom coordinates only
-    Uboundarybottom, _ = constdispstress(slip2dispstress,
-                                         els.xcenter[idx["bottom"]],
-                                         els.ycenter[idx["bottom"]],
-                                         els, collect(1:1:4*nels),
-                                         Uboundarygravity[:, 1],
-                                         Uboundarygravity[:, 2],
-                                         mu, nu)
 
-    #! Forward evaluation of interior fields
-    Uvolumegravity, _ = constdispstress(slip2dispstress, x, y,
-                                        els, collect(1:1:4*nels),
-                                        Uboundarygravity[:, 1],
-                                        Uboundarygravity[:, 2],
-                                        mu, nu)
-    Uvolumebottom, _ = constdispstress(slip2dispstress, x, y,
-                                       els, idx["bottom"],
-                                       Uboundarybottom[:, 1], Uboundarybottom[:, 2],
-                                       mu, nu)
+
+    # #! What I need is a full forward evaluation at the bottom coordinates only
+    # Uboundarybottom, _ = constdispstress(slip2dispstress,
+    #                                      els.xcenter[idx["bottom"]],
+    #                                      els.ycenter[idx["bottom"]],
+    #                                      els, collect(1:1:4*nels),
+    #                                      Uboundarygravity[:, 1],
+    #                                      Uboundarygravity[:, 2],
+    #                                      mu, nu)
+
+    # #! Forward evaluation of interior fields
+    # Uvolumegravity, _ = constdispstress(slip2dispstress, x, y,
+    #                                     els, collect(1:1:4*nels),
+    #                                     Uboundarygravity[:, 1],
+    #                                     Uboundarygravity[:, 2],
+    #                                     mu, nu)
+    # Uvolumebottom, _ = constdispstress(slip2dispstress, x, y,
+    #                                    els, idx["bottom"],
+    #                                    Uboundarybottom[:, 1], Uboundarybottom[:, 2],
+    #                                    mu, nu)
 
     
 
