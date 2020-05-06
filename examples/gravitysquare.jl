@@ -114,6 +114,33 @@ end
 
 
 """
+    PUTK(els, obsidx, srcidx, mu, nu)
+
+Kernel relating body forces to boundary displacements and tractions.
+Uses Kelvin kernels.
+"""
+function PUTK(els, obsidx, srcmesh, mu, nu)
+    ntri = size(mesh.cell)[2]
+    nobs = length(obsidx)
+    Ku = zeros(2*nobs, 2*ntri)
+    Kt = zeros(2*nobs, 2*ntri)
+    for itri in 1:ntri # Should I loop over obs or src?  src is easier to write.
+        xtri = mesh.point[1, mesh.cell[:, itri]]
+        ytri = mesh.point[2, mesh.cell[:, itri]]
+        triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
+        tricentroid = [mean(xtri) mean(ytri)]
+
+        # Create the partals we need here
+        # TODO Write out partials structure first!
+        # U, S = kelvinUS(els.xcenter[obsidx], els.ycenter[obsidx],
+        #                   tricentroid[1], tricentroid[2],
+        #                   fx, fy, mu, nu)
+    end
+    return Ku, Kt
+end
+
+
+"""
     gravitysquare()
 
 Experiments with gravity body force.
