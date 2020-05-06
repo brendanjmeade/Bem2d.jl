@@ -124,40 +124,51 @@ function PUTK(els, obsidx, srcmesh, mu, nu)
     nobs = length(obsidx)
     Ku = zeros(2*nobs, 2*ntri)
     Kt = zeros(2*nobs, 2*ntri)
-    for itri in 1:ntri # Should I loop over obs or src?  src is easier to write.
-        xtri = mesh.point[1, mesh.cell[:, itri]]
-        ytri = mesh.point[2, mesh.cell[:, itri]]
-        triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
-        tricentroid = [mean(xtri) mean(ytri)]
+    _Ku = zeros(2, 2)
+    _Ks = zeros(3, 2)
+    _Kt = zeros(2, 2)
+    for iobs in 1:nobs # Should I loop over obs or src?  src is easier to write.
+        for isrc in 1:ntri
+            # Triangle areas and centroids
+            xtri = mesh.point[1, mesh.cell[:, itri]]
+            ytri = mesh.point[2, mesh.cell[:, itri]]
+            triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
+            tricentroid = [mean(xtri) mean(ytri)]
 
-        # Create the partals we need here
-        # TODO Write out partials structure first!
-        # U, S = kelvinUS(els.xcenter[obsidx], els.ycenter[obsidx],
-        #                   tricentroid[1], tricentroid[2],
-        #                   fx, fy, mu, nu)
+            # Calculate displacement and stress kernels
+            _Ku[:, 1], _Ks[:, 1] = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
+            _Ku[:, 2], _Ks[:, 2] = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
 
-        #TODO inspiration from constant element to element case
-        # function partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
-        #     nobs, nsrc = length(obsidx), length(srcidx)
-        #     partialsdisp, partialsstress, partialstrac = zeros(2 * nobs, 2 * nsrc), zeros(3 * nobs, 2 * nsrc), zeros(2 * nobs, 2 * nsrc)
-        #     _partialsdisp, _partialsstress, _partialstrac = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-        #     for isrc in 1:nsrc
-        #         for iobs in 1:nobs
-        #             _partialsdisp[:, 1], _partialsstress[:, 1] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 1, 0, mu, nu)
-        #             _partialsdisp[:, 2], _partialsstress[:, 2] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 0, 1, mu, nu)
-        #             _partialstrac[:, 1] = stress2trac(_partialsstress[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-        #             _partialstrac[:, 2] = stress2trac(_partialsstress[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-        #             partialsdisp[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsdisp
-        #             partialsstress[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsstress
-        #             partialstrac[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialstrac
-        #         end
-        #     end
-        #     return partialsdisp, partialsstress, partialstrac
-        # end
-        
+            # Calculate traction kernels from stress kernels
+            _Kt[:, 1] = stress2trac(_Ks[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+            _Kt[:, 2] = stress2trac(_Ks[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+
+            # Insert 2x2 matrices into system matrices
+            Ku[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _Ku
+            Kt[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _Kt
+        end
     end
     return Ku, Kt
 end
+#TODO inspiration from constant element to element case
+# function partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
+#     nobs, nsrc = length(obsidx), length(srcidx)
+#     partialsdisp, partialsstress, partialstrac = zeros(2 * nobs, 2 * nsrc), zeros(3 * nobs, 2 * nsrc), zeros(2 * nobs, 2 * nsrc)
+#     _partialsdisp, _partialsstress, _partialstrac = zeros(2, 2), zeros(3, 2), zeros(2, 2)
+#     for isrc in 1:nsrc
+#         for iobs in 1:nobs
+#             _partialsdisp[:, 1], _partialsstress[:, 1] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 1, 0, mu, nu)
+#             _partialsdisp[:, 2], _partialsstress[:, 2] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 0, 1, mu, nu)
+#             _partialstrac[:, 1] = stress2trac(_partialsstress[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+#             _partialstrac[:, 2] = stress2trac(_partialsstress[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
+#             partialsdisp[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsdisp
+#             partialsstress[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsstress
+#             partialstrac[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialstrac
+#         end
+#     end
+#     return partialsdisp, partialsstress, partialstrac
+# end
+
 
 
 """
