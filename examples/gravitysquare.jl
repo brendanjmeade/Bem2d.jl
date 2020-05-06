@@ -139,7 +139,7 @@ function gravitysquare()
         els.y1[els.endidx + i] = y1[i]
         els.x2[els.endidx + i] = x2[i]
         els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "bottom"
+        els.name[els.endidx + i] = "B"
     end
     standardize_elements!(els)
 
@@ -151,7 +151,7 @@ function gravitysquare()
         els.y1[els.endidx + i] = y1[i]
         els.x2[els.endidx + i] = x2[i]
         els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "right"
+        els.name[els.endidx + i] = "R"
     end
     standardize_elements!(els)
 
@@ -163,7 +163,7 @@ function gravitysquare()
         els.y1[els.endidx + i] = y1[i]
         els.x2[els.endidx + i] = x2[i]
         els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "top"
+        els.name[els.endidx + i] = "T"
     end
     standardize_elements!(els)
 
@@ -175,12 +175,12 @@ function gravitysquare()
         els.y1[els.endidx + i] = y1[i]
         els.x2[els.endidx + i] = x2[i]
         els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "left"
+        els.name[els.endidx + i] = "L"
     end
     standardize_elements!(els)
     idx = getidxdict(els)
 
-    #! Discretize disc volume into cells
+    #! Triangulate into cells
     xcoords = [xbottom;xright;xtop;xleft] 
     ycoords = [ybottom;yright;ytop;yleft]
     nodes = [xcoords ycoords]
@@ -211,6 +211,17 @@ function gravitysquare()
         Uboundarygravity += triarea .* Ugi
     end
     
+    #! Kernels matrices for edges
+    Bidx = idx["B"]
+    RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
+    BRTLidx = collect(1:1:els.endidx)
+    T_pB_qBRTL, H_pB_qBRTL = PUTC(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
+    T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
+
+
+    @infiltrate
+    return
+
     #! What I need is a full forward evaluation at the bottom coordinates only
     Uboundarybottom, _ = constdispstress(slip2dispstress,
                                          els.xcenter[idx["bottom"]],
@@ -230,6 +241,8 @@ function gravitysquare()
                                        els, idx["bottom"],
                                        Uboundarybottom[:, 1], Uboundarybottom[:, 2],
                                        mu, nu)
+
+    
 
     #! Plot meshes and fields
     figure(figsize=(20,20))
@@ -363,6 +376,6 @@ function gravitysquare()
     yvec = Uvolumegravity[:, 2] .- 2 .* Uvolumebottom[:, 2] #.- minimum(Uvolumebottom[:, 2])
     quiver(x, y, xvec, yvec)
     show()
-    @infiltrate
+    # @infiltrate
 end
 gravitysquare()
