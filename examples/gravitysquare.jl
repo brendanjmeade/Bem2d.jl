@@ -35,7 +35,6 @@ using Bem2d
 #     return Ukelvin, Skelvin
 # end
 function kelvinUS(x, y, xoffset, yoffset, fx, fy, mu, nu)
-    println("Made it to kelvinUS")
     x = @. x - xoffset
     y = @. y - yoffset
     Ukelvin = zeros(length(x), 2)
@@ -51,13 +50,10 @@ function kelvinUS(x, y, xoffset, yoffset, fx, fy, mu, nu)
 
     #! THERE IS AN ERROR IN HOW THIS WORKS FOR PARTIALS....WHAA?!?!?!
     Ukelvin[:, 1] = @. fx/(2*mu)*((3-4*nu)*g-x*gx) + fy/(2*mu)*(-y*gx)
-    println("Still going")
-
     Ukelvin[:, 2] = @. fx/(2*mu)*(-x*gy) + fy/(2*mu)*((3-4*nu)*g-y*gy)
     Skelvin[:, 1] = @. fx*(2*(1-nu)*gx-x*gxx) + fy*(2*nu*gy-y*gxx)
     Skelvin[:, 2] = @. fx*(2*nu*gx-x*gyy) + fy*(2*(1-nu)*gy-y*gyy)
     Skelvin[:, 3] = @. fx*((1-2*nu)*gy-x*gxy) + fy*((1-2*nu)*gx-y*gxy)
-    println("HIIIII")
     return Ukelvin, Skelvin
 end
 
@@ -135,7 +131,6 @@ function PUTK(els, obsidx, mesh, mu, nu)
     _Kt = zeros(2, 2)
     for iobs in 1:nobs # Should I loop over obs or src?  src is easier to write.
         for isrc in 1:ntri
-            @show iobs, isrc
             # Triangle areas and centroids
             xtri = mesh.point[1, mesh.cell[:, isrc]]
             ytri = mesh.point[2, mesh.cell[:, isrc]]
@@ -143,13 +138,8 @@ function PUTK(els, obsidx, mesh, mu, nu)
             tricentroid = [mean(xtri) mean(ytri)]
 
             # Calculate displacement and stress kernels
-            # _Ku[:, 1], _Ks[:, 1] = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
-            # _Ku[:, 2], _Ks[:, 2] = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
-            a, b = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
-            # c, d = kelvinUS(els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
-            @infiltrate
-
-            println("HERE")
+            _Ku[:, 1], _Ks[:, 1] = kelvinUS([els.xcenter[obsidx[iobs]]], [els.ycenter[obsidx[iobs]]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
+            _Ku[:, 2], _Ks[:, 2] = kelvinUS([els.xcenter[obsidx[iobs]]], [els.ycenter[obsidx[iobs]]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
 
             # Calculate traction kernels from stress kernels
             _Kt[:, 1] = stress2trac(_Ks[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
@@ -263,34 +253,35 @@ function gravitysquare()
     #! Loop over each triangle calculate area and contribution to u_eff
     #! For each element centroid calculate the effect of a body force
     ntri = size(mesh.cell)[2]
-    # Uboundarygravity = zeros(els.endidx, 2)
-    # Ugfield = zeros(length(x), 2)
-    # for i in 1:ntri
-    #     xtri = mesh.point[1, mesh.cell[:, i]]
-    #     ytri = mesh.point[2, mesh.cell[:, i]]
-    #     triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
-    #     tricentroid = [mean(xtri) mean(ytri)]
-    #     Ugi, _ = kelvinUS(els.xcenter[1:1:els.endidx],
-    #                       els.ycenter[1:1:els.endidx],
-    #                       tricentroid[1],
-    #                       tricentroid[2],
-    #                       fx,
-    #                       fy,
-    #                       mu,
-    #                       nu)
-    #     Uboundarygravity += triarea .* Ugi
-    # end
+    Uboundarygravity = zeros(els.endidx, 2)
+    Ugfield = zeros(length(x), 2)
+    for i in 1:ntri
+        xtri = mesh.point[1, mesh.cell[:, i]]
+        ytri = mesh.point[2, mesh.cell[:, i]]
+        triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
+        tricentroid = [mean(xtri) mean(ytri)]
+        Ugi, _ = kelvinUS(els.xcenter[1:1:els.endidx],
+                          els.ycenter[1:1:els.endidx],
+                          tricentroid[1],
+                          tricentroid[2],
+                          fx,
+                          fy,
+                          mu,
+                          nu)
+        Uboundarygravity += triarea .* Ugi
+    end
     
-    #! Kernels matrices for edges
+    #! Kernels matrices (boundary -> boundary)
     Bidx = idx["B"]
     RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
     BRTLidx = collect(1:1:els.endidx)
     T_pB_qBRTL, H_pB_qBRTL = PUTC(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
-
-    #! Kernel matrices volume -> boundary
+    #! Kernel matrices (volume -> boundary)
     Ku, Kt = PUTK(els, BRTLidx, mesh, mu, nu)
+
+
 
     @infiltrate
     return
