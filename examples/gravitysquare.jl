@@ -182,7 +182,7 @@ function gravitysquare()
     close("all")
     mu = 3e10
     nu = 0.25
-    nels = 40
+    nels = 100
     npts = 25
     L = 1e4
     x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
@@ -273,9 +273,9 @@ function gravitysquare()
     @show size(Ku_pRTL_qv)
     @show size(Kt_pRTL_qv) # My K*t
 
-    alpha = 1e-12
+    alpha = 1e-2
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
-    K = [Ku_pB_qv ; Ku_pRTL_qv]
+    K = [Ku_pB_qv ; Kt_pRTL_qv]
     f = zeros(2*ntri)
     f[2:2:end] .= 9.8
     ueff = inv(TH) * K * f
