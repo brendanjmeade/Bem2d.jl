@@ -248,28 +248,8 @@ function gravitysquare()
     connectivity[:, 1] = collect(1:1:length(xcoords))
     connectivity[1:end-1, 2] = collect(2:1:length(xcoords))
     connectivity[end, 2] = 1
-    mesh = trimesh(nodes, connectivity, 5)
-
-    #! Loop over each triangle calculate area and contribution to u_eff
-    #! For each element centroid calculate the effect of a body force
+    mesh = trimesh(nodes, connectivity, 1)
     ntri = size(mesh.cell)[2]
-    Uboundarygravity = zeros(els.endidx, 2)
-    Ugfield = zeros(length(x), 2)
-    for i in 1:ntri
-        xtri = mesh.point[1, mesh.cell[:, i]]
-        ytri = mesh.point[2, mesh.cell[:, i]]
-        triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
-        tricentroid = [mean(xtri) mean(ytri)]
-        Ugi, _ = kelvinUS(els.xcenter[1:1:els.endidx],
-                          els.ycenter[1:1:els.endidx],
-                          tricentroid[1],
-                          tricentroid[2],
-                          fx,
-                          fy,
-                          mu,
-                          nu)
-        Uboundarygravity += triarea .* Ugi
-    end
     
     #! Kernels matrices (boundary -> boundary)
     Bidx = idx["B"]
@@ -279,9 +259,69 @@ function gravitysquare()
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
     #! Kernel matrices (volume -> boundary)
-    Ku, Kt = PUTK(els, BRTLidx, mesh, mu, nu)
+    Ku_pB_qv, Kt_pB_qv = PUTK(els, Bidx, mesh, mu, nu)
+    Ku_pRTL_qv, Kt_pRTL_qv = PUTK(els, RTLidx, mesh, mu, nu)
 
+    #! Assemble and solve BEM problem
 
+    @show size(T_pB_qBRTL) # My T*
+    @show size(H_pB_qBRTL)
+    @show size(T_pRTL_qBRTL)
+    @show size(H_pRTL_qBRTL) # My H*
+    @show size(Ku_pB_qv) # My K*u
+    @show size(Kt_pB_qv)
+    @show size(Ku_pRTL_qv)
+    @show size(Kt_pRTL_qv) # My K*t
+
+    TH = [T_pB_qBRTL ; H_pRTL_qBRTL]
+    K = [Ku_pB_qv ; Ku_pRTL_qv]
+    f = zeros(2*ntri)
+    f[2:2:end] .= 9.8
+    ueff = inv(TH) * K * f
+
+    figure()
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], ueff[1:2:end], ueff[2:2:end].-minimum(ueff[2:2:end]))
+    title("ueff")
+    show()
+
+    
+    #! Try forward evalution at boundary.  Not sure this will work because
+    #! it didn't for Okada.
+
+    #! Interior displacements from boundaries (ueff)
+    UinteriorBRTL, _ = constdispstress(slip2dispstress, x, y,
+                                       els, BRTLidx,
+                                       ueff[1:2:end], ueff[2:2:end],
+                                       mu, nu)
+
+    figure()
+    quiver(x, y, UinteriorBRTL[:, 1], UinteriorBRTL[:, 2])
+    show()
+
+    #! Loop over each triangle calculate area and contribution to u_eff
+    #! For each element centroid calculate the effect of a body force
+    Uinteriorgravity = zeros(length(x), 2)
+    Ugfield = zeros(length(x), 2)
+    for i in 1:ntri
+        xtri = mesh.point[1, mesh.cell[:, i]]
+        ytri = mesh.point[2, mesh.cell[:, i]]
+        triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
+        tricentroid = [mean(xtri) mean(ytri)]
+        Ugi, _ = kelvinUS(x,
+                          y,
+                          tricentroid[1],
+                          tricentroid[2],
+                          fx,
+                          fy,
+                          mu,
+                          nu)
+        Uinteriorgravity += triarea .* Ugi
+    end
+
+    figure()
+    quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
+    title("gravity")
+    show()
 
     @infiltrate
     return
