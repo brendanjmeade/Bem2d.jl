@@ -273,14 +273,31 @@ function gravitysquare()
     @show size(Ku_pRTL_qv)
     @show size(Kt_pRTL_qv) # My K*t
 
-    TH = [T_pB_qBRTL ; H_pRTL_qBRTL]
+    alpha = 1e-12
+    TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     K = [Ku_pB_qv ; Ku_pRTL_qv]
     f = zeros(2*ntri)
     f[2:2:end] .= 9.8
     ueff = inv(TH) * K * f
 
-    figure()
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], ueff[1:2:end], ueff[2:2:end].-minimum(ueff[2:2:end]))
+    figure(figsize=(20, 20))
+    subplot(2, 2, 1)
+    imshow(TH)
+    colorbar()
+    title("TH")
+
+    subplot(2, 2, 2)
+    imshow(inv(TH))
+    colorbar()
+    title("inv(TH)")
+
+    subplot(2, 2, 3)
+    imshow(K)
+    colorbar()
+    title("K")
+
+    subplot(2, 2, 4)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], ueff[1:2:end], ueff[2:2:end])
     title("ueff")
     show()
 
@@ -296,6 +313,7 @@ function gravitysquare()
 
     figure()
     quiver(x, y, UinteriorBRTL[:, 1], UinteriorBRTL[:, 2])
+    title("boundaries")
     show()
 
     #! Loop over each triangle calculate area and contribution to u_eff
@@ -318,10 +336,82 @@ function gravitysquare()
         Uinteriorgravity += triarea .* Ugi
     end
 
-    figure()
-    quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
+    # figure()
+    # quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
+    # title("gravity")
+    # show()
+
+    # figure()
+    # quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
+    # title("boundaries + gravity")
+    # show()
+
+    figure(figsize=(30, 30))
+    xmat = reshape(x, npts, npts)
+    ymat = reshape(y, npts, npts)
+    contourlevels = 20
+
+    subplot(3, 3, 1)
+    quiver(x, y, UinteriorBRTL[:, 1], UinteriorBRTL[:, 2])
+    title("boundaries")
+
+    subplot(3, 3, 2)
+    mat = reshape(UinteriorBRTL[:, 1], npts, npts)
+    contourf(xmat, ymat, mat, levels=contourlevels)
+    colorbar()
+    xlabel("x")
+    ylabel("y")
+    title("boundaries, ux")
+
+    subplot(3, 3, 3)
+    mat = reshape(UinteriorBRTL[:, 2], npts, npts)
+    contourf(xmat, ymat, mat, levels=contourlevels)
+    colorbar()
+    xlabel("x")
+    ylabel("y")
+    title("boundaries, uy")
+
+    subplot(3, 3, 4)
+    quiver(x, y, Uinteriorgravity[:, 1],Uinteriorgravity[:, 2])
     title("gravity")
-    show()
+
+    subplot(3, 3, 5)
+    mat = reshape(Uinteriorgravity[:, 1], npts, npts)
+    contourf(xmat, ymat, mat, levels=contourlevels)
+    colorbar()
+    xlabel("x")
+    ylabel("y")
+    title("gravity, ux")
+
+    subplot(3, 3, 6)
+    mat = reshape(Uinteriorgravity[:, 2], npts, npts)
+    contourf(xmat, ymat, mat, levels=contourlevels)
+    colorbar()
+    xlabel("x")
+    ylabel("y")
+    title("gravity, uy")
+
+
+    subplot(3, 3, 7)
+    quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
+    title("boundaries + gravity")
+
+    subplot(3, 3, 8)
+    mat = reshape(UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], npts, npts)
+    contourf(xmat, ymat, mat, levels=contourlevels)
+    colorbar()
+    xlabel("x")
+    ylabel("y")
+    title("boundaries + gravity, ux")
+
+    subplot(3, 3, 9)
+    mat = reshape(UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2], npts, npts)
+    contourf(xmat, ymat, mat, levels=contourlevels)
+    colorbar()
+    xlabel("x")
+    ylabel("y")
+    title("boundaries + gravity, uy")
+
 
     @infiltrate
     return
