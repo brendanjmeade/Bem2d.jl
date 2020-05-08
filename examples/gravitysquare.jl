@@ -182,7 +182,7 @@ function gravitysquare()
     close("all")
     mu = 3e10
     nu = 0.25
-    nels = 100
+    nels = 50
     npts = 25
     L = 1e4
     x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
@@ -273,11 +273,12 @@ function gravitysquare()
     @show size(Ku_pRTL_qv)
     @show size(Kt_pRTL_qv) # My K*t
 
-    alpha = 1e-2
+    alpha = 1e-6
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     K = [Ku_pB_qv ; Kt_pRTL_qv]
     f = zeros(2*ntri)
     f[2:2:end] .= 9.8
+    @show(cond(TH))
     ueff = inv(TH) * K * f
 
     figure(figsize=(20, 20))
@@ -311,10 +312,16 @@ function gravitysquare()
                                        ueff[1:2:end], ueff[2:2:end],
                                        mu, nu)
 
-    figure()
+    figure(figsize=(20,10))
+    subplot(1, 2, 1)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], ueff[1:2:end], ueff[2:2:end])
+    title("ueff")
+    subplot(1, 2, 2)
     quiver(x, y, UinteriorBRTL[:, 1], UinteriorBRTL[:, 2])
-    title("boundaries")
+    title("u interior - but not really")
+
     show()
+
 
     #! Loop over each triangle calculate area and contribution to u_eff
     #! For each element centroid calculate the effect of a body force
