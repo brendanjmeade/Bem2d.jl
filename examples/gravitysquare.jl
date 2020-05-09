@@ -273,13 +273,21 @@ function gravitysquare()
     @show size(Ku_pRTL_qv)
     @show size(Kt_pRTL_qv) # My K*t
 
-    alpha = 1e-6
+    alpha = 1e-10
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
-    K = [Ku_pB_qv ; Kt_pRTL_qv]
+    K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
     f = zeros(2*ntri)
     f[2:2:end] .= 9.8
     @show(cond(TH))
     ueff = inv(TH) * K * f
+
+    #! Does this ueff actually give the correct boundary conditions?
+    TH = [T_pB_qBRTL ; 1 .* H_pRTL_qBRTL]
+    K = [Ku_pB_qv ; 1 .* Kt_pRTL_qv]
+
+
+    recoveredbcs = TH * ueff + K * f
+    @show recoveredbcs
 
     figure(figsize=(20, 20))
     subplot(2, 2, 1)
