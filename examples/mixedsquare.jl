@@ -239,11 +239,11 @@ function gravitysquare()
     f = zeros(2*ntri)
     f[2:2:end] .= 9.8 * 2700
     @show cond(TH)
-    ueff = inv(TH) * K * f
+    Ueff = inv(TH) * K * f
 
-    #! Does this ueff actually give the correct boundary conditions?
+    #! Does this Ueff actually give the correct boundary conditions?
     Ugravity = -K * f
-    recoveredbcs = (TH * ueff) + (-K * f)
+    recoveredbcs = (TH * Ueff) + (-K * f)
 
     figure()
     plot(recoveredbcs, "-b")
@@ -264,24 +264,24 @@ function gravitysquare()
     colorbar()
     title("K")
     subplot(2, 2, 4)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], ueff[1:2:end], ueff[2:2:end])
-    title("ueff")
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ueff[1:2:end], Ueff[2:2:end])
+    title("Ueff")
     show()
 
     
     #! Try forward evalution at boundary.  Not sure this will work because
     #! it didn't for Okada.
 
-    #! Interior displacements from boundaries (ueff)
+    #! Interior displacements from boundaries (Ueff)
     UinteriorBRTL, _ = constdispstress(slip2dispstress, x, y,
                                        els, BRTLidx,
-                                       ueff[1:2:end], ueff[2:2:end],
+                                       Ueff[1:2:end], Ueff[2:2:end],
                                        mu, nu)
 
     figure(figsize=(20,10))
     subplot(1, 2, 1)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], ueff[1:2:end], ueff[2:2:end])
-    title("ueff")
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ueff[1:2:end], Ueff[2:2:end])
+    title("Ueff")
     subplot(1, 2, 2)
     quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ugravity[1:2:end], Ugravity[2:2:end])
     title("uGravity")
@@ -289,8 +289,8 @@ function gravitysquare()
 
     figure(figsize=(20,10))
     # subplot(1, 2, 1)
-    plot(ueff[1:2:end], "-k", label="Ueff - x")
-    plot(ueff[2:2:end], "--k", label="Ueff - y")
+    plot(Ueff[1:2:end], "-k", label="Ueff - x")
+    plot(Ueff[2:2:end], "--k", label="Ueff - y")
     plot(Ugravity[1:2:end], "-r", label="Ugravity only - x")
     plot(Ugravity[2:2:end], "--r", label="Ugravity only - x")
     legend()
