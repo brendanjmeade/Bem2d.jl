@@ -224,21 +224,11 @@ function gravitysquare()
     Ku_pRTL_qv, Kt_pRTL_qv = PUTK(els, RTLidx, mesh, mu, nu)
 
     #! Assemble and solve BEM problem
-    # @show size(T_pB_qBRTL) # My T*
-    # @show size(H_pB_qBRTL)
-    # @show size(T_pRTL_qBRTL)
-    # @show size(H_pRTL_qBRTL) # My H*
-    # @show size(Ku_pB_qv) # My K*u
-    # @show size(Kt_pB_qv)
-    # @show size(Ku_pRTL_qv)
-    # @show size(Kt_pRTL_qv) # My K*t
-
     alpha = 7e-8
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
     f = zeros(2*ntri)
     f[2:2:end] .= -9.8 * 2700
-    @show cond(TH)
     Ueff = inv(TH) * K * f
 
     #! Does this Ueff actually give the correct boundary conditions?
@@ -278,7 +268,17 @@ function gravitysquare()
                                        Ueff[1:2:end], Ueff[2:2:end],
                                        mu, nu)
 
-    #! Plot boundary displacements
+    #! Calculate and Plot boundary displacements
+    # alpha = 1.0
+    TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
+    K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
+    # f = zeros(2*ntri)
+    # f[2:2:end] .= -9.8 * 2700
+    Ueff = inv(TH) * K * f
+    Ugravity = -K * f
+
+
+
     figure(figsize=(20,20))
     subplot(2, 2, 1)
     quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ueff[1:2:end], Ueff[2:2:end])
@@ -298,7 +298,6 @@ function gravitysquare()
     @infiltrate
     return
 
-    #! Loop over each triangle calculate area and contribution to u_eff
     #! For each element centroid calculate the effect of a body force
     Uinteriorgravity = zeros(length(x), 2)
     Ugfield = zeros(length(x), 2)
@@ -307,14 +306,7 @@ function gravitysquare()
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
         tricentroid = [mean(xtri) mean(ytri)]
-        Ugi, _ = kelvinUS(x,
-                          y,
-                          tricentroid[1],
-                          tricentroid[2],
-                          fx,
-                          fy,
-                          mu,
-                          nu)
+        Ugi, _ = kelvinUS(x, y, tricentroid[1], tricentroid[2], fx, fy, mu, nu)
         Uinteriorgravity += triarea .* Ugi
     end
 
