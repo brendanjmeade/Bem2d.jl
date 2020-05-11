@@ -237,7 +237,7 @@ function gravitysquare()
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
     f = zeros(2*ntri)
-    f[2:2:end] .= 9.8 * 2700
+    f[2:2:end] .= -9.8 * 2700
     @show cond(TH)
     Ueff = inv(TH) * K * f
 
@@ -278,28 +278,25 @@ function gravitysquare()
                                        Ueff[1:2:end], Ueff[2:2:end],
                                        mu, nu)
 
-    figure(figsize=(20,10))
-    subplot(1, 2, 1)
+    #! Plot boundary displacements
+    figure(figsize=(20,20))
+    subplot(2, 2, 1)
     quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ueff[1:2:end], Ueff[2:2:end])
     title("Ueff")
-    subplot(1, 2, 2)
+    subplot(2, 2, 2)
     quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ugravity[1:2:end], Ugravity[2:2:end])
     title("uGravity")
-    show()
-
-    figure(figsize=(20,10))
-    # subplot(1, 2, 1)
+    subplot(2, 1, 2)
     plot(Ueff[1:2:end], "-k", label="Ueff - x")
     plot(Ueff[2:2:end], "--k", label="Ueff - y")
     plot(Ugravity[1:2:end], "-r", label="Ugravity only - x")
-    plot(Ugravity[2:2:end], "--r", label="Ugravity only - x")
+    plot(Ugravity[2:2:end], "--r", label="Ugravity only - y")
     legend()
     title("Displacements at boundary nodes")
     show()
 
-
-    # @infiltrate
-    # return
+    @infiltrate
+    return
 
     #! Loop over each triangle calculate area and contribution to u_eff
     #! For each element centroid calculate the effect of a body force
