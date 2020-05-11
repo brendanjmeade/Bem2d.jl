@@ -141,6 +141,7 @@ Experiments with gravity body force.
 """
 function gravitysquare()
     close("all")
+    fontsize = 20
     mu = 3e10
     nu = 0.25
     nels = 20
@@ -239,63 +240,95 @@ function gravitysquare()
     Ugravity = -K * f
     recoveredbcs = (TH * Ueff) + (-K * f)
     Uall = (Tall * Ueff) + (-Kall * f)
+    Uboundaryonly = Tall * Ueff
+    Ugravity = -Kall * f
+    
     figure()
     plot(recoveredbcs, "-b")
     title("Recovered bcs")
     show()
 
-    figure(figsize=(20, 20))
-    subplot(2, 2, 1)
-    imshow(TH)
-    colorbar()
-    title("TH")
-    subplot(2, 2, 2)
-    imshow(inv(TH))
-    colorbar()
-    title("inv(TH)")
-    subplot(2, 2, 3)
-    imshow(K)
-    colorbar()
-    title("K")
-    subplot(2, 2, 4)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ueff[1:2:end], Ueff[2:2:end])
-    title("Ueff")
-    show()
+    # figure(figsize=(20, 20))
+    # subplot(2, 2, 1)
+    # imshow(TH)
+    # colorbar()
+    # title("TH")
+    # subplot(2, 2, 2)
+    # imshow(inv(TH))
+    # colorbar()
+    # title("inv(TH)")
+    # subplot(2, 2, 3)
+    # imshow(K)
+    # colorbar()
+    # title("K")
+    # subplot(2, 2, 4)
+    # quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ueff[1:2:end], Ueff[2:2:end])
+    # title("Ueff")
+    # show()
 
     
-    #! Try forward evalution at boundary.  Not sure this will work because
-    #! it didn't for Okada.
+    #! Calculate and plot boundary displacements
+    #! Not sure this will work because it didn't for Okada
+    figure(figsize=(35,20))
+    subplot(2, 4, 1)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Ueff[1:2:end], -Ueff[2:2:end])
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    title("-Ueff", fontsize=fontsize)
 
-    #! Interior displacements from boundaries (Ueff)
-    UinteriorBRTL, _ = constdispstress(slip2dispstress, x, y,
-                                       els, BRTLidx,
-                                       Ueff[1:2:end], Ueff[2:2:end],
-                                       mu, nu)
-
-    #! Calculate and Plot boundary displacements
-    # alpha = 1.0
-    TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
-    K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
-    # f = zeros(2*ntri)
-    # f[2:2:end] .= -9.8 * 2700
-    Ueff = inv(TH) * K * f
-    Ugravity = K * f
-    figure(figsize=(20,20))
-    subplot(2, 2, 1)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Uall[1:2:end], -Uall[2:2:end])
-    title("Ueff")
-    subplot(2, 2, 2)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ugravity[1:2:end], Ugravity[2:2:end])
-    title("uGravity")
-    subplot(2, 1, 2)
-    plot(Ueff[1:2:end], "-k", label="Ueff - x")
-    plot(Ueff[2:2:end], "--k", label="Ueff - y")
-    plot(Ugravity[1:2:end], "-r", label="Ugravity only - x")
-    plot(Ugravity[2:2:end], "--r", label="Ugravity only - y")
+    subplot(2, 4, 5)
+    plot(-Ueff[1:2:end], "-r", label="ux")
+    plot(-Ueff[2:2:end], "-b", label="uy")
+    gca().tick_params(labelsize=fontsize)
     legend()
-    title("Displacements at boundary nodes")
+
+    subplot(2, 4, 2)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Uboundaryonly[1:2:end], Uboundaryonly[2:2:end])
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    title("T * Ueff", fontsize=fontsize)
+
+    subplot(2, 4, 6)
+    plot(Uboundaryonly[1:2:end], "-r", label="ux")
+    plot(Uboundaryonly[2:2:end], "-b", label="uy")
+    gca().tick_params(labelsize=fontsize)
+    legend()
+
+    subplot(2, 4, 3)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Ugravity[1:2:end], -Ugravity[2:2:end])
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    title("-Ugravity", fontsize=fontsize)
+
+    subplot(2, 4, 7)
+    plot(-Ugravity[1:2:end], "-r", label="ux")
+    plot(-Ugravity[2:2:end], "-b", label="uy")
+    gca().tick_params(labelsize=fontsize)
+    legend()
+
+    subplot(2, 4, 4)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Uall[1:2:end], -Uall[2:2:end])
+    gca().set_aspect("equal")
+    title("-Utotal = ", fontsize=fontsize)
+    gca().tick_params(labelsize=fontsize)
     show()
 
+    subplot(2, 4, 8)
+    plot(-Uall[1:2:end], "-r", label="ux")
+    plot(-Uall[2:2:end], "-b", label="uy")
+    gca().tick_params(labelsize=fontsize)
+    legend()
+
+
+    @infiltrate
+    return
+
+
+    #! Interior displacements from boundaries (Ueff)
+    # UinteriorBRTL, _ = constdispstress(slip2dispstress, x, y,
+    #                                    els, BRTLidx,
+    #                                    Ueff[1:2:end], Ueff[2:2:end],
+    #                                    mu, nu)
 
     #! For each element centroid calculate the effect of a body force
     Uinteriorgravity = zeros(length(x), 2)
@@ -309,19 +342,15 @@ function gravitysquare()
         Uinteriorgravity += triarea .* Ugi
     end
 
-    figure()
-    quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
-    title("gravity")
-    show()
+    # figure()
+    # quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
+    # title("gravity")
+    # show()
 
-    figure()
-    quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
-    title("boundaries + gravity")
-    show()
-
-    @infiltrate
-    return
-
+    # figure()
+    # quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
+    # title("boundaries + gravity")
+    # show()
 
     figure(figsize=(30, 30))
     xmat = reshape(x, npts, npts)
