@@ -227,6 +227,10 @@ function gravitysquare()
     alpha = 7e-8
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
+
+    Tall = [T_pB_qBRTL ; alpha .* T_pRTL_qBRTL]
+    Kall = [Ku_pB_qv ; alpha .* Ku_pRTL_qv]
+
     f = zeros(2*ntri)
     f[2:2:end] .= -9.8 * 2700
     Ueff = inv(TH) * K * f
@@ -234,7 +238,7 @@ function gravitysquare()
     #! Does this Ueff actually give the correct boundary conditions?
     Ugravity = -K * f
     recoveredbcs = (TH * Ueff) + (-K * f)
-
+    Uall = (Tall * Ueff) + (-Kall * f)
     figure()
     plot(recoveredbcs, "-b")
     title("Recovered bcs")
@@ -275,13 +279,10 @@ function gravitysquare()
     # f = zeros(2*ntri)
     # f[2:2:end] .= -9.8 * 2700
     Ueff = inv(TH) * K * f
-    Ugravity = -K * f
-
-
-
+    Ugravity = K * f
     figure(figsize=(20,20))
     subplot(2, 2, 1)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ueff[1:2:end], Ueff[2:2:end])
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Uall[1:2:end], -Uall[2:2:end])
     title("Ueff")
     subplot(2, 2, 2)
     quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ugravity[1:2:end], Ugravity[2:2:end])
@@ -295,8 +296,6 @@ function gravitysquare()
     title("Displacements at boundary nodes")
     show()
 
-    @infiltrate
-    return
 
     #! For each element centroid calculate the effect of a body force
     Uinteriorgravity = zeros(length(x), 2)
@@ -310,15 +309,19 @@ function gravitysquare()
         Uinteriorgravity += triarea .* Ugi
     end
 
-    # figure()
-    # quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
-    # title("gravity")
-    # show()
+    figure()
+    quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
+    title("gravity")
+    show()
 
-    # figure()
-    # quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
-    # title("boundaries + gravity")
-    # show()
+    figure()
+    quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
+    title("boundaries + gravity")
+    show()
+
+    @infiltrate
+    return
+
 
     figure(figsize=(30, 30))
     xmat = reshape(x, npts, npts)
