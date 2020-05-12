@@ -214,7 +214,7 @@ function gravitysquare()
     connectivity[:, 1] = collect(1:1:length(xcoords))
     connectivity[1:end-1, 2] = collect(2:1:length(xcoords))
     connectivity[end, 2] = 1
-    mesh = trimesh(nodes, connectivity, 6)
+    mesh = trimesh(nodes, connectivity, 3)
     ntri = size(mesh.cell)[2]
     
     #! Kernels matrices (boundary -> boundary)
