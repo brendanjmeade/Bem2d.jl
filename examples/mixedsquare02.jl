@@ -121,7 +121,7 @@ function PUTK(els, obsidx, mesh, mu, nu)
             _Ku[:, 1], _Ks[:, 1] = kelvinUS([els.xcenter[obsidx[iobs]]], [els.ycenter[obsidx[iobs]]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
             _Ku[:, 2], _Ks[:, 2] = kelvinUS([els.xcenter[obsidx[iobs]]], [els.ycenter[obsidx[iobs]]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
 
-            # TODO Need to multiply by triangle area...SHEESH!
+            # TODO This is a really stupid area scaling.  Need to upgrade to Guassian 4-point.
             _Ku *= triarea
             _Ks *= triarea
 
@@ -148,7 +148,7 @@ function gravitysquare()
     fontsize = 20
     mu = 3e10
     nu = 0.25
-    nels = 20
+    nels = 40
     npts = 25
     L = 1e4
     x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
@@ -214,7 +214,12 @@ function gravitysquare()
     connectivity[:, 1] = collect(1:1:length(xcoords))
     connectivity[1:end-1, 2] = collect(2:1:length(xcoords))
     connectivity[end, 2] = 1
+
+    #! Set switches and Triangulate
+    # switches = "penvVa0.01D"
+    switches = "q32.5"
     mesh = trimesh(nodes, connectivity, 3)
+    # mesh = refine(mesh, switches)
     ntri = size(mesh.cell)[2]
     
     #! Kernels matrices (boundary -> boundary)
