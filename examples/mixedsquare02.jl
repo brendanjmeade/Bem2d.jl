@@ -148,7 +148,7 @@ function gravitysquare()
     fontsize = 20
     mu = 3e10
     nu = 0.25
-    nels = 40
+    nels = 20
     npts = 25
     L = 1e4
     x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
@@ -217,11 +217,17 @@ function gravitysquare()
 
     #! Set switches and Triangulate
     # switches = "penvVa0.01D"
-    switches = "q32.5"
+    # switches = "penvVa1000.01D"
+
+    # switches = "q32.5"
     mesh = trimesh(nodes, connectivity, 3)
     # mesh = refine(mesh, switches)
     ntri = size(mesh.cell)[2]
-    
+    figure()
+    plotmesh(mesh)
+    gca().set_aspect("equal")
+    show()
+
     #! Kernels matrices (boundary -> boundary)
     Bidx = idx["B"]
     RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
@@ -237,50 +243,37 @@ function gravitysquare()
     alpha = 7e-8
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
-
-    # Tall = [T_pB_qBRTL ; alpha .* T_pRTL_qBRTL]
-    # Kall = [Ku_pB_qv ; alpha .* Ku_pRTL_qv]
-
-    Tall = [T_pB_qBRTL ; 1.0 .* T_pRTL_qBRTL]
-    Kall = [Ku_pB_qv ; 1.0 .* Ku_pRTL_qv]
-
+    Tall = [T_pB_qBRTL ; T_pRTL_qBRTL]
+    Kall = [Ku_pB_qv ; Ku_pRTL_qv]
     f = zeros(2*ntri)
     f[2:2:end] .= -9.8 * 2700
     Ueff = inv(TH) * K * f
-
-    #! Does this Ueff actually give the correct boundary conditions?
-    Ugravity = -K * f
-    recoveredbcs = (TH * Ueff) + (-K * f)
+    recoveredbcs = (TH * Ueff) + (-K * f) # Does this Ueff actually give the correct boundary conditions?
     Uall = (Tall * Ueff) + (-Kall * f)
     Uboundaryonly = Tall * Ueff
     Ugravity = -Kall * f
     
-    figure()
+    figure(figsize=(20, 20))
+    subplot(3, 3, 1)
     plot(recoveredbcs, "-b")
-    title("Recovered bcs")
+    title("Recovered BCs")
+    subplot(3, 3, 4)
+    imshow(TH)
+    colorbar()
+    title("TH")
+    subplot(3, 3, 5)
+    imshow(inv(TH))
+    colorbar()
+    title("inv(TH)")
+    subplot(3, 3, 6)
+    imshow(K)
+    colorbar()
+    title("K")
     show()
-
-    # figure(figsize=(20, 20))
-    # subplot(2, 2, 1)
-    # imshow(TH)
-    # colorbar()
-    # title("TH")
-    # subplot(2, 2, 2)
-    # imshow(inv(TH))
-    # colorbar()
-    # title("inv(TH)")
-    # subplot(2, 2, 3)
-    # imshow(K)
-    # colorbar()
-    # title("K")
-    # subplot(2, 2, 4)
-    # quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Ueff[1:2:end], Ueff[2:2:end])
-    # title("Ueff")
-    # show()
 
     
     #! Calculate and plot boundary displacements
-    #! Not sure this will work because it didn't for Okada
+    #! Why doesn't this will work because it didn't for Okada
     figure(figsize=(35,20))
     subplot(2, 4, 1)
     plotmesh(mesh)
@@ -355,41 +348,32 @@ function gravitysquare()
     ylabel("u (m)", fontsize=fontsize)
     title("-Utotal", fontsize=fontsize)
 
-
     tight_layout()
     show()
 
-    @infiltrate
-    return
-
 
     #! Interior displacements from boundaries (Ueff)
-    # UinteriorBRTL, _ = constdispstress(slip2dispstress, x, y,
-    #                                    els, BRTLidx,
-    #                                    Ueff[1:2:end], Ueff[2:2:end],
-    #                                    mu, nu)
+    UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y,
+                                       els, BRTLidx,
+                                       Ueff[1:2:end], Ueff[2:2:end],
+                                       mu, nu)
+
 
     #! For each element centroid calculate the effect of a body force
     Uinteriorgravity = zeros(length(x), 2)
-    Ugfield = zeros(length(x), 2)
+    Sinteriorgravity = zeros(length(x), 3)
+    # Ugfield = zeros(length(x), 2)
     for i in 1:ntri
         xtri = mesh.point[1, mesh.cell[:, i]]
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
         tricentroid = [mean(xtri) mean(ytri)]
-        Ugi, _ = kelvinUS(x, y, tricentroid[1], tricentroid[2], fx, fy, mu, nu)
-        Uinteriorgravity += triarea .* Ugi
+        Uig, Sig = kelvinUS(x, y, tricentroid[1], tricentroid[2], fx, fy, mu, nu)
+        Uinteriorgravity += triarea .* Uig
+        Sinteriorgravity += triarea .* Sig
     end
+    Uinteriortotal = -(UinteriorBRTL .+ Uinteriorgravity)
 
-    # figure()
-    # quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
-    # title("gravity")
-    # show()
-
-    # figure()
-    # quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
-    # title("boundaries + gravity")
-    # show()
 
     figure(figsize=(30, 30))
     xmat = reshape(x, npts, npts)
@@ -436,13 +420,13 @@ function gravitysquare()
     ylabel("y")
     title("gravity, uy")
 
-
     subplot(3, 3, 7)
-    quiver(x, y, UinteriorBRTL[:, 1] .- Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .- Uinteriorgravity[:, 2])
+    quiver(x, y, Uinteriortotal[:, 1], Uinteriortotal[:, 2])
     title("boundaries + gravity")
 
     subplot(3, 3, 8)
-    mat = reshape(UinteriorBRTL[:, 1] .- alpha .* Uinteriorgravity[:, 1], npts, npts)
+    # mat = reshape(UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], npts, npts)
+    mat = reshape(Uinteriortotal[:, 1], npts, npts)
     contourf(xmat, ymat, mat, levels=contourlevels)
     colorbar()
     xlabel("x")
@@ -450,13 +434,12 @@ function gravitysquare()
     title("boundaries + gravity, ux")
 
     subplot(3, 3, 9)
-    mat = reshape(UinteriorBRTL[:, 2] .- alpha .* Uinteriorgravity[:, 2], npts, npts)
+    mat = reshape(Uinteriortotal[:, 2], npts, npts)
     contourf(xmat, ymat, mat, levels=contourlevels)
     colorbar()
     xlabel("x")
     ylabel("y")
     title("boundaries + gravity, uy")
-
 
     @infiltrate
     return
