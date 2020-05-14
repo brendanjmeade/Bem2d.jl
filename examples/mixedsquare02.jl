@@ -216,12 +216,7 @@ function gravitysquare()
     connectivity[end, 2] = 1
 
     #! Set switches and Triangulate
-    # switches = "penvVa0.01D"
-    # switches = "penvVa1000.01D"
-
-    # switches = "q32.5"
     mesh = trimesh(nodes, connectivity, 3)
-    # mesh = refine(mesh, switches)
     ntri = size(mesh.cell)[2]
     figure()
     plotmesh(mesh)
