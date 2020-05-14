@@ -14,26 +14,6 @@ using Bem2d
    Analytic point source Kelvin solution from Crouch and Starfield
    section 4.2.
 """
-# function kelvinUD(x, y, xoffset, yoffset, fx, fy, mu, nu)
-#     x = x .- xoffset
-#     y = y .- yoffset
-#     Ukelvin = zeros(length(x), 2)
-#     Skelvin = zeros(length(x), 3)
-#     C = 1/(4*pi*(1-nu))
-#     r = sqrt.(x.^2 .+ y.^2)
-#     g = -C .* log.(r)
-#     gx = @. -C * x/(x^2+y^2)
-#     gy = @. -C * y/(x^2+y^2)
-#     gxy = @. C * 2*x*y/(x^2+y^2)^2
-#     gxx = @. C * (x^2-y^2)/(x^2+y^2)^2
-#     gyy = -gxx
-#     Ukelvin[:, 1] = @. fx/(2*mu)*((3-4*nu)*g-x*gx) + fy/(2*mu)*(-y*gx)
-#     Ukelvin[:, 2] = @. fx/(2*mu)*(-x*gy) + fy/(2*mu)*((3-4*nu)*g-y*gy)
-#     Skelvin[:, 1] = @. fx*(2*(1-nu)*gx-x*gxx) + fy*(2*nu*gy-y*gxx)
-#     Skelvin[:, 2] = @. fx*(2*nu*gx-x*gyy) + fy*(2*(1-nu)*gy-y*gyy)
-#     Skelvin[:, 3] = @. fx*((1-2*nu)*gy-x*gxy) + fy*((1-2*nu)*gx-y*gxy)
-#     return Ukelvin, Skelvin
-# end
 function kelvinUS(x, y, xoffset, yoffset, fx, fy, mu, nu)
     x = @. x - xoffset
     y = @. y - yoffset
@@ -98,7 +78,7 @@ function plotmesh(mesh)
     for i in 1:size(mesh.cell)[2]
         x = mesh.point[1, mesh.cell[:, i]]
         y = mesh.point[2, mesh.cell[:, i]]
-        fill(x, y, "lightgray", edgecolor="k", linewidth=0.5)
+        fill(x, y, "lightgray", edgecolor="k", linewidth=0.25)
     end
     return nothing
 end
@@ -141,6 +121,10 @@ function PUTK(els, obsidx, mesh, mu, nu)
             _Ku[:, 1], _Ks[:, 1] = kelvinUS([els.xcenter[obsidx[iobs]]], [els.ycenter[obsidx[iobs]]], tricentroid[1], tricentroid[2], 1, 0, mu, nu)
             _Ku[:, 2], _Ks[:, 2] = kelvinUS([els.xcenter[obsidx[iobs]]], [els.ycenter[obsidx[iobs]]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
 
+            # TODO This is a really stupid area scaling.  Need to upgrade to Guassian 4-point.
+            _Ku *= triarea
+            _Ks *= triarea
+
             # Calculate traction kernels from stress kernels
             _Kt[:, 1] = stress2trac(_Ks[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
             _Kt[:, 2] = stress2trac(_Ks[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
@@ -152,25 +136,6 @@ function PUTK(els, obsidx, mesh, mu, nu)
     end
     return Ku, Kt
 end
-#TODO inspiration from constant element to element case
-# function partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
-#     nobs, nsrc = length(obsidx), length(srcidx)
-#     partialsdisp, partialsstress, partialstrac = zeros(2 * nobs, 2 * nsrc), zeros(3 * nobs, 2 * nsrc), zeros(2 * nobs, 2 * nsrc)
-#     _partialsdisp, _partialsstress, _partialstrac = zeros(2, 2), zeros(3, 2), zeros(2, 2)
-#     for isrc in 1:nsrc
-#         for iobs in 1:nobs
-#             _partialsdisp[:, 1], _partialsstress[:, 1] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 1, 0, mu, nu)
-#             _partialsdisp[:, 2], _partialsstress[:, 2] = constdispstress(fun2dispstress, els.xcenter[obsidx[iobs]], els.ycenter[obsidx[iobs]], els, srcidx[isrc], 0, 1, mu, nu)
-#             _partialstrac[:, 1] = stress2trac(_partialsstress[:, 1], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-#             _partialstrac[:, 2] = stress2trac(_partialsstress[:, 2], [els.xnormal[obsidx[iobs]] ; els.ynormal[obsidx[iobs]]])
-#             partialsdisp[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsdisp
-#             partialsstress[3 * (iobs - 1) + 1:3 * (iobs - 1) + 3, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialsstress
-#             partialstrac[2 * (iobs - 1) + 1:2 * (iobs - 1) + 2, 2 * (isrc - 1) + 1:2 * (isrc - 1) + 2] = _partialstrac
-#         end
-#     end
-#     return partialsdisp, partialsstress, partialstrac
-# end
-
 
 
 """
@@ -180,9 +145,10 @@ Experiments with gravity body force.
 """
 function gravitysquare()
     close("all")
+    fontsize = 20
     mu = 3e10
     nu = 0.25
-    nels = 50
+    nels = 20
     npts = 25
     L = 1e4
     x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
@@ -248,9 +214,15 @@ function gravitysquare()
     connectivity[:, 1] = collect(1:1:length(xcoords))
     connectivity[1:end-1, 2] = collect(2:1:length(xcoords))
     connectivity[end, 2] = 1
-    mesh = trimesh(nodes, connectivity, 1)
+
+    #! Set switches and Triangulate
+    mesh = trimesh(nodes, connectivity, 3)
     ntri = size(mesh.cell)[2]
-    
+    figure()
+    plotmesh(mesh)
+    gca().set_aspect("equal")
+    show()
+
     #! Kernels matrices (boundary -> boundary)
     Bidx = idx["B"]
     RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
@@ -263,103 +235,140 @@ function gravitysquare()
     Ku_pRTL_qv, Kt_pRTL_qv = PUTK(els, RTLidx, mesh, mu, nu)
 
     #! Assemble and solve BEM problem
-
-    @show size(T_pB_qBRTL) # My T*
-    @show size(H_pB_qBRTL)
-    @show size(T_pRTL_qBRTL)
-    @show size(H_pRTL_qBRTL) # My H*
-    @show size(Ku_pB_qv) # My K*u
-    @show size(Kt_pB_qv)
-    @show size(Ku_pRTL_qv)
-    @show size(Kt_pRTL_qv) # My K*t
-
-    alpha = 1e-10
+    alpha = 7e-8
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
+    Tall = [T_pB_qBRTL ; T_pRTL_qBRTL]
+    Kall = [Ku_pB_qv ; Ku_pRTL_qv]
     f = zeros(2*ntri)
-    f[2:2:end] .= 9.8
-    @show(cond(TH))
-    ueff = inv(TH) * K * f
-
-    #! Does this ueff actually give the correct boundary conditions?
-    TH = [T_pB_qBRTL ; 1 .* H_pRTL_qBRTL]
-    K = [Ku_pB_qv ; 1 .* Kt_pRTL_qv]
-
-
-    recoveredbcs = TH * ueff + K * f
-    @show recoveredbcs
-
+    f[2:2:end] .= -9.8 * 2700
+    Ueff = inv(TH) * K * f
+    recoveredbcs = (TH * Ueff) + (-K * f) # Does this Ueff actually give the correct boundary conditions?
+    Uall = (Tall * Ueff) + (-Kall * f)
+    Uboundaryonly = Tall * Ueff
+    Ugravity = -Kall * f
+    
     figure(figsize=(20, 20))
-    subplot(2, 2, 1)
+    subplot(3, 3, 1)
+    plot(recoveredbcs, "-b")
+    title("Recovered BCs")
+    subplot(3, 3, 4)
     imshow(TH)
     colorbar()
     title("TH")
-
-    subplot(2, 2, 2)
+    subplot(3, 3, 5)
     imshow(inv(TH))
     colorbar()
     title("inv(TH)")
-
-    subplot(2, 2, 3)
+    subplot(3, 3, 6)
     imshow(K)
     colorbar()
     title("K")
-
-    subplot(2, 2, 4)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], ueff[1:2:end], ueff[2:2:end])
-    title("ueff")
     show()
 
     
-    #! Try forward evalution at boundary.  Not sure this will work because
-    #! it didn't for Okada.
+    #! Calculate and plot boundary displacements
+    #! Why doesn't this will work because it didn't for Okada
+    figure(figsize=(35,20))
+    subplot(2, 4, 1)
+    plotmesh(mesh)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Ueff[1:2:end], -Ueff[2:2:end], zorder=10, color="b")
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (km)", fontsize=fontsize)
+    ylabel("y (km)", fontsize=fontsize)
+    title("-Ueff", fontsize=fontsize)
 
-    #! Interior displacements from boundaries (ueff)
-    UinteriorBRTL, _ = constdispstress(slip2dispstress, x, y,
-                                       els, BRTLidx,
-                                       ueff[1:2:end], ueff[2:2:end],
-                                       mu, nu)
+    subplot(2, 4, 5)
+    plot(-Ueff[1:2:end], "-r", label="ux")
+    plot(-Ueff[2:2:end], "-b", label="uy")
+    gca().tick_params(labelsize=fontsize)
+    legend(fontsize=fontsize)
+    xlabel("idx", fontsize=fontsize)
+    ylabel("u (m)", fontsize=fontsize)
+    title("-Ueff", fontsize=fontsize)
 
-    figure(figsize=(20,10))
-    subplot(1, 2, 1)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], ueff[1:2:end], ueff[2:2:end])
-    title("ueff")
-    subplot(1, 2, 2)
-    quiver(x, y, UinteriorBRTL[:, 1], UinteriorBRTL[:, 2])
-    title("u interior - but not really")
+    subplot(2, 4, 2)
+    plotmesh(mesh)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Uboundaryonly[1:2:end], Uboundaryonly[2:2:end], zorder=10, color="b")
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (km)", fontsize=fontsize)
+    ylabel("y (km)", fontsize=fontsize)
+    title("T * Ueff", fontsize=fontsize)
 
+    subplot(2, 4, 6)
+    plot(Uboundaryonly[1:2:end], "-r", label="ux")
+    plot(Uboundaryonly[2:2:end], "-b", label="uy")
+    gca().tick_params(labelsize=fontsize)
+    legend(fontsize=fontsize)
+    xlabel("idx", fontsize=fontsize)
+    ylabel("u (m)", fontsize=fontsize)
+    title("T * Ueff", fontsize=fontsize)
+
+    subplot(2, 4, 3)
+    plotmesh(mesh)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Ugravity[1:2:end], -Ugravity[2:2:end], zorder=10, color="b")
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (km)", fontsize=fontsize)
+    ylabel("y (km)", fontsize=fontsize)
+    title("-K * f", fontsize=fontsize)
+
+    subplot(2, 4, 7)
+    plot(-Ugravity[1:2:end], "-r", label="ux")
+    plot(-Ugravity[2:2:end], "-b", label="uy")
+    gca().tick_params(labelsize=fontsize)
+    legend(fontsize=fontsize)
+    xlabel("idx", fontsize=fontsize)
+    ylabel("u (m)", fontsize=fontsize)
+    title("-K * f", fontsize=fontsize)
+
+    subplot(2, 4, 4)
+    plotmesh(mesh)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Uall[1:2:end], -Uall[2:2:end], zorder=10, color="b")
+    gca().set_aspect("equal")
+    xlabel("x (km)", fontsize=fontsize)
+    ylabel("y (km)", fontsize=fontsize)
+    title("-Utotal", fontsize=fontsize)
+    gca().tick_params(labelsize=fontsize)
+    show()
+
+    subplot(2, 4, 8)
+    plot(-Uall[1:2:end], "-r", label="ux")
+    plot(-Uall[2:2:end], "-b", label="uy")
+    gca().tick_params(labelsize=fontsize)
+    legend(fontsize=fontsize)
+    xlabel("idx", fontsize=fontsize)
+    ylabel("u (m)", fontsize=fontsize)
+    title("-Utotal", fontsize=fontsize)
+
+    tight_layout()
     show()
 
 
-    #! Loop over each triangle calculate area and contribution to u_eff
+    #! Interior displacements from boundaries (Ueff)
+    UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y,
+                                       els, BRTLidx,
+                                       Ueff[1:2:end], Ueff[2:2:end],
+                                       mu, nu)
+
+
     #! For each element centroid calculate the effect of a body force
     Uinteriorgravity = zeros(length(x), 2)
-    Ugfield = zeros(length(x), 2)
+    Sinteriorgravity = zeros(length(x), 3)
+    # Ugfield = zeros(length(x), 2)
     for i in 1:ntri
         xtri = mesh.point[1, mesh.cell[:, i]]
         ytri = mesh.point[2, mesh.cell[:, i]]
         triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
         tricentroid = [mean(xtri) mean(ytri)]
-        Ugi, _ = kelvinUS(x,
-                          y,
-                          tricentroid[1],
-                          tricentroid[2],
-                          fx,
-                          fy,
-                          mu,
-                          nu)
-        Uinteriorgravity += triarea .* Ugi
+        Uig, Sig = kelvinUS(x, y, tricentroid[1], tricentroid[2], fx, fy, mu, nu)
+        Uinteriorgravity += triarea .* Uig
+        Sinteriorgravity += triarea .* Sig
     end
+    Uinteriortotal = -(UinteriorBRTL .+ Uinteriorgravity)
 
-    # figure()
-    # quiver(x, y, Uinteriorgravity[:, 1], Uinteriorgravity[:, 2])
-    # title("gravity")
-    # show()
-
-    # figure()
-    # quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
-    # title("boundaries + gravity")
-    # show()
 
     figure(figsize=(30, 30))
     xmat = reshape(x, npts, npts)
@@ -406,13 +415,13 @@ function gravitysquare()
     ylabel("y")
     title("gravity, uy")
 
-
     subplot(3, 3, 7)
-    quiver(x, y, UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2])
+    quiver(x, y, Uinteriortotal[:, 1], Uinteriortotal[:, 2])
     title("boundaries + gravity")
 
     subplot(3, 3, 8)
-    mat = reshape(UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], npts, npts)
+    # mat = reshape(UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], npts, npts)
+    mat = reshape(Uinteriortotal[:, 1], npts, npts)
     contourf(xmat, ymat, mat, levels=contourlevels)
     colorbar()
     xlabel("x")
@@ -420,13 +429,12 @@ function gravitysquare()
     title("boundaries + gravity, ux")
 
     subplot(3, 3, 9)
-    mat = reshape(UinteriorBRTL[:, 2] .+ Uinteriorgravity[:, 2], npts, npts)
+    mat = reshape(Uinteriortotal[:, 2], npts, npts)
     contourf(xmat, ymat, mat, levels=contourlevels)
     colorbar()
     xlabel("x")
     ylabel("y")
     title("boundaries + gravity, uy")
-
 
     @infiltrate
     return
