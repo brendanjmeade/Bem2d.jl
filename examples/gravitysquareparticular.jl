@@ -269,6 +269,14 @@ function gravitysquare()
 
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcs
+    Uboundaryparticular = Tall * Ueffparticular
+    figure()
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Ueff[1:2:end], -Ueff[2:2:end], zorder=10, color="b")
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("x (km)", fontsize=fontsize)
+    ylabel("y (km)", fontsize=fontsize)
+    title("Uboundary particular", fontsize=fontsize)
 
     
     #! Calculate and plot boundary displacements
