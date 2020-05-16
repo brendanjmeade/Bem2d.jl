@@ -28,7 +28,6 @@ function kelvinUS(x, y, xoffset, yoffset, fx, fy, mu, nu)
     gxx = @. C * (x^2-y^2)/(x^2+y^2)^2
     gyy = -gxx
 
-    #! THERE IS AN ERROR IN HOW THIS WORKS FOR PARTIALS....WHAA?!?!?!
     Ukelvin[:, 1] = @. fx/(2*mu)*((3-4*nu)*g-x*gx) + fy/(2*mu)*(-y*gx)
     Ukelvin[:, 2] = @. fx/(2*mu)*(-x*gy) + fy/(2*mu)*((3-4*nu)*g-y*gy)
     Skelvin[:, 1] = @. fx*(2*(1-nu)*gx-x*gxx) + fy*(2*nu*gy-y*gxx)
@@ -86,16 +85,6 @@ end
 
 
 """
-    localsubplot(???)
-
-    Common plotting commands
-"""
-function localsubplot(x, y, mat, titlestring, contourlabels)
-    return nothing
-end
-
-
-"""
     PUTK(els, obsidx, srcidx, mu, nu)
 
 Kernel relating body forces to boundary displacements and tractions.
@@ -122,6 +111,7 @@ function PUTK(els, obsidx, mesh, mu, nu)
             _Ku[:, 2], _Ks[:, 2] = kelvinUS([els.xcenter[obsidx[iobs]]], [els.ycenter[obsidx[iobs]]], tricentroid[1], tricentroid[2], 0, 1, mu, nu)
 
             # TODO This is a really stupid area scaling.  Need to upgrade to Guassian 4-point.
+            # Is there any good way to do this?
             _Ku *= triarea
             _Ks *= triarea
 
@@ -148,12 +138,14 @@ function gravitysquare()
     fontsize = 20
     mu = 3e10
     nu = 0.25
+    rho = 2700
+    g = 9.81
     nels = 20
     npts = 25
     L = 1e4
     x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
     fx = 0.0
-    fy = 9.81 * 2700.0
+    fy = g * rho
 
     #! BEM geometry
     els = Elements(Int(1e5))
@@ -216,7 +208,8 @@ function gravitysquare()
     connectivity[end, 2] = 1
 
     #! Set switches and Triangulate
-    mesh = trimesh(nodes, connectivity, 3)
+    mesh = trimesh(nodes, connectivity, 1)
+    mesh = refine(mesh, keep_edges=true)
     ntri = size(mesh.cell)[2]
     figure()
     plotmesh(mesh)
@@ -266,9 +259,20 @@ function gravitysquare()
     title("K")
     show()
 
+    #! Particular solution technique with modified boundary conditoions
+    bcs = zeros(2 * 4 * nels)
+    tempbc = @. -rho * g * (10000 - els.ycenter[idx["L"]])
+    bcs[42:2:80] = tempbc
+
+    tempbc = @. -rho * g * (10000 - els.ycenter[idx["R"]])
+    bcs[122:2:160] = tempbc
+
+    TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
+    Ueffparticular = inv(TH) * bcs
+
     
     #! Calculate and plot boundary displacements
-    #! Why doesn't this will work because it didn't for Okada
+    #! Why does this will work because it didn't for Okada
     figure(figsize=(35,20))
     subplot(2, 4, 1)
     plotmesh(mesh)
@@ -346,6 +350,8 @@ function gravitysquare()
     tight_layout()
     show()
 
+    @infiltrate
+    return
 
     #! Interior displacements from boundaries (Ueff)
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y,
