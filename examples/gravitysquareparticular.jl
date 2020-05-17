@@ -141,9 +141,11 @@ function gravitysquareparticular()
     rho = 2700
     g = 9.81
     nels = 20
-    npts = 25
+    npts = 24
     L = 1e4
-    x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
+    # x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
+    x, y = obsgrid(-L+100, -L+100, L-100, L-100, npts)
+
     fx = 0.0
     fy = g * rho
 
@@ -209,28 +211,17 @@ function gravitysquareparticular()
     alpha = 7e-8
     Tall = [T_pB_qBRTL ; T_pRTL_qBRTL]
     bcs = zeros(2 * 4 * nels)
-    tempbc = @. -rho * g * (10000 - els.ycenter[idx["L"]])
+    tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["L"]])
     bcs[42:2:80] = tempbc
-    tempbc = @. -rho * g * (10000 - els.ycenter[idx["R"]])
+    tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["R"]])
     bcs[122:2:160] = tempbc
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcs
     Uboundaryparticular = Tall * Ueffparticular
-
-    # figure()
-    # quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Uboundaryparticular[1:2:end], Uboundaryparticular[2:2:end], zorder=10, color="b")
-    # gca().set_aspect("equal")
-    # gca().tick_params(labelsize=fontsize)
-    # xlabel("x (km)", fontsize=fontsize)
-    # ylabel("y (km)", fontsize=fontsize)
-    # title("Uboundary particular", fontsize=fontsize)
     
     #! Interior displacements from boundaries (Ueff)
-    UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y,
-                                       els, BRTLidx,
-                                       Ueffparticular[1:2:end], Ueffparticular[2:2:end],
-                                       mu, nu)
-
+    UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
     figure(figsize=(30, 30))
     xmat = reshape(x, npts, npts)
     ymat = reshape(y, npts, npts)
