@@ -129,11 +129,11 @@ end
 
 
 """
-    gravitysquare()
+    gravitysquareparticular()
 
 Experiments with gravity body force.
 """
-function gravitysquare()
+function gravitysquareparticular()
     close("all")
     fontsize = 20
     mu = 3e10
@@ -198,24 +198,6 @@ function gravitysquare()
     standardize_elements!(els)
     idx = getidxdict(els)
 
-    #! Triangulate into cells
-    xcoords = [xbottom;xright;xtop;xleft] 
-    ycoords = [ybottom;yright;ytop;yleft]
-    nodes = [xcoords ycoords]
-    connectivity = Int.(zeros(size(nodes)))
-    connectivity[:, 1] = collect(1:1:length(xcoords))
-    connectivity[1:end-1, 2] = collect(2:1:length(xcoords))
-    connectivity[end, 2] = 1
-
-    #! Set switches and Triangulate
-    mesh = trimesh(nodes, connectivity, 1)
-    mesh = refine(mesh, keep_edges=true)
-    ntri = size(mesh.cell)[2]
-    figure()
-    plotmesh(mesh)
-    gca().set_aspect("equal")
-    show()
-
     #! Kernels matrices (boundary -> boundary)
     Bidx = idx["B"]
     RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
@@ -223,166 +205,31 @@ function gravitysquare()
     T_pB_qBRTL, H_pB_qBRTL = PUTC(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
-    #! Kernel matrices (volume -> boundary)
-    Ku_pB_qv, Kt_pB_qv = PUTK(els, Bidx, mesh, mu, nu)
-    Ku_pRTL_qv, Kt_pRTL_qv = PUTK(els, RTLidx, mesh, mu, nu)
-
-    #! Assemble and solve BEM problem
-    alpha = 7e-8
-    TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
-    K = [Ku_pB_qv ; alpha .* Kt_pRTL_qv]
-    Tall = [T_pB_qBRTL ; T_pRTL_qBRTL]
-    Kall = [Ku_pB_qv ; Ku_pRTL_qv]
-    f = zeros(2*ntri)
-    f[2:2:end] .= -9.8 * 2700
-    Ueff = inv(TH) * K * f
-    recoveredbcs = (TH * Ueff) + (-K * f) # Does this Ueff actually give the correct boundary conditions?
-    Uall = (Tall * Ueff) + (-Kall * f)
-    Uboundaryonly = Tall * Ueff
-    Ugravity = -Kall * f
-    
-    figure(figsize=(20, 20))
-    subplot(3, 3, 1)
-    plot(recoveredbcs, "-b")
-    title("Recovered BCs")
-    subplot(3, 3, 4)
-    imshow(TH)
-    colorbar()
-    title("TH")
-    subplot(3, 3, 5)
-    imshow(inv(TH))
-    colorbar()
-    title("inv(TH)")
-    subplot(3, 3, 6)
-    imshow(K)
-    colorbar()
-    title("K")
-    show()
-
     #! Particular solution technique with modified boundary conditoions
+    alpha = 7e-8
+    Tall = [T_pB_qBRTL ; T_pRTL_qBRTL]
     bcs = zeros(2 * 4 * nels)
     tempbc = @. -rho * g * (10000 - els.ycenter[idx["L"]])
     bcs[42:2:80] = tempbc
-
     tempbc = @. -rho * g * (10000 - els.ycenter[idx["R"]])
     bcs[122:2:160] = tempbc
-
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcs
     Uboundaryparticular = Tall * Ueffparticular
-    figure()
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Ueff[1:2:end], -Ueff[2:2:end], zorder=10, color="b")
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (km)", fontsize=fontsize)
-    ylabel("y (km)", fontsize=fontsize)
-    title("Uboundary particular", fontsize=fontsize)
 
+    # figure()
+    # quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Uboundaryparticular[1:2:end], Uboundaryparticular[2:2:end], zorder=10, color="b")
+    # gca().set_aspect("equal")
+    # gca().tick_params(labelsize=fontsize)
+    # xlabel("x (km)", fontsize=fontsize)
+    # ylabel("y (km)", fontsize=fontsize)
+    # title("Uboundary particular", fontsize=fontsize)
     
-    #! Calculate and plot boundary displacements
-    #! Why does this will work because it didn't for Okada
-    figure(figsize=(35,20))
-    subplot(2, 4, 1)
-    plotmesh(mesh)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Ueff[1:2:end], -Ueff[2:2:end], zorder=10, color="b")
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (km)", fontsize=fontsize)
-    ylabel("y (km)", fontsize=fontsize)
-    title("-Ueff", fontsize=fontsize)
-
-    subplot(2, 4, 5)
-    plot(-Ueff[1:2:end], "-r", label="ux")
-    plot(-Ueff[2:2:end], "-b", label="uy")
-    gca().tick_params(labelsize=fontsize)
-    legend(fontsize=fontsize)
-    xlabel("idx", fontsize=fontsize)
-    ylabel("u (m)", fontsize=fontsize)
-    title("-Ueff", fontsize=fontsize)
-
-    subplot(2, 4, 2)
-    plotmesh(mesh)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], Uboundaryonly[1:2:end], Uboundaryonly[2:2:end], zorder=10, color="b")
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (km)", fontsize=fontsize)
-    ylabel("y (km)", fontsize=fontsize)
-    title("T * Ueff", fontsize=fontsize)
-
-    subplot(2, 4, 6)
-    plot(Uboundaryonly[1:2:end], "-r", label="ux")
-    plot(Uboundaryonly[2:2:end], "-b", label="uy")
-    gca().tick_params(labelsize=fontsize)
-    legend(fontsize=fontsize)
-    xlabel("idx", fontsize=fontsize)
-    ylabel("u (m)", fontsize=fontsize)
-    title("T * Ueff", fontsize=fontsize)
-
-    subplot(2, 4, 3)
-    plotmesh(mesh)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Ugravity[1:2:end], -Ugravity[2:2:end], zorder=10, color="b")
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (km)", fontsize=fontsize)
-    ylabel("y (km)", fontsize=fontsize)
-    title("-K * f", fontsize=fontsize)
-
-    subplot(2, 4, 7)
-    plot(-Ugravity[1:2:end], "-r", label="ux")
-    plot(-Ugravity[2:2:end], "-b", label="uy")
-    gca().tick_params(labelsize=fontsize)
-    legend(fontsize=fontsize)
-    xlabel("idx", fontsize=fontsize)
-    ylabel("u (m)", fontsize=fontsize)
-    title("-K * f", fontsize=fontsize)
-
-    subplot(2, 4, 4)
-    plotmesh(mesh)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx], -Uall[1:2:end], -Uall[2:2:end], zorder=10, color="b")
-    gca().set_aspect("equal")
-    xlabel("x (km)", fontsize=fontsize)
-    ylabel("y (km)", fontsize=fontsize)
-    title("-Utotal", fontsize=fontsize)
-    gca().tick_params(labelsize=fontsize)
-    show()
-
-    subplot(2, 4, 8)
-    plot(-Uall[1:2:end], "-r", label="ux")
-    plot(-Uall[2:2:end], "-b", label="uy")
-    gca().tick_params(labelsize=fontsize)
-    legend(fontsize=fontsize)
-    xlabel("idx", fontsize=fontsize)
-    ylabel("u (m)", fontsize=fontsize)
-    title("-Utotal", fontsize=fontsize)
-
-    tight_layout()
-    show()
-
-    @infiltrate
-    return
-
     #! Interior displacements from boundaries (Ueff)
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y,
                                        els, BRTLidx,
-                                       Ueff[1:2:end], Ueff[2:2:end],
+                                       Ueffparticular[1:2:end], Ueffparticular[2:2:end],
                                        mu, nu)
-
-
-    #! For each element centroid calculate the effect of a body force
-    Uinteriorgravity = zeros(length(x), 2)
-    Sinteriorgravity = zeros(length(x), 3)
-    # Ugfield = zeros(length(x), 2)
-    for i in 1:ntri
-        xtri = mesh.point[1, mesh.cell[:, i]]
-        ytri = mesh.point[2, mesh.cell[:, i]]
-        triarea = trianglearea(xtri[1], ytri[1], xtri[2], ytri[3], xtri[3], ytri[3])
-        tricentroid = [mean(xtri) mean(ytri)]
-        Uig, Sig = kelvinUS(x, y, tricentroid[1], tricentroid[2], fx, fy, mu, nu)
-        Uinteriorgravity += triarea .* Uig
-        Sinteriorgravity += triarea .* Sig
-    end
-    Uinteriortotal = -(UinteriorBRTL .+ Uinteriorgravity)
-
 
     figure(figsize=(30, 30))
     xmat = reshape(x, npts, npts)
@@ -408,207 +255,5 @@ function gravitysquare()
     xlabel("x")
     ylabel("y")
     title("boundaries, uy")
-
-    subplot(3, 3, 4)
-    quiver(x, y, Uinteriorgravity[:, 1],Uinteriorgravity[:, 2])
-    title("gravity")
-
-    subplot(3, 3, 5)
-    mat = reshape(Uinteriorgravity[:, 1], npts, npts)
-    contourf(xmat, ymat, mat, levels=contourlevels)
-    colorbar()
-    xlabel("x")
-    ylabel("y")
-    title("gravity, ux")
-
-    subplot(3, 3, 6)
-    mat = reshape(Uinteriorgravity[:, 2], npts, npts)
-    contourf(xmat, ymat, mat, levels=contourlevels)
-    colorbar()
-    xlabel("x")
-    ylabel("y")
-    title("gravity, uy")
-
-    subplot(3, 3, 7)
-    quiver(x, y, Uinteriortotal[:, 1], Uinteriortotal[:, 2])
-    title("boundaries + gravity")
-
-    subplot(3, 3, 8)
-    # mat = reshape(UinteriorBRTL[:, 1] .+ Uinteriorgravity[:, 1], npts, npts)
-    mat = reshape(Uinteriortotal[:, 1], npts, npts)
-    contourf(xmat, ymat, mat, levels=contourlevels)
-    colorbar()
-    xlabel("x")
-    ylabel("y")
-    title("boundaries + gravity, ux")
-
-    subplot(3, 3, 9)
-    mat = reshape(Uinteriortotal[:, 2], npts, npts)
-    contourf(xmat, ymat, mat, levels=contourlevels)
-    colorbar()
-    xlabel("x")
-    ylabel("y")
-    title("boundaries + gravity, uy")
-
-    @infiltrate
-    return
-
-
-
-    # #! What I need is a full forward evaluation at the bottom coordinates only
-    # Uboundarybottom, _ = constdispstress(slip2dispstress,
-    #                                      els.xcenter[idx["bottom"]],
-    #                                      els.ycenter[idx["bottom"]],
-    #                                      els, collect(1:1:4*nels),
-    #                                      Uboundarygravity[:, 1],
-    #                                      Uboundarygravity[:, 2],
-    #                                      mu, nu)
-
-    # #! Forward evaluation of interior fields
-    # Uvolumegravity, _ = constdispstress(slip2dispstress, x, y,
-    #                                     els, collect(1:1:4*nels),
-    #                                     Uboundarygravity[:, 1],
-    #                                     Uboundarygravity[:, 2],
-    #                                     mu, nu)
-    # Uvolumebottom, _ = constdispstress(slip2dispstress, x, y,
-    #                                    els, idx["bottom"],
-    #                                    Uboundarybottom[:, 1], Uboundarybottom[:, 2],
-    #                                    mu, nu)
-
-    
-
-    #! Plot meshes and fields
-    figure(figsize=(20,20))
-    nrows = 3
-    ncols = 3
-    fontsize = 20
-    contour_levels = collect(LinRange(-200.0, 200.0, 100))
-    contour_color = "white"
-    contour_linewidth = 0.5
-    markersize = 12
-
-    #! Mesh
-    subplot(nrows, ncols, 1)
-    plotmesh(mesh)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("edge and area meshes", fontsize=fontsize)
-    plot([x1, x2], [y1, y2], "-k", linewidth=2)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-
-    #! Bottom boundary y-displacements
-    subplot(nrows, ncols, 2)
-    xmat = reshape(x, npts, npts)
-    ymat = reshape(y, npts, npts)
-    uymat = reshape(Uvolumegravity[:, 1], npts, npts)
-    uymatdispgbottom = reshape(Uvolumebottom[:, 1], npts, npts)
-    plot(xmat[:, 1], uymat[:, 1], "-r", label="Uvolumegravity", linewidth=2.0)
-    plot(els.xcenter[idx["bottom"]], Uboundarybottom[:, 1], "-b", markersize=markersize, label="Uboundarybottom")
-    plot(xmat[:, 1], 2 .* uymatdispgbottom[:, 1], "-k", markersize=markersize, label="Uvolumebottom")
-    gca().tick_params(labelsize=fontsize)
-    legend(fontsize=fontsize)
-    title("x-displacements at bottom", fontsize=fontsize)
-
-    #! Bottom boundary y-displacements
-    subplot(nrows, ncols, 3)
-    xmat = reshape(x, npts, npts)
-    ymat = reshape(y, npts, npts)
-    uymat = reshape(Uvolumegravity[:, 2], npts, npts)
-    uymatdispgbottom = reshape(Uvolumebottom[:, 2], npts, npts)
-    plot(xmat[:, 1], uymat[:, 1], "-r", label="Uvolumegravity", linewidth=2.0)
-    plot(els.xcenter[idx["bottom"]], Uboundarybottom[:, 2], "-b", markersize=markersize, label="Uboundarybottom")
-    plot(xmat[:, 1], 2 .* uymatdispgbottom[:, 1], "-k", markersize=markersize, label="Uvolumebottom")
-    gca().tick_params(labelsize=fontsize)
-    legend(fontsize=fontsize)
-    title("y-displacements at bottom", fontsize=fontsize)
-
-    #! Interior x-displacements
-    subplot(nrows, ncols, 4)
-    mat = Uvolumegravity[:, 1] #.- minimum(Uvolumegravity[:, 2]) 
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    cbar.ax.tick_params(labelsize=fontsize)
-    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("ux (Uvolumegravity)", fontsize=fontsize)
-
-    subplot(nrows, ncols, 5)
-    mat = Uvolumebottom[:, 1] #.- minimum(Udispgbottom[:, 2])
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    cbar.ax.tick_params(labelsize=fontsize)
-    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("ux (Uvolumebottom)", fontsize=fontsize)
-
-    subplot(nrows, ncols, 6)
-    mat1 = Uvolumegravity[:, 1] #.- minimum(Uvolumegravity[:, 2])
-    mat2 = 2 .* Uvolumebottom[:, 1] #.- minimum(Uvolumebottom[:, 2])
-    mat = mat1 .- mat2
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    cbar.ax.tick_params(labelsize=fontsize)
-    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("ux (total)", fontsize=fontsize)
-
-    #! Interior y-displacements
-    subplot(nrows, ncols, 7)
-    mat = Uvolumegravity[:, 2] #.- minimum(Uvolumegravity[:, 2]) 
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    cbar.ax.tick_params(labelsize=fontsize)
-    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("uy (Uvolumegravity)", fontsize=fontsize)
-
-    subplot(nrows, ncols, 8)
-    mat = Uvolumebottom[:, 2] 
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    cbar.ax.tick_params(labelsize=fontsize)
-    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("uy (Uvolumebottom)", fontsize=fontsize)
-
-    subplot(nrows, ncols, 9)
-    mat1 = Uvolumegravity[:, 2]
-    mat2 = 2 .* Uvolumebottom[:, 2]
-    mat = mat1 .- mat2
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
-    cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    cbar.ax.tick_params(labelsize=fontsize)
-    contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title("uy (total)", fontsize=fontsize)
-    tight_layout()
-    show()
-
-    #! Quiver plot of total displacement field
-    figure(figsize=(15, 15))
-    xvec = Uvolumegravity[:, 1] .- 2 .* Uvolumebottom[:, 1] #.- minimum(Uvolumebottom[:, 2])
-    yvec = Uvolumegravity[:, 2] .- 2 .* Uvolumebottom[:, 2] #.- minimum(Uvolumebottom[:, 2])
-    quiver(x, y, xvec, yvec)
-    show()
-    # @infiltrate
 end
-gravitysquare()
+gravitysquareparticular()
