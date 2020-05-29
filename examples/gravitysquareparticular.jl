@@ -141,7 +141,7 @@ function gravitysquareparticular()
     rho = 2700
     g = 9.81
     nels = 20
-    npts = 24
+    npts = 25
     L = 1e4
     # x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
     x, y = obsgrid(-L+100, -L+100, L-100, L-100, npts)
@@ -222,29 +222,14 @@ function gravitysquareparticular()
     #! Interior displacements from boundaries (Ueff)
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
-    figure(figsize=(30, 30))
-    xmat = reshape(x, npts, npts)
-    ymat = reshape(y, npts, npts)
-    contourlevels = 20
-
-    subplot(3, 3, 1)
+    
+    #! Single quiver plot of interior displacements
+    figure(figsize=(8, 8))
     quiver(x, y, UinteriorBRTL[:, 1], UinteriorBRTL[:, 2])
-    title("boundaries")
-
-    subplot(3, 3, 2)
-    mat = reshape(UinteriorBRTL[:, 1], npts, npts)
-    contourf(xmat, ymat, mat, levels=contourlevels)
-    colorbar()
-    xlabel("x")
-    ylabel("y")
-    title("boundaries, ux")
-
-    subplot(3, 3, 3)
-    mat = reshape(UinteriorBRTL[:, 2], npts, npts)
-    contourf(xmat, ymat, mat, levels=contourlevels)
-    colorbar()
-    xlabel("x")
-    ylabel("y")
-    title("boundaries, uy")
+    xlabel("x (m)", fontsize=fontsize)
+    ylabel("y (m)", fontsize=fontsize)
+    gca().set_aspect("equal")
+    gca().tick_params(labelsize=fontsize)
+    title("internal displacements", fontsize=fontsize)
 end
 gravitysquareparticular()
