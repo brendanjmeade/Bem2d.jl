@@ -208,19 +208,52 @@ function gravitysquareparticular()
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
     #! Particular solution technique with modified boundary conditoions
+    # alpha = 7e-8
+    # Tall = [T_pB_qBRTL ; T_pRTL_qBRTL]
+    # bcs = zeros(2 * 4 * nels)
+    # tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["L"]])
+    # bcs[42:2:80] = tempbc
+    # tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["R"]])
+    # bcs[122:2:160] = tempbc
+    # TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
+    # Ueffparticular = inv(TH) * bcs
+    # Uboundaryparticular = Tall * Ueffparticular
+    
+
+    # Modified Particular solution approach
+    # Here I'm flipuding the left and right stresses and adding a top stress.
+    # Just trying it out.
     alpha = 7e-8
     Tall = [T_pB_qBRTL ; T_pRTL_qBRTL]
     bcs = zeros(2 * 4 * nels)
     tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["L"]])
-    bcs[42:2:80] = tempbc
+    # bcs[122:2:160] = tempbc # Right hand side
+    bcs[42:2:80] = tempbc # Left hand side
     tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["R"]])
-    bcs[122:2:160] = tempbc
+    bcs[122:2:160] = tempbc # Right hand side
+    tempbc = @. alpha * -rho * g * 20000
+    bcs[82:2:120] .= tempbc # Top
+
+
+    # Try the Martel approach which has only traction BCs.  H matrix is horribly conditioned
+    T_pBRTL_qBRTL, H_pBRTL_qBRTL = PUTC(slip2dispstress, els, BRTLidx, BRTLidx, mu, nu)
+
+
+    figure()
+    plot(bcs)
+    show()
+    @infiltrate
+    return
+
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcs
     Uboundaryparticular = Tall * Ueffparticular
-    
+
+
+
     #! Interior displacements from boundaries (Ueff)
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
+    figure()
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
     
     #! Single quiver plot of interior displacements
