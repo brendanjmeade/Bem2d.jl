@@ -16,18 +16,18 @@ function gravitysquareparticular()
     close("all")
     fontsize = 20
     mu = 3e10
+    lambda = 3e10
     nu = 0.25
     rho = 2700
     g = 9.81
     nels = 20
     npts = 25
     L = 1e4
-    # x, y = obsgrid(-L+1, -L+1, L-1, L-1, npts)
-    x, y = obsgrid(-L+100, -L+100, L-100, L-100, npts)
+    x, y = obsgrid(-L+1, 0+1, L-1, 2*L-1, npts)
 
     #! BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretizedline(-L, -L, L, -L, nels)
+    x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -37,7 +37,7 @@ function gravitysquareparticular()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(L, -L, L, L, nels)
+    x1, y1, x2, y2 = discretizedline(L, 0, L, 2*L, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -47,7 +47,7 @@ function gravitysquareparticular()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(L, L, -L, L, nels)
+    x1, y1, x2, y2 = discretizedline(L, 2*L, -L, 2*L, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -57,7 +57,7 @@ function gravitysquareparticular()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(-L, L, -L, -L, nels)
+    x1, y1, x2, y2 = discretizedline(-L, 2*L, -L, 0, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -78,16 +78,15 @@ function gravitysquareparticular()
     #! Particular solution technique with modified boundary conditoions
     alpha = 7e-8
     bcs = zeros(2 * 4 * nels)
-
-    # tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["L"]])
-    # bcs[42:2:80] = tempbc
-    # tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["R"]])
-    # bcs[122:2:160] = tempbc
-
-    bcs[41:2:80] .= 0 # Left-hand boundary (x-component)
-    bcs[42:2:80] = @. alpha * -rho * g * (els.ycenter[idx["L"]]) # Left-hand boundary (y-component)
-    bcs[121:2:160] .= 0  # Right-hand boundary (x-component)
-    bcs[122:2:160] = @. alpha * -rho * g * (els.ycenter[idx["R"]])  # Right-hand boundary (y-component)
+    bcs[1:2:40] = @. -lambda*rho*g * els.xcenter[idx["B"]] * els.ycenter[idx["B"]] / (4*mu*(lambda + mu)) # Bottom boundary (x-component)
+    bcs[2:2:40] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda + mu)) # Bottom boundary (y-component)
+    bcs[41:2:80] .= 0 # Right boundary (x-component)
+    bcs[42:2:80] = @. alpha * rho * g * (els.ycenter[idx["R"]]) # Right boundary (y-component)
+    bcs[81:2:120] .= 0 # Top boundary (x-component)
+    bcs[82:2:120] .= @. alpha * rho * g * (els.ycenter[idx["T"]]) # Top boundary (y-component)    
+    bcs[121:2:160] .= 0 # Left boundary (x-component)
+    bcs[122:2:160] = @. alpha * rho * g * (els.ycenter[idx["L"]])  # Left boundary (y-component)
+    bcs *= -1 # Flip sign of all bcs?
 
     figure(figsize=(8, 8))
     subplot(2, 1, 1)
@@ -104,7 +103,7 @@ function gravitysquareparticular()
     
     #! Interior displacements from boundaries (Ueff)
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
     
     #! Single quiver plot of interior displacements
     figure(figsize=(8, 8))
