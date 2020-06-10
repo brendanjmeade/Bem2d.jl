@@ -1,6 +1,4 @@
 using Revise
-using Statistics
-using LaTeXStrings
 using PyPlot
 using LinearAlgebra
 using Infiltrator
@@ -78,7 +76,7 @@ function gravitysquareparticular()
     #! Particular solution technique with modified boundary conditoions
     alpha = 7e-8
     bcs = zeros(2 * 4 * nels)
-    bcs[1:2:40] = @. -lambda*rho*g * els.xcenter[idx["B"]] * els.ycenter[idx["B"]] / (4*mu*(lambda + mu)) # Bottom boundary (x-component)
+    bcs[1:2:40] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda + mu)) # Bottom boundary (x-component)
     bcs[2:2:40] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda + mu)) # Bottom boundary (y-component)
     bcs[41:2:80] .= 0 # Right boundary (x-component)
     bcs[42:2:80] = @. alpha * rho * g * (els.ycenter[idx["R"]]) # Right boundary (y-component)
@@ -88,30 +86,41 @@ function gravitysquareparticular()
     bcs[122:2:160] = @. alpha * rho * g * (els.ycenter[idx["L"]])  # Left boundary (y-component)
     bcs *= -1 # Flip sign of all bcs?
 
-    figure(figsize=(8, 8))
-    subplot(2, 1, 1)
-    plot(bcs[1:2:end])
-    xlabel("idx")
-    ylabel("x bcs")
-    subplot(2, 1, 2)
-    plot(bcs[2:2:end])
-    xlabel("idx")
-    ylabel("y bcs")
-
+    # Solve BEM problem
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
+    @show cond(TH)
     Ueffparticular = inv(TH) * bcs
     
-    #! Interior displacements from boundaries (Ueff)
+    # Interior displacements from boundaries (Ueff)
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
     
-    #! Single quiver plot of interior displacements
-    figure(figsize=(8, 8))
+    # Single quiver plot of interior displacements
+    figure(figsize=(16, 8))
+    subplot(2, 2, 1)
+    plot(bcs[1:2:end])
+    text(10, 0.0, "bottom", horizontalalignment="center", verticalalignment="center")
+    text(30, 0.0, "right", horizontalalignment="center", verticalalignment="center")
+    text(50, 0.0, "top", horizontalalignment="center", verticalalignment="center")
+    text(70, 0.0, "left", horizontalalignment="center", verticalalignment="center")
+    xlabel(" ")
+    ylabel("value")
+    title("x boundary conditions")
+
+    subplot(2, 2, 3)
+    plot(bcs[2:2:end])
+    text(10, 0.0, "bottom", horizontalalignment="center", verticalalignment="center")
+    text(30, 0.0, "right", horizontalalignment="center", verticalalignment="center")
+    text(50, 0.0, "top", horizontalalignment="center", verticalalignment="center")
+    text(70, 0.0, "left", horizontalalignment="center", verticalalignment="center")
+    xlabel("index")
+    ylabel("value")
+    title("y boundary conditions")
+
+    subplot(1, 2, 2)
     quiver(x, y, UinteriorBRTL[:, 1], UinteriorBRTL[:, 2])
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
+    xlabel("x (m)")
+    ylabel("y (m)")
     gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
-    title("internal displacements", fontsize=fontsize)
+    title("internal displacements")
 end
 gravitysquareparticular()
