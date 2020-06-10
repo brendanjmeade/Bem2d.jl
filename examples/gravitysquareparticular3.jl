@@ -77,19 +77,34 @@ function gravitysquareparticular()
 
     #! Particular solution technique with modified boundary conditoions
     alpha = 7e-8
-    Tall = [T_pB_qBRTL ; T_pRTL_qBRTL]
     bcs = zeros(2 * 4 * nels)
-    tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["L"]])
-    bcs[42:2:80] = tempbc
-    tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["R"]])
-    bcs[122:2:160] = tempbc
+
+    # tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["L"]])
+    # bcs[42:2:80] = tempbc
+    # tempbc = @. alpha * -rho * g * (10000 - els.ycenter[idx["R"]])
+    # bcs[122:2:160] = tempbc
+
+    bcs[41:2:80] .= 0 # Left-hand boundary (x-component)
+    bcs[42:2:80] = @. alpha * -rho * g * (els.ycenter[idx["L"]]) # Left-hand boundary (y-component)
+    bcs[121:2:160] .= 0  # Right-hand boundary (x-component)
+    bcs[122:2:160] = @. alpha * -rho * g * (els.ycenter[idx["R"]])  # Right-hand boundary (y-component)
+
+    figure(figsize=(8, 8))
+    subplot(2, 1, 1)
+    plot(bcs[1:2:end])
+    xlabel("idx")
+    ylabel("x bcs")
+    subplot(2, 1, 2)
+    plot(bcs[2:2:end])
+    xlabel("idx")
+    ylabel("y bcs")
+
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcs
-    Uboundaryparticular = Tall * Ueffparticular
     
     #! Interior displacements from boundaries (Ueff)
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
     
     #! Single quiver plot of interior displacements
     figure(figsize=(8, 8))
