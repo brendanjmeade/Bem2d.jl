@@ -98,7 +98,7 @@ function gravitysquareparticular()
     bcs[82:2:120] .= 0 # Top boundary (y-component)    
     bcs[121:2:160] .= 0 # Left boundary (x-component)
     bcs[122:2:160] = @. alpha * rho * g * (els.ycenter[idx["R"]])  # Left boundary (y-component)
-    bcs *= -1 # Flip sign of all bcs?
+    bcs *= -1 # This is neccesary for the right answer and consistent with derivation
 
 
     # Solve BEM problem
