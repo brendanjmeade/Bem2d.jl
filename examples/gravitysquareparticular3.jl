@@ -21,7 +21,8 @@ function gravitysquareparticular()
     nels = 20
     npts = 25
     L = 1e4
-    x, y = obsgrid(-L+1, 0+1, L-1, 2*L-1, npts)
+    offset = 1000
+    x, y = obsgrid(-L+offset, 0+offset, L-offset, 2*L-offset, npts)
 
     #! BEM geometry
     els = Elements(Int(1e5))
@@ -74,17 +75,31 @@ function gravitysquareparticular()
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
     #! Particular solution technique with modified boundary conditoions
+    # alpha = 7e-8
+    # bcs = zeros(2 * 4 * nels)
+    # bcs[1:2:40] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda + mu)) # Bottom boundary (x-component)
+    # bcs[2:2:40] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda + mu)) # Bottom boundary (y-component)
+    # bcs[41:2:80] .= 0 # Right boundary (x-component)
+    # bcs[42:2:80] = @. alpha * rho * g * (els.ycenter[idx["R"]]) # Right boundary (y-component)
+    # bcs[81:2:120] .= 0 # Top boundary (x-component)
+    # bcs[82:2:120] .= @. alpha * rho * g * (els.ycenter[idx["T"]]) # Top boundary (y-component)    
+    # bcs[121:2:160] .= 0 # Left boundary (x-component)
+    # bcs[122:2:160] = @. alpha * rho * g * (els.ycenter[idx["L"]])  # Left boundary (y-component)
+    # bcs *= -1 # Flip sign of all bcs?
+
+    #! Particular solution technique with modified boundary conditoions
     alpha = 7e-8
     bcs = zeros(2 * 4 * nels)
     bcs[1:2:40] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda + mu)) # Bottom boundary (x-component)
     bcs[2:2:40] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda + mu)) # Bottom boundary (y-component)
     bcs[41:2:80] .= 0 # Right boundary (x-component)
-    bcs[42:2:80] = @. alpha * rho * g * (els.ycenter[idx["R"]]) # Right boundary (y-component)
+    bcs[42:2:80] = @. alpha * rho * g * (els.ycenter[idx["L"]]) # Right boundary (y-component)
     bcs[81:2:120] .= 0 # Top boundary (x-component)
-    bcs[82:2:120] .= @. alpha * rho * g * (els.ycenter[idx["T"]]) # Top boundary (y-component)    
+    bcs[82:2:120] .= 0 # Top boundary (y-component)    
     bcs[121:2:160] .= 0 # Left boundary (x-component)
-    bcs[122:2:160] = @. alpha * rho * g * (els.ycenter[idx["L"]])  # Left boundary (y-component)
+    bcs[122:2:160] = @. alpha * rho * g * (els.ycenter[idx["R"]])  # Left boundary (y-component)
     bcs *= -1 # Flip sign of all bcs?
+
 
     # Solve BEM problem
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
@@ -93,7 +108,8 @@ function gravitysquareparticular()
     
     # Interior displacements from boundaries (Ueff)
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
-    
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
+
     # Single quiver plot of interior displacements
     figure(figsize=(16, 8))
     subplot(2, 2, 1)
@@ -122,5 +138,8 @@ function gravitysquareparticular()
     ylabel("y (m)")
     gca().set_aspect("equal")
     title("internal displacements")
+
+    figure()
+    plot(SinteriorBRTL[:, 2], ".r")
 end
 gravitysquareparticular()
