@@ -21,7 +21,7 @@ function gravitysquareparticular()
     nels = 20
     npts = 25
     L = 1e4
-    offset = 1
+    offset = 1000
     x, y = obsgrid(-L+offset, 0+offset, L-offset, 2*L-offset, npts)
 
     #! BEM geometry
@@ -105,13 +105,14 @@ function gravitysquareparticular()
     # because n_2 = 0 for them!!!
     bcstrue = zeros(2 * 4 * nels)
     alpha = 7e-8
+    
     bcseff = zeros(2 * 4 * nels)
     bcseff[1:2:40] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda + mu)) # Bottom boundary (x-component)
     bcseff[2:2:40] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda + mu)) # Bottom boundary (y-component)
     bcseff[41:2:80] .= 0 # Right boundary (x-component)
     bcseff[42:2:80] .= 0 # Right boundary (y-component)
     bcseff[81:2:120] .= 0 # Top boundary (x-component)
-    bcseff[82:2:120] .= 0 # Top boundary (y-component)    
+    bcseff[82:2:120] = @. alpha * rho * g * (els.ycenter[idx["T"]]) # Top boundary (y-component)    
     bcseff[121:2:160] .= 0 # Left boundary (x-component)
     bcseff[122:2:160] .= 0 # Left boundary (y-component)
     bcseff *= -1 # This is neccesary for the right answer and is consistent with derivation
@@ -140,7 +141,7 @@ function gravitysquareparticular()
 
 
 
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "Particular integral method")
 
     # Single quiver plot of interior displacements
     figure(figsize=(16, 8))
