@@ -26,6 +26,17 @@ end
 Experiments with gravity body force.
 """
 function gravitysquareparticular()
+    # TODO: Arbitrary number of elements
+    # TODO: Quadratic elements
+    # TODO: Fancy interpolation for plotting (exact on element and far-field then interpolate?)
+    # TODO: Move particular soluiton to Bem2d.jl
+    # TODO: Move generation of modifedied BCs to function
+    # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
+    # TODO: Remove unicode
+    # TODO: Rule of thumb for choosing precondtioner value (alpha)?
+    # TODO: This file should be renamed to gravitysquareparticular
+    # TODO: Remove all other gravitysquareparticular functions
+
     close("all")
     alpha = 7e-8 # scalar precondtioner for traction terms
     fontsize = 20
@@ -114,46 +125,11 @@ function gravitysquareparticular()
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
     
-    # # Interior displacements from Ueff
-    # UinteriorBCS, SinteriorBCS = constdispstress(slip2dispstress, x, y, els, BRTLidx, bcseff[1:2:end], bcseff[2:2:end], mu, nu)
-
     # Combine solutions following equations 14 in Pape and Bannerjee
     U = @. UinteriorBRTL + Uinteriorparticular
     S = @. SinteriorBRTL + Sinteriorparticular
 
+    # Plot total solution particular + complementary
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "uc + up")
-
-    # # Single quiver plot of interior displacements
-    # figure(figsize=(16, 8))
-    # subplot(2, 2, 1)
-    # plot(bcseff[1:2:end], "-r", label="bcs")
-    # plot(Ueffparticular[1:2:end], "-k", label="ueff")
-    # text(10, 0.0, "bottom", horizontalalignment="center", verticalalignment="center")
-    # text(30, 0.0, "right", horizontalalignment="center", verticalalignment="center")
-    # text(50, 0.0, "top", horizontalalignment="center", verticalalignment="center")
-    # text(70, 0.0, "left", horizontalalignment="center", verticalalignment="center")
-    # legend()
-    # xlabel(" ")
-    # ylabel("value")
-    # title("x boundary conditions")
-
-    # subplot(2, 2, 3)
-    # plot(bcseff[2:2:end], "-r", label="bcs")
-    # plot(Ueffparticular[2:2:end], "-k", label="ueff")
-    # text(10, 0.0, "bottom", horizontalalignment="center", verticalalignment="center")
-    # text(30, 0.0, "right", horizontalalignment="center", verticalalignment="center")
-    # text(50, 0.0, "top", horizontalalignment="center", verticalalignment="center")
-    # text(70, 0.0, "left", horizontalalignment="center", verticalalignment="center")
-    # legend()
-    # xlabel("index")
-    # ylabel("value")
-    # title("y boundary conditions")
-
-    # subplot(1, 2, 2)
-    # quiver(x, y, UinteriorBRTL[:, 1], UinteriorBRTL[:, 2])
-    # xlabel("x (m)")
-    # ylabel("y (m)")
-    # gca().set_aspect("equal")
-    # title("internal displacements from ueff")
 end
 gravitysquareparticular()
