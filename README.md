@@ -2,9 +2,10 @@
 Bem2d.jl is a Julia library for two-dimensional boundary element (BEM) calculations related to earthquakes and tectonics.
 
 ## Package Features
-  - Constant and quadratic slip and traction elastic elements.
-  - Surface topography & non-planar fault surfaces
-  - Quasi-dynamic earthquake cycles with both slip and aging laws.
+  - Analytic quadratic slip and traction elements (Portella et al., 1992).
+  - Surface topography & non-planar fault surfaces.
+  - Unidirectional gravity (Pape and Banerjee, 1987)
+  - Kinematically consistent quasi-dynamic earthquake cycles with slip and aging laws.
 
 ## Basic BEM calculation
 A simple starting example of a thrust fault with a topographic surface can be generated with:
