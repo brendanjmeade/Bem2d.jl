@@ -8,13 +8,13 @@ using Bem2d
 
 From Pape and Bannerjee 1987
 """
-function gravityparticularfunctions(x, y, g, ρ, λ, μ)
+function gravityparticularfunctions(x, y, g, rho, lambda, mu)
     U = zeros(length(x), 2)
     S = zeros(length(x), 3)
-    U[:, 1] = @. -λ * ρ * g / (4 * μ * (λ + μ)) * x * y  # Pape and Banerjee (1987) equation (6a)
-    U[:, 2] = @. (ρ * g) / (8 * μ * (λ + μ)) * (λ * x^2 + (λ + 2 * μ) * y^2) # Pape and Banerjee (1987) equation (6b)
+    U[:, 1] = @. -lambda * rho * g / (4 * mu * (lambda + mu)) * x * y  # Pape and Banerjee (1987) equation (6a)
+    U[:, 2] = @. (rho * g) / (8 * mu * (lambda + mu)) * (lambda * x^2 + (lambda + 2 * mu) * y^2) # Pape and Banerjee (1987) equation (6b)
     S[:, 1] .= 0 # Pape and Banerjee (1987) equation (6c)
-    S[:, 2] = @. ρ * g * y  # Pape and Banerjee (1987) equation (6d)
+    S[:, 2] = @. rho * g * y  # Pape and Banerjee (1987) equation (6d)
     S[:, 3] .= 0 # Pape and Banerjee (1987) equation (6e)
     return U, S
 end
@@ -32,7 +32,6 @@ function gravitysquareparticular()
     # TODO: Move particular soluiton to Bem2d.jl
     # TODO: Move generation of modifedied BCs to function
     # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
-    # TODO: Remove unicode
     # TODO: Rule of thumb for choosing precondtioner value (alpha)?
     # TODO: This file should be renamed to gravitysquareparticular
     # TODO: Remove all other gravitysquareparticular functions
