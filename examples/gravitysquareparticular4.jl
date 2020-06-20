@@ -1,5 +1,6 @@
 using Revise
 using PyPlot
+using Infiltrator
 using Bem2d
 
 
@@ -26,9 +27,7 @@ end
 Experiments with gravity body force.
 """
 function gravitysquareparticular()
-    # TODO: Arbitrary number of elements
     # TODO: Quadratic elements
-    # TODO: Fancy interpolation for plotting (exact on element and far-field then interpolate?)
     # TODO: Move particular solution to Bem2d.jl
     # TODO: Move generation of modifedied BCs to function
     # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
@@ -37,20 +36,20 @@ function gravitysquareparticular()
     # TODO: Remove all other gravitysquareparticular functions
 
     close("all")
-    alpha = 7e-8 # scalar precondtioner for traction terms
+    alpha = 7e-8 # scalar preconditioner for traction terms
     fontsize = 20
     mu = 3e10
     lambda = 3e10
     nu = 0.25
     rho = 2700
     g = 9.81
-    nels = 20
+    nels = 100
     npts = 25
     L = 1e4
-    offset = 1000
+    offset = 100
     x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts) 
 
-    #! BEM geometry
+    # BEM geometry
     els = Elements(Int(1e5))
     x1, y1, x2, y2 = discretizedline(-L, -2*L, L, -2*L, nels)
     for i in 1:length(x1)
@@ -101,22 +100,22 @@ function gravitysquareparticular()
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
     # Trying a bottom BC only case
-    bcseff = zeros(2 * 4 * nels)
-    bcseff[1:2:40] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda+mu)) # Bottom boundary (x-component)
-    bcseff[2:2:40] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda+mu)) # Bottom boundary (y-component)
-    bcseff[41:2:80] .= 0 # Right boundary (x-component)
-    bcseff[42:2:80] .= 0 # Right boundary (y-component)
-    bcseff[81:2:120] .= 0 # Top boundary (x-component)
-    bcseff[82:2:120] .= 0 # Top boundary (y-component)    
-    bcseff[121:2:end] .= 0 # Left boundary (x-component)
-    bcseff[122:2:end] .= 0 # Left boundary (y-component)
+    bcseff = zeros(2 * els.endidx)
+    bcseff[2*idx["B"].-1] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda+mu)) # Bottom boundary (x-component)
+    bcseff[2*idx["B"]] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda+mu)) # Bottom boundary (y-component)
+    bcseff[2*idx["R"].-1] .= 0 # Right boundary (x-component)
+    bcseff[2*idx["R"]] .= 0 # Right boundary (y-component)
+    bcseff[2*idx["T"].-1] .= 0 # Top boundary (x-component)
+    bcseff[2*idx["T"]] .= 0 # Top boundary (y-component)    
+    bcseff[2*idx["L"].-1] .= 0 # Left boundary (x-component)
+    bcseff[2*idx["L"]] .= 0 # Left boundary (y-component)
     bcseff *= -1 # This is neccesary for the right answer and is consistent with derivation
 
     # Solve BEM problem
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcseff
     
-    # Complementary solutin from Ueff
+    # Complementary solution from Ueff
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "ueff solution")
 
