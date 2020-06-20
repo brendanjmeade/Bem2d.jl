@@ -43,10 +43,10 @@ function gravitysquareparticular()
     nu = 0.25
     rho = 2700
     g = 9.81
-    nels = 100
+    nels = 20
     npts = 25
     L = 1e4
-    offset = 100
+    offset = 1000
     x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts) 
 
     # BEM geometry
@@ -90,12 +90,14 @@ function gravitysquareparticular()
         els.name[els.endidx + i] = "L"
     end
     standardize_elements!(els)
-    idx = getidxdict(els)
 
-    # Kernels matrices (boundary -> boundary)
+    # Common indexing
+    idx = getidxdict(els)
     Bidx = idx["B"]
     RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
     BRTLidx = collect(1:1:els.endidx)
+
+    # Constant kernel matrices
     T_pB_qBRTL, H_pB_qBRTL = PUTC(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
@@ -115,6 +117,23 @@ function gravitysquareparticular()
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcseff
     
+    # Quadratic kernel matrices
+    T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
+    T_pRTL_qBRTL_Q, H_pRTL_qBRTL_Q = PUTQ(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
+    bcsQ = zeros(6 * els.endidx)
+    # bcsQ[2*idx["B"].-1] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda+mu)) # Bottom boundary (x-component)
+    # bcsQ[2*idx["B"]] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda+mu)) # Bottom boundary (y-component)
+    # bcsQ[2*idx["R"].-1] .= 0 # Right boundary (x-component)
+    # bcsQ[2*idx["R"]] .= 0 # Right boundary (y-component)
+    # bcsQ[2*idx["T"].-1] .= 0 # Top boundary (x-component)
+    # bcsQ[2*idx["T"]] .= 0 # Top boundary (y-component)    
+    # bcsQ[2*idx["L"].-1] .= 0 # Left boundary (x-component)
+    # bcsQ[2*idx["L"]] .= 0 # Left boundary (y-component)
+    # bcsQ *= -1 # This is neccesary for the right answer and is consistent with derivation
+    TH = [T_pB_qBRTL_Q ; alpha .* H_pRTL_qBRTL_Q]
+    UeffparticularQ = inv(TH) * bcsQ
+
+
     # Complementary solution from Ueff
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "ueff solution")
