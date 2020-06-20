@@ -701,13 +701,28 @@ export PUTC
 """
     PUTC(fun2dispstress, els, obsidx, srcidx, mu, nu)
 
-Conveinece function to calcualtion partial derivates of displacement, 
+Convenience function to calcualtion partial derivates of displacement, 
 and tractions for constant slip/displacement elements.  This 
 simply swaps the order of arguments (srcidx, obsidx) -> (obsidx, srcidx)
 and does not return the stress partials.
 """
 function PUTC(fun2dispstress, els, obsidx, srcidx, mu, nu)
-    T, S, H = partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
+    T, _, H = partialsconstdispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
+    return T, H
+end
+
+
+export PUTQ
+"""
+    PUTQ(fun2dispstress, els, obsidx, srcidx, mu, nu)
+
+Conveinece function to calcualtion partial derivates of displacement, 
+and tractions for constant slip/displacement elements.  This 
+simply swaps the order of arguments (srcidx, obsidx) -> (obsidx, srcidx)
+and does not return the stress partials.
+"""
+function PUTQ(fun2dispstress, els, obsidx, srcidx, mu, nu)
+    T, _, H = partialsquaddispstress(fun2dispstress, els, srcidx, obsidx, mu, nu)
     return T, H
 end
 
