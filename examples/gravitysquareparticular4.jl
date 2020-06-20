@@ -29,7 +29,7 @@ function gravitysquareparticular()
     # TODO: Arbitrary number of elements
     # TODO: Quadratic elements
     # TODO: Fancy interpolation for plotting (exact on element and far-field then interpolate?)
-    # TODO: Move particular soluiton to Bem2d.jl
+    # TODO: Move particular solution to Bem2d.jl
     # TODO: Move generation of modifedied BCs to function
     # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
     # TODO: Rule of thumb for choosing precondtioner value (alpha)?
@@ -48,11 +48,11 @@ function gravitysquareparticular()
     npts = 25
     L = 1e4
     offset = 1000
-    x, y = obsgrid(-L+offset, -20000+offset, L-offset, 0-offset, npts) 
+    x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts) 
 
     #! BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretizedline(-L, -20000, L, -20000, nels)
+    x1, y1, x2, y2 = discretizedline(-L, -2*L, L, -2*L, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -62,7 +62,7 @@ function gravitysquareparticular()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(L, -20000, L, 0, nels)
+    x1, y1, x2, y2 = discretizedline(L, -2*L, L, 0, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -82,7 +82,7 @@ function gravitysquareparticular()
     end
     standardize_elements!(els)
 
-    x1, y1, x2, y2 = discretizedline(-L, 0, -L, -20000, nels)
+    x1, y1, x2, y2 = discretizedline(-L, 0, -L, -2*L, nels)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -93,14 +93,14 @@ function gravitysquareparticular()
     standardize_elements!(els)
     idx = getidxdict(els)
 
-    #! Kernels matrices (boundary -> boundary)
+    # Kernels matrices (boundary -> boundary)
     Bidx = idx["B"]
     RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
     BRTLidx = collect(1:1:els.endidx)
     T_pB_qBRTL, H_pB_qBRTL = PUTC(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
     T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
 
-    # Tryin a bottom BC only case
+    # Trying a bottom BC only case
     bcseff = zeros(2 * 4 * nels)
     bcseff[1:2:40] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda+mu)) # Bottom boundary (x-component)
     bcseff[2:2:40] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda+mu)) # Bottom boundary (y-component)
@@ -108,15 +108,15 @@ function gravitysquareparticular()
     bcseff[42:2:80] .= 0 # Right boundary (y-component)
     bcseff[81:2:120] .= 0 # Top boundary (x-component)
     bcseff[82:2:120] .= 0 # Top boundary (y-component)    
-    bcseff[121:2:160] .= 0 # Left boundary (x-component)
-    bcseff[122:2:160] .= 0 # Left boundary (y-component)
+    bcseff[121:2:end] .= 0 # Left boundary (x-component)
+    bcseff[122:2:end] .= 0 # Left boundary (y-component)
     bcseff *= -1 # This is neccesary for the right answer and is consistent with derivation
 
     # Solve BEM problem
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcseff
     
-    # Interior displacements from Ueff
+    # Complementary solutin from Ueff
     UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "ueff solution")
 
