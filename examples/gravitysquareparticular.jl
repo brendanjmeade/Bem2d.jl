@@ -105,13 +105,13 @@ function gravitysquareparticular()
     # Trying a bottom BC only case
     bcseff = zeros(2 * els.endidx)
     UB, _ = gravityparticularfunctions(els.xcenter[idx["B"]], els.ycenter[idx["B"]], g, rho, lambda, mu)
-    bcseff[2*idx["B"].-1] = UB[:, 1] # Bottom boundary (x-component)
+    bcseff[@. 2*idx["B"]-1] = UB[:, 1] # Bottom boundary (x-component)
     bcseff[2*idx["B"]] = UB[:, 2] # Bottom boundary (y-component)
-    bcseff[2*idx["R"].-1] .= 0 # Right boundary (x-component)
+    bcseff[@. 2*idx["R"]-1] .= 0 # Right boundary (x-component)
     bcseff[2*idx["R"]] .= 0 # Right boundary (y-component)
-    bcseff[2*idx["T"].-1] .= 0 # Top boundary (x-component)
+    bcseff[@. 2*idx["T"]-1] .= 0 # Top boundary (x-component)
     bcseff[2*idx["T"]] .= 0 # Top boundary (y-component)    
-    bcseff[2*idx["L"].-1] .= 0 # Left boundary (x-component)
+    bcseff[@. 2*idx["L"]-1] .= 0 # Left boundary (x-component)
     bcseff[2*idx["L"]] .= 0 # Left boundary (y-component)
     bcseff *= -1 # This is neccesary for the right answer and is consistent with derivation
 
@@ -120,20 +120,21 @@ function gravitysquareparticular()
     Ueffparticular = inv(TH) * bcseff
     
     # Quadratic kernel matrices
-    # T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
-    # T_pRTL_qBRTL_Q, H_pRTL_qBRTL_Q = PUTQ(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
-    # bcsQ = zeros(6 * els.endidx)
+    T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
+    T_pRTL_qBRTL_Q, H_pRTL_qBRTL_Q = PUTQ(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
+    bcsQ = zeros(6 * els.endidx)
+    idxQ = collect(1:1:length(bcsQ))    
     # bcsQ[2*idx["B"].-1] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda+mu)) # Bottom boundary (x-component)
     # bcsQ[2*idx["B"]] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda+mu)) # Bottom boundary (y-component)
-    # bcsQ[2*idx["R"].-1] .= 0 # Right boundary (x-component)
-    # bcsQ[2*idx["R"]] .= 0 # Right boundary (y-component)
-    # bcsQ[2*idx["T"].-1] .= 0 # Top boundary (x-component)
-    # bcsQ[2*idx["T"]] .= 0 # Top boundary (y-component)    
+    bcsQ[idxQ[els.endidx + 1 : 2 : 2 * (els.endidx)]] .= 0 # Right boundary (x-component)
+    bcsQ[@. idxQ[els.endidx + 1 : 2 : 2 * (els.endidx)] + 1] .= 0 # Right boundary (y-component)
+    bcsQ[idxQ[2*els.endidx + 1 : 2 : 3 * (els.endidx)]] .= 0 # Top boundary (x-component)
+    bcsQ[@. idxQ[2*els.endidx + 1 : 2 : 3 * (els.endidx)] + 1] .= 0 # Top boundary (y-component)    
     # bcsQ[2*idx["L"].-1] .= 0 # Left boundary (x-component)
     # bcsQ[2*idx["L"]] .= 0 # Left boundary (y-component)
-    # bcsQ *= -1 # This is neccesary for the right answer and is consistent with derivation
-    # TH = [T_pB_qBRTL_Q ; alpha .* H_pRTL_qBRTL_Q]
-    # UeffparticularQ = inv(TH) * bcsQ
+    bcsQ *= -1 # This is neccesary for the right answer and is consistent with derivation
+    TH = [T_pB_qBRTL_Q ; alpha .* H_pRTL_qBRTL_Q]
+    UeffparticularQ = inv(TH) * bcsQ
 
 
     # Complementary solution from Ueff
