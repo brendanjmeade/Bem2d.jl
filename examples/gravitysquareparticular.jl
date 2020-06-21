@@ -31,6 +31,7 @@ function gravitysquareparticular()
     # TODO: Move particular solution to Bem2d.jl
     # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
     # TODO: Rule of thumb for choosing precondtioner value (alpha)?
+    # TODO: Make a version of gravityparticularfunctions() for BC generation
 
     close("all")
     alpha = 7e-8 # scalar preconditioner for traction terms
@@ -46,7 +47,7 @@ function gravitysquareparticular()
     offset = 10
     x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts) 
 
-    # BEM geometry
+    # Define BEM geometry
     els = Elements(Int(1e5))
     x1, y1, x2, y2 = discretizedline(-L, -2*L, L, -2*L, nels) # Bottom
     addelsez!(els, x1, y1, x2, y2, "B")
@@ -66,16 +67,21 @@ function gravitysquareparticular()
     # Gravity square problem with quadratic elements
     T_pU_qall, H_pU_qall = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
     T_pT_qall, H_pT_qall = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
+    TH = [T_pU_qall ; alpha .* H_pT_qall] # Assemble combined linear operator
+
+    # Particular solution and effective boundary conditions
     xnodes = transpose(els.xnodes[idx["B"], :])[:]
     ynodes = transpose(els.ynodes[idx["B"], :])[:]
-    UBQ, _ = gravityparticularfunctions(xnodes, ynodes, g, rho, lambda, mu)    
+    UB, _ = gravityparticularfunctions(xnodes, ynodes, g, rho, lambda, mu)    
     bcs = zeros(6 * els.endidx)
-    bcs[1:2:6*nels] = UBQ[:, 1] # Bottom boundary (x-component)
-    bcs[2:2:6*nels] = UBQ[:, 2] # Bottom boundary (y-component)
+    bcs[1:2:6*nels] = UB[:, 1] # Bottom boundary (x-component)
+    bcs[2:2:6*nels] = UB[:, 2] # Bottom boundary (y-component)
     bcs *= -1 # This is neccesary for the right answer and is consistent with derivation
-    TH = [T_pU_qall ; alpha .* H_pT_qall] # Assemble combinded linear operator
-    Ueffparticular = inv(TH) * bcs # BEM solve
 
+    # BEM solve to get particular solution
+    Ueffparticular = inv(TH) * bcs
+
+    # Evaluate and plot interior solution
     Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
     U = @. Uinteriorcomplementary + Uinteriorparticular
