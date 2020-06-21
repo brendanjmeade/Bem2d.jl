@@ -59,10 +59,10 @@ function gravitysquareparticular()
     addelsez!(els, x1, y1, x2, y2, "L")
 
     # Common indexing
-    idx = getidxdict(els)
-    bcidxU = idx["B"]
-    bcidxT = [idx["R"] ; idx["T"]; idx["L"]]
-    bcidxall = collect(1:1:els.endidx)
+    idx = getidxdict(els) # Should this return "all" - YES TODO
+    bcidxU = idx["B"] # Boundaries with *displacement* BCs
+    bcidxT = [idx["R"] ; idx["T"]; idx["L"]] # Boundaries with *traction* BCs
+    bcidxall = collect(1:1:els.endidx) # All boundaries
 
     # Gravity square problem with quadratic elements
     T_pU_qall, H_pU_qall = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
