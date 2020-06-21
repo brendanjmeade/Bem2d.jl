@@ -5,23 +5,6 @@ using Bem2d
 
 
 """
-    addelsez!()
-
-Covenience function for quicly adding elements with geometry and name only
-"""
-function addelsez!(els, x1, y1, x2, y2, namestring)
-    for i in 1:length(x1)
-        els.x1[els.endidx + i] = x1[i]
-        els.y1[els.endidx + i] = y1[i]
-        els.x2[els.endidx + i] = x2[i]
-        els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = namestring
-    end
-    standardize_elements!(els)
-end
-
-
-"""
     gravityparticularfunctions()
 
 From Pape and Bannerjee 1987
@@ -48,8 +31,6 @@ function gravitysquareparticular()
     # TODO: Move generation of modified BCs to function
     # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
     # TODO: Rule of thumb for choosing precondtioner value (alpha)?
-    # TODO: This file should be renamed to gravitysquareparticular
-    # TODO: Remove all other gravitysquareparticular functions
 
     close("all")
     alpha = 7e-8 # scalar preconditioner for traction terms

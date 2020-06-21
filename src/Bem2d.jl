@@ -59,6 +59,23 @@ mutable struct Elements
                            0) # endidx
 end
 
+export addelsez!
+"""
+    addelsez!()
+
+Covenience function for quicly adding elements with geometry and name only
+"""
+function addelsez!(els, x1, y1, x2, y2, namestring)
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = namestring
+    end
+    standardize_elements!(els)
+end
+
 
 export interleave
 """
