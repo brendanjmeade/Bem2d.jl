@@ -65,19 +65,17 @@ function gravitysquareparticular()
     bcidxall = collect(1:1:els.endidx)
 
     # Gravity square problem with quadratic elements
-    T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
-    T_pRTL_qBRTL_Q, H_pRTL_qBRTL_Q = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
-    bcsQ = zeros(6 * els.endidx)
-    idxQ = collect(1:1:length(bcsQ))
+    T_pU_qall, H_pU_qall = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
+    T_pT_qall, H_pT_qall = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
     xnodes = transpose(els.xnodes[idx["B"], :])[:]
     ynodes = transpose(els.ynodes[idx["B"], :])[:]
     UBQ, _ = gravityparticularfunctions(xnodes, ynodes, g, rho, lambda, mu)    
-    bcsQ[1:2:6*nels] = UBQ[:, 1] # Bottom boundary (x-component)
-    bcsQ[2:2:6*nels] = UBQ[:, 2] # Bottom boundary (y-component)
-    bcsQ *= -1 # This is neccesary for the right answer and is consistent with derivation
-    TH = [T_pB_qBRTL_Q ; alpha .* H_pRTL_qBRTL_Q]
-    @show cond(TH)
-    Ueffparticular = inv(TH) * bcsQ
+    bcs = zeros(6 * els.endidx)
+    bcs[1:2:6*nels] = UBQ[:, 1] # Bottom boundary (x-component)
+    bcs[2:2:6*nels] = UBQ[:, 2] # Bottom boundary (y-component)
+    bcs *= -1 # This is neccesary for the right answer and is consistent with derivation
+    TH = [T_pU_qall ; alpha .* H_pT_qall] # Assemble combinded linear operator
+    Ueffparticular = inv(TH) * bcs # BEM solve
 
     Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
