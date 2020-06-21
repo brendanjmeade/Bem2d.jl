@@ -5,6 +5,23 @@ using Bem2d
 
 
 """
+    addelsez!()
+
+Covenience function for quicly adding elements with geometry and name only
+"""
+function addelsez!(els, x1, y1, x2, y2, namestring)
+    for i in 1:length(x1)
+        els.x1[els.endidx + i] = x1[i]
+        els.y1[els.endidx + i] = y1[i]
+        els.x2[els.endidx + i] = x2[i]
+        els.y2[els.endidx + i] = y2[i]
+        els.name[els.endidx + i] = namestring
+    end
+    standardize_elements!(els)
+end
+
+
+"""
     gravityparticularfunctions()
 
 From Pape and Bannerjee 1987
@@ -27,10 +44,8 @@ end
 Experiments with gravity body force.
 """
 function gravitysquareparticular()
-    # TODO: Quadratic elements
     # TODO: Move particular solution to Bem2d.jl
     # TODO: Move generation of modified BCs to function
-    # TODO: Create a convenciece function for simple elements (addelsez?)
     # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
     # TODO: Rule of thumb for choosing precondtioner value (alpha)?
     # TODO: This file should be renamed to gravitysquareparticular
@@ -52,45 +67,14 @@ function gravitysquareparticular()
 
     # BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretizedline(-L, -2*L, L, -2*L, nels)
-    for i in 1:length(x1)
-        els.x1[els.endidx + i] = x1[i]
-        els.y1[els.endidx + i] = y1[i]
-        els.x2[els.endidx + i] = x2[i]
-        els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "B"
-    end
-    standardize_elements!(els)
-
-    x1, y1, x2, y2 = discretizedline(L, -2*L, L, 0, nels)
-    for i in 1:length(x1)
-        els.x1[els.endidx + i] = x1[i]
-        els.y1[els.endidx + i] = y1[i]
-        els.x2[els.endidx + i] = x2[i]
-        els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "R"
-    end
-    standardize_elements!(els)
-
-    x1, y1, x2, y2 = discretizedline(L, 0, -L, 0, nels)
-    for i in 1:length(x1)
-        els.x1[els.endidx + i] = x1[i]
-        els.y1[els.endidx + i] = y1[i]
-        els.x2[els.endidx + i] = x2[i]
-        els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "T"
-    end
-    standardize_elements!(els)
-
-    x1, y1, x2, y2 = discretizedline(-L, 0, -L, -2*L, nels)
-    for i in 1:length(x1)
-        els.x1[els.endidx + i] = x1[i]
-        els.y1[els.endidx + i] = y1[i]
-        els.x2[els.endidx + i] = x2[i]
-        els.y2[els.endidx + i] = y2[i]
-        els.name[els.endidx + i] = "L"
-    end
-    standardize_elements!(els)
+    x1, y1, x2, y2 = discretizedline(-L, -2*L, L, -2*L, nels) # Bottom
+    addelsez!(els, x1, y1, x2, y2, "B")
+    x1, y1, x2, y2 = discretizedline(L, -2*L, L, 0, nels) # Right hand side
+    addelsez!(els, x1, y1, x2, y2, "R")
+    x1, y1, x2, y2 = discretizedline(L, 0, -L, 0, nels) # Top
+    addelsez!(els, x1, y1, x2, y2, "T")
+    x1, y1, x2, y2 = discretizedline(-L, 0, -L, -2*L, nels) # Left hand side
+    addelsez!(els, x1, y1, x2, y2, "L")
 
     # Common indexing
     idx = getidxdict(els)
