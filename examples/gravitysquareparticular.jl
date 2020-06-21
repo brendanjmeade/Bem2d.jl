@@ -1,6 +1,7 @@
 using Revise
 using PyPlot
 using Infiltrator
+using LinearAlgebra
 using Bem2d
 
 
@@ -63,41 +64,9 @@ function gravitysquareparticular()
     RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
     BRTLidx = collect(1:1:els.endidx)
 
-    # Constant kernel matrices
-    T_pB_qBRTL, H_pB_qBRTL = PUTC(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
-    T_pRTL_qBRTL, H_pRTL_qBRTL = PUTC(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
-
-    # Trying a bottom BC only case
-    bcseff = zeros(2 * els.endidx)
-    UB, _ = gravityparticularfunctions(els.xcenter[idx["B"]], els.ycenter[idx["B"]], g, rho, lambda, mu)
-    bcseff[@. 2*idx["B"]-1] = UB[:, 1] # Bottom boundary (x-component)
-    bcseff[2*idx["B"]] = UB[:, 2] # Bottom boundary (y-component)
-    bcseff[@. 2*idx["R"]-1] .= 0 # Right boundary (x-component)
-    bcseff[2*idx["R"]] .= 0 # Right boundary (y-component)
-    bcseff[@. 2*idx["T"]-1] .= 0 # Top boundary (x-component)
-    bcseff[2*idx["T"]] .= 0 # Top boundary (y-component)    
-    bcseff[@. 2*idx["L"]-1] .= 0 # Left boundary (x-component)
-    bcseff[2*idx["L"]] .= 0 # Left boundary (y-component)
-    bcseff *= -1 # This is neccesary for the right answer and is consistent with derivation
-
-    # Solve BEM problem
-    TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
-    Ueffparticular = inv(TH) * bcseff
-    
-    # Complementary solution from Ueff
-    Uinteriorcomplementary, Sinteriorcomplementary = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
-    
-    # Particular solution
-    Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
-    
-    # Combine solutions following equations 14 in Pape and Bannerjee
-    U = @. Uinteriorcomplementary + Uinteriorparticular
-    S = @. Sinteriorcomplementary + Sinteriorparticular
-
-    # Plot total solution particular + complementary
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
+    bcidxU = idx["B"]
+    bcidxT = [idx["R"] ; idx["T"]; idx["L"]]
+    bcidxall = collect(1:1:els.endidx)
 
     # Gravity square problem with quadratic elements
     T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
@@ -111,18 +80,15 @@ function gravitysquareparticular()
     bcsQ[2:2:6*nels] = UBQ[:, 2] # Bottom boundary (y-component)
     bcsQ *= -1 # This is neccesary for the right answer and is consistent with derivation
     TH = [T_pB_qBRTL_Q ; alpha .* H_pRTL_qBRTL_Q]
+    @show cond(TH)
     Ueffparticular = inv(TH) * bcsQ
 
     Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, BRTLidx, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
-
-    # Uinteriorcomplementary, Sinteriorcomplementary = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
     U = @. Uinteriorcomplementary + Uinteriorparticular
     S = @. Sinteriorcomplementary + Sinteriorparticular
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
-
-
 end
 gravitysquareparticular()
