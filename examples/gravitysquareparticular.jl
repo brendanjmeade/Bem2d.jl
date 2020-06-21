@@ -119,37 +119,41 @@ function gravitysquareparticular()
     TH = [T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]
     Ueffparticular = inv(TH) * bcseff
     
+    # Complementary solution from Ueff
+    Uinteriorcomplementary, Sinteriorcomplementary = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
+    
+    # Particular solution
+    Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
+    
+    # Combine solutions following equations 14 in Pape and Bannerjee
+    U = @. Uinteriorcomplementary + Uinteriorparticular
+    S = @. Sinteriorcomplementary + Sinteriorparticular
+
+    # Plot total solution particular + complementary
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
+
     # Quadratic kernel matrices
     T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
     T_pRTL_qBRTL_Q, H_pRTL_qBRTL_Q = PUTQ(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
     bcsQ = zeros(6 * els.endidx)
-    idxQ = collect(1:1:length(bcsQ))    
-    # bcsQ[2*idx["B"].-1] = @. -lambda*rho*g * els.xcenter[idx["B"]]*els.ycenter[idx["B"]] / (4*mu*(lambda+mu)) # Bottom boundary (x-component)
-    # bcsQ[2*idx["B"]] = @. (rho*g) * (lambda*els.xcenter[idx["B"]]^2 + (lambda+2*mu)*els.ycenter[idx["B"]]^2) / (8*mu*(lambda+mu)) # Bottom boundary (y-component)
-    bcsQ[idxQ[els.endidx + 1 : 2 : 2 * (els.endidx)]] .= 0 # Right boundary (x-component)
-    bcsQ[@. idxQ[els.endidx + 1 : 2 : 2 * (els.endidx)] + 1] .= 0 # Right boundary (y-component)
-    bcsQ[idxQ[2*els.endidx + 1 : 2 : 3 * (els.endidx)]] .= 0 # Top boundary (x-component)
-    bcsQ[@. idxQ[2*els.endidx + 1 : 2 : 3 * (els.endidx)] + 1] .= 0 # Top boundary (y-component)    
-    # bcsQ[2*idx["L"].-1] .= 0 # Left boundary (x-component)
-    # bcsQ[2*idx["L"]] .= 0 # Left boundary (y-component)
+    idxQ = collect(1:1:length(bcsQ))
+    xnodes = transpose(els.xnodes[idx["B"], :])[:]
+    ynodes = transpose(els.ynodes[idx["B"], :])[:]
+    UBQ, _ = gravityparticularfunctions(xnodes, ynodes, g, rho, lambda, mu)
+    
+    bcsQ[1:2:6*nels] = UBQ[:, 1] # Bottom boundary (x-component)
+    bcsQ[2:2:6*nels] = UBQ[:, 2] # Bottom boundary (y-component)
+    # bcsQ[idxQ[els.endidx + 1 : 2 : 2 * (els.endidx)]] .= 0 # Right boundary (x-component)
+    # bcsQ[@. idxQ[els.endidx + 1 : 2 : 2 * (els.endidx)] + 1] .= 0 # Right boundary (y-component)
+    # bcsQ[idxQ[2*els.endidx + 1 : 2 : 3 * (els.endidx)]] .= 0 # Top boundary (x-component)
+    # bcsQ[@. idxQ[2*els.endidx + 1 : 2 : 3 * (els.endidx)] + 1] .= 0 # Top boundary (y-component)    
+    # bcsQ[idxQ[3*els.endidx + 1 : 2 : 4 * (els.endidx)]] .= 0 # Left boundary (x-component)
+    # bcsQ[@. idxQ[3 * els.endidx + 1 : 2 : 4 * (els.endidx)] + 1] .= 0 # Left boundary (y-component)
     bcsQ *= -1 # This is neccesary for the right answer and is consistent with derivation
     TH = [T_pB_qBRTL_Q ; alpha .* H_pRTL_qBRTL_Q]
     UeffparticularQ = inv(TH) * bcsQ
 
-
-    # Complementary solution from Ueff
-    UinteriorBRTL, SinteriorBRTL = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), UinteriorBRTL, SinteriorBRTL, "ueff solution")
-
-    # Particular solution
-    Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
-    
-    # Combine solutions following equations 14 in Pape and Bannerjee
-    U = @. UinteriorBRTL + Uinteriorparticular
-    S = @. SinteriorBRTL + Sinteriorparticular
-
-    # Plot total solution particular + complementary
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "uc + up")
 end
 gravitysquareparticular()
