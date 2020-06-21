@@ -65,8 +65,9 @@ function gravitysquareparticular()
     bcidxall = collect(1:1:els.endidx) # All boundaries
 
     # Gravity square problem with quadratic elements
-    T_pU_qall, H_pU_qall = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
-    T_pT_qall, H_pT_qall = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
+    T_pU_qall, _ = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
+    _, H_pT_qall = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
+
     TH = [T_pU_qall ; alpha .* H_pT_qall] # Assemble combined linear operator
 
     # Particular solution and effective boundary conditions
