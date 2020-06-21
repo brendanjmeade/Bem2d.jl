@@ -60,17 +60,13 @@ function gravitysquareparticular()
 
     # Common indexing
     idx = getidxdict(els)
-    Bidx = idx["B"]
-    RTLidx = [idx["R"] ; idx["T"]; idx["L"]]
-    BRTLidx = collect(1:1:els.endidx)
-
     bcidxU = idx["B"]
     bcidxT = [idx["R"] ; idx["T"]; idx["L"]]
     bcidxall = collect(1:1:els.endidx)
 
     # Gravity square problem with quadratic elements
-    T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
-    T_pRTL_qBRTL_Q, H_pRTL_qBRTL_Q = PUTQ(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
+    T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
+    T_pRTL_qBRTL_Q, H_pRTL_qBRTL_Q = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
     bcsQ = zeros(6 * els.endidx)
     idxQ = collect(1:1:length(bcsQ))
     xnodes = transpose(els.xnodes[idx["B"], :])[:]
@@ -83,7 +79,7 @@ function gravitysquareparticular()
     @show cond(TH)
     Ueffparticular = inv(TH) * bcsQ
 
-    Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, BRTLidx, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
+    Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
     U = @. Uinteriorcomplementary + Uinteriorparticular
     S = @. Sinteriorcomplementary + Sinteriorparticular
