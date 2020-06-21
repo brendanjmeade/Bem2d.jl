@@ -29,7 +29,6 @@ Experiments with gravity body force.
 """
 function gravitysquareparticular()
     # TODO: Move particular solution to Bem2d.jl
-    # TODO: Move generation of modified BCs to function
     # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
     # TODO: Rule of thumb for choosing precondtioner value (alpha)?
 
