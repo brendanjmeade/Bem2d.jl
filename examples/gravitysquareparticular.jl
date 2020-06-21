@@ -45,9 +45,9 @@ function gravitysquareparticular()
     rho = 2700
     g = 9.81
     nels = 20
-    npts = 25
+    npts = 100
     L = 1e4
-    offset = 1000
+    offset = 10
     x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts) 
 
     # BEM geometry
@@ -130,30 +130,34 @@ function gravitysquareparticular()
     S = @. Sinteriorcomplementary + Sinteriorparticular
 
     # Plot total solution particular + complementary
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
 
-    # Quadratic kernel matrices
+    # Gravity square problem with quadratic elements
     T_pB_qBRTL_Q, H_pB_qBRTL_Q = PUTQ(slip2dispstress, els, Bidx, BRTLidx, mu, nu)
     T_pRTL_qBRTL_Q, H_pRTL_qBRTL_Q = PUTQ(slip2dispstress, els, RTLidx, BRTLidx, mu, nu)
     bcsQ = zeros(6 * els.endidx)
     idxQ = collect(1:1:length(bcsQ))
     xnodes = transpose(els.xnodes[idx["B"], :])[:]
     ynodes = transpose(els.ynodes[idx["B"], :])[:]
-    UBQ, _ = gravityparticularfunctions(xnodes, ynodes, g, rho, lambda, mu)
-    
+    UBQ, _ = gravityparticularfunctions(xnodes, ynodes, g, rho, lambda, mu)    
     bcsQ[1:2:6*nels] = UBQ[:, 1] # Bottom boundary (x-component)
     bcsQ[2:2:6*nels] = UBQ[:, 2] # Bottom boundary (y-component)
-    # bcsQ[idxQ[els.endidx + 1 : 2 : 2 * (els.endidx)]] .= 0 # Right boundary (x-component)
-    # bcsQ[@. idxQ[els.endidx + 1 : 2 : 2 * (els.endidx)] + 1] .= 0 # Right boundary (y-component)
-    # bcsQ[idxQ[2*els.endidx + 1 : 2 : 3 * (els.endidx)]] .= 0 # Top boundary (x-component)
-    # bcsQ[@. idxQ[2*els.endidx + 1 : 2 : 3 * (els.endidx)] + 1] .= 0 # Top boundary (y-component)    
-    # bcsQ[idxQ[3*els.endidx + 1 : 2 : 4 * (els.endidx)]] .= 0 # Left boundary (x-component)
-    # bcsQ[@. idxQ[3 * els.endidx + 1 : 2 : 4 * (els.endidx)] + 1] .= 0 # Left boundary (y-component)
     bcsQ *= -1 # This is neccesary for the right answer and is consistent with derivation
     TH = [T_pB_qBRTL_Q ; alpha .* H_pRTL_qBRTL_Q]
-    UeffparticularQ = inv(TH) * bcsQ
+    Ueffparticular = inv(TH) * bcsQ
+
+    Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, BRTLidx, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
+
+    # Uinteriorcomplementary, Sinteriorcomplementary = constdispstress(slip2dispstress, x, y, els, BRTLidx, Ueffparticular[1:2:end], Ueffparticular[2:2:end], mu, nu)
+    Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
+    U = @. Uinteriorcomplementary + Uinteriorparticular
+    S = @. Sinteriorcomplementary + Sinteriorparticular
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
+
 
 end
 gravitysquareparticular()
