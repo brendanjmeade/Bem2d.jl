@@ -83,12 +83,21 @@ function gravitysquareparticular()
     Ueffparticular = inv(TH) * bcs
 
     # Evaluate and plot interior solution
+    # Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
+    # Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
+    # U = @. Uinteriorcomplementary + Uinteriorparticular
+    # S = @. Sinteriorcomplementary + Sinteriorparticular
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
+
+    # Interior point solution for nice vector plot
+    npts = 30
+    x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts)
     Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
     U = @. Uinteriorcomplementary + Uinteriorparticular
     S = @. Sinteriorcomplementary + Sinteriorparticular
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
+    
 end
 gravitysquareparticular()
