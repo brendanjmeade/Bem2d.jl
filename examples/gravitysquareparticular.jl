@@ -101,10 +101,9 @@ function gravitysquareparticular()
     S = @. Sinteriorcomplementary + Sinteriorparticular
 
     # Plot of interior points
-    fig, ax = plt.subplots()
+    figure()
     fill([-10000, 10000, 10000, -10000], [-20000, -20000, 0, 0] .+ 20000, color="lightgray", zorder=1)
-    q = quiver(x[:], y[:].+20000, U[:, 1], U[:, 2], units="width", color="cyan", edgecolor="k", linewidths=0.25, zorder=10)
-    quiverkey(q, X=0.0, Y=100, U=10000, label="Quiver key, length = 10", labelpos="E")
+    quiver(x[:], y[:].+20000, U[:, 1], U[:, 2], units="width", color="cyan", edgecolor="k", linewidths=0.25, zorder=10)
     xlabel("x (m)")
     ylabel("y (m)")
     gca().set_aspect("equal")
