@@ -45,23 +45,23 @@ function gravitydislocation()
     npts = 100
     L = 1e4
     offset = 10
-    x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts) 
+    x, y = obsgrid(-30000+offset, -20000+offset, 30000-offset, 0-offset, npts) 
 
     # Define external boundary geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretizedline(-L, -2*L, L, -2*L, nels) # Bottom
+    x1, y1, x2, y2 = discretizedline(-30000, -20000, 30000, -20000, nels) # Bottom
     addelsez!(els, x1, y1, x2, y2, "B")
-    x1, y1, x2, y2 = discretizedline(L, -2*L, L, 0, nels) # Right hand side
+    x1, y1, x2, y2 = discretizedline(30000, -20000, 30000, 0, nels) # Right hand side
     addelsez!(els, x1, y1, x2, y2, "R")
-    x1, y1, x2, y2 = discretizedline(L, 0, -L, 0, nels) # Top
+    x1, y1, x2, y2 = discretizedline(30000, 0, -30000, 0, nels) # Top
     addelsez!(els, x1, y1, x2, y2, "T")
-    x1, y1, x2, y2 = discretizedline(-L, 0, -L, -2*L, nels) # Left hand side
+    x1, y1, x2, y2 = discretizedline(-30000, 0, -30000, -20000, nels) # Left hand side
     addelsez!(els, x1, y1, x2, y2, "L")
     
     # Define dislocation geometry
-    x1, y1, x2, y2 = discretizedline(-5000, -5000, 0, 0, 1)
-    addelsez!(els, x1, y1, x2, y2, "D")
-    plotelements(els)
+    # x1, y1, x2, y2 = discretizedline(-5000, -5000, 0, 0, 1)
+    # addelsez!(els, x1, y1, x2, y2, "D")
+    # plotelements(els)
 
     # Common indexing
     idx = getidxdict(els) # Should this return "all" - YES TODO
@@ -100,7 +100,7 @@ function gravitydislocation()
     # Interior point solution for nice vector plot
     npts = 10
     offset = 500
-    x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts)
+    x, y = obsgrid(-30000+offset, -20000+offset, 30000-offset, 0-offset, npts) 
     Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
     U = @. Uinteriorcomplementary + Uinteriorparticular
