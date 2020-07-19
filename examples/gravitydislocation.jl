@@ -59,33 +59,35 @@ function gravitydislocation()
     addelsez!(els, x1, y1, x2, y2, "L")
     
     # Define dislocation geometry
-    # x1, y1, x2, y2 = discretizedline(-5000, -5000, 0, 0, 1)
-    # addelsez!(els, x1, y1, x2, y2, "D")
-    # plotelements(els)
+    x1, y1, x2, y2 = discretizedline(-5000, -5000, 0, 0, 1)
+    addelsez!(els, x1, y1, x2, y2, "D")
+    plotelements(els)
 
     # Common indexing
-    idx = getidxdict(els) # Should this return "all" - YES TODO
+    idx = getidxdict(els)
     bcidxU = idx["B"] # Boundaries with *displacement* BCs
     bcidxT = [idx["R"] ; idx["T"]; idx["L"]] # Boundaries with *traction* BCs
-    bcidxall = collect(1:1:els.endidx) # All boundaries
-
+    bcidxall = [idx["B"] ; idx["R"] ; idx["T"]; idx["L"]] # All exterior boundaries
+    nbcels = length(bcidxall)
+    
     # Gravity square problem with quadratic elements
     T_pU_qall, _ = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
     _, H_pT_qall = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
-
     TH = [T_pU_qall ; alpha .* H_pT_qall] # Assemble combined linear operator
 
     # Particular solution and effective boundary conditions
     xnodes = transpose(els.xnodes[idx["B"], :])[:]
     ynodes = transpose(els.ynodes[idx["B"], :])[:]
     UB, _ = gravityparticularfunctions(xnodes, ynodes, g, rho, lambda, mu)    
-    bcs = zeros(6 * els.endidx)
+    bcs = zeros(6 * nbcels)
     bcs[1:2:6*nels] = UB[:, 1] # Bottom boundary (x-component)
     bcs[2:2:6*nels] = UB[:, 2] # Bottom boundary (y-component)
     bcs *= -1 # This is neccesary for the right answer and is consistent with derivation
 
     # BEM solve to get particular solution
     ### Currently proken here because bcs depends on nels???
+    @show size(TH)
+    @show size(bcs)
     Ueffparticular = inv(TH) * bcs
 
     # Evaluate and plot interior solution
@@ -93,25 +95,9 @@ function gravitydislocation()
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
     U = @. Uinteriorcomplementary + Uinteriorparticular
     S = @. Sinteriorcomplementary + Sinteriorparticular
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
     plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
 
-    # Interior point solution for nice vector plot
-    npts = 10
-    offset = 500
-    x, y = obsgrid(-30000+offset, -20000+offset, 30000-offset, 0-offset, npts) 
-    Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
-    Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
-    U = @. Uinteriorcomplementary + Uinteriorparticular
-    S = @. Sinteriorcomplementary + Sinteriorparticular
-
-    # Plot of interior points
-    figure()
-    fill([-10000, 10000, 10000, -10000], [-20000, -20000, 0, 0] .+ 20000, color="lightgray", zorder=1)
-    quiver(x[:], y[:].+20000, U[:, 1], U[:, 2], units="width", color="cyan", edgecolor="k", linewidths=0.25, zorder=10)
-    xlabel("x (m)")
-    ylabel("y (m)")
-    gca().set_aspect("equal")
 end
 gravitydislocation()
