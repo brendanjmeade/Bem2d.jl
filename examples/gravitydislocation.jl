@@ -44,7 +44,7 @@ function gravitydislocation()
     nels = 20
     npts = 100
     L = 1e4
-    offset = 10
+    offset = 0.1
     x, y = obsgrid(-30000+offset, -20000+offset, 30000-offset, 0-offset, npts) 
 
     # Define external boundary geometry
@@ -61,7 +61,6 @@ function gravitydislocation()
     # Define dislocation geometry
     x1, y1, x2, y2 = discretizedline(-5000, -5000, 0, 0, 1)
     addelsez!(els, x1, y1, x2, y2, "D")
-    plotelements(els)
 
     # Common indexing
     idx = getidxdict(els)
@@ -69,35 +68,51 @@ function gravitydislocation()
     bcidxT = [idx["R"] ; idx["T"]; idx["L"]] # Boundaries with *traction* BCs
     bcidxall = [idx["B"] ; idx["R"] ; idx["T"]; idx["L"]] # All exterior boundaries
     nbcels = length(bcidxall)
-    
-    # Gravity square problem with quadratic elements
-    T_pU_qall, _ = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
-    _, H_pT_qall = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
-    TH = [T_pU_qall ; alpha .* H_pT_qall] # Assemble combined linear operator
+
+    ### Gravity only solution ###
+    # Kernels
+    T_pU_qall, H_pU_qall = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
+    T_pT_qall, H_pT_qall = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
+    THgravity = [T_pU_qall ; alpha .* H_pT_qall] # Assemble combined linear operator for gravity problem
 
     # Particular solution and effective boundary conditions
     xnodes = transpose(els.xnodes[idx["B"], :])[:]
     ynodes = transpose(els.ynodes[idx["B"], :])[:]
     UB, _ = gravityparticularfunctions(xnodes, ynodes, g, rho, lambda, mu)    
-    bcs = zeros(6 * nbcels)
-    bcs[1:2:6*nels] = UB[:, 1] # Bottom boundary (x-component)
-    bcs[2:2:6*nels] = UB[:, 2] # Bottom boundary (y-component)
-    bcs *= -1 # This is neccesary for the right answer and is consistent with derivation
+    bcsgravity = zeros(6 * nbcels)
+    bcsgravity[1:2:6*nels] = UB[:, 1] # Bottom boundary (x-component)
+    bcsgravity[2:2:6*nels] = UB[:, 2] # Bottom boundary (y-component)
+    bcsgravity *= -1 # This is neccesary for the right answer and is consistent with derivation
 
     # BEM solve to get particular solution
-    ### Currently proken here because bcs depends on nels???
-    @show size(TH)
-    @show size(bcs)
-    Ueffparticular = inv(TH) * bcs
+    Ueffparticular = inv(THgravity) * bcsgravity
 
     # Evaluate and plot interior solution
     Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
     Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
     U = @. Uinteriorcomplementary + Uinteriorparticular
     S = @. Sinteriorcomplementary + Sinteriorparticular
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorcomplementary, Sinteriorcomplementary, "Complementary solution")
-    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Uinteriorparticular, Sinteriorparticular, "Particular solution")
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
+    # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
 
+    ### Dislocation only solution ###
+    # Kernels
+    T_pB_qD, H_pB_qD = PUTQ(slip2dispstress, els, idx["B"], idx["D"], mu, nu)
+    T_pRTL_qD, H_pRTL_qD = PUTQ(slip2dispstress, els, bcidxT, idx["D"], mu, nu) 
+    T_pB_qBRTL, H_pD_qBRTL = PUTQ(slip2dispstress, els, idx["B"], bcidxall, mu, nu)
+    T_pRTL_qBRTL, H_pRTL_qBRTL = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
+    Ueffdislocation = -inv([T_pB_qBRTL ; alpha .* H_pRTL_qBRTL]) * [T_pB_qD ; alpha .* H_pRTL_qD]
+
+    # Forward model for volume
+    Uinteriorbcs, Sinteriorbcs = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffdislocation[1:2:end]), quadstack(Ueffdislocation[2:2:end]), mu, nu)
+    Uinteriordislocation, Sinteriordislocation = quaddispstress(slip2dispstress, x, y, els, idx["D"], [1 1 1], [1 1 1], mu, nu)
+    U = Uinteriordislocation .+ Uinteriorbcs
+    S = Sinteriordislocation .+ Sinteriorbcs
+
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts),
+               Uinteriordislocation, Sinteriordislocation, "Dislocation only")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts),
+               Uinteriorbcs, Sinteriorbcs, "Boundary correction")
+    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts),
+               U, S, "Dislocation + boundary correction")
 end
 gravitydislocation()
