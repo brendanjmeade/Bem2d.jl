@@ -16,7 +16,7 @@ function dislocationinabox()
 
     # Elment geometries and data structures for half space approximation
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretizedline(-50e3, 0, 50e3, 0, 200) # Free surface
+    x1, y1, x2, y2 = discretizedline(-50e3, 0, 50e3, 0, 50) # Free surface
     addelsez!(els, x1, y1, x2, y2, "surf")
     x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, 1) # 45 degree dipping fault
     addelsez!(els, x1, y1, x2, y2, "fault")
@@ -29,12 +29,9 @@ function dislocationinabox()
     Ueff = inv(H_surf_surf) * (H_surf_fault * faultslip)
     
     # Evaluate in a volume
-    npts = 50
-    x, y = obsgrid(-50e3, -20e3, 50e3, 0, npts)
-    Ufault, Sfault = constdispstress(slip2dispstress, x, y, els, idx["fault"], 1, 1, mu, nu)
-    Usurf, Ssurf = constdispstress(slip2dispstress, x, y, els, idx["surf"], Ueff[1:2:end], Ueff[2:2:end], mu, nu)
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Ufault, Sfault, "fault only")
-    plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), Usurf, Ssurf, "surface response")
+    Ufault, _ = constdispstress(slip2dispstress, els.xcenter[idx["surf"]], els.ycenter[idx["surf"]], els, idx["fault"], 1, 1, mu, nu)
+    Usurf, _ = constdispstress(slip2dispstress, els.xcenter[idx["surf"]], els.ycenter[idx["surf"]], els, idx["surf"], Ueff[1:2:end], Ueff[2:2:end], mu, nu)
+    Utotal = @. Ufault - Usurf
     
     # Plot surface displacements
     fontsize = 20
@@ -42,7 +39,11 @@ function dislocationinabox()
     linewidth = 2.0
     figure(figsize = (12, 12))
     ax = subplot(2, 1, 1)
-    plot(els.xcenter[idx["surf"]], Ueff[1:2:end], "b.", label="halfspace")
+    plot(els.xcenter[idx["surf"]], Ueff[1:2:end], "b.", label="Ueff")
+    plot(els.xcenter[idx["surf"]], Ufault[:, 1], "r+", label="fault only")
+    plot(els.xcenter[idx["surf"]], Usurf[:, 1], "rx", label="fault only")
+    plot(els.xcenter[idx["surf"]], Utotal[:, 1], "r.", label="total")
+    
     gca().set_xlim([-50e3, 50e3])
     gca().set_ylim([-1.0, 1.0])
     legend(fontsize=fontsize)
