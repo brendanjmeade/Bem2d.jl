@@ -1,6 +1,7 @@
 using Revise
 using PyPlot
 using PyCall
+using LinearAlgebra
 using Infiltrator
 using Bem2d
 
@@ -15,8 +16,9 @@ function dislocationinabox()
     mu = 30e9
     nu = 0.25
     alpha = 1e-7 # scalar preconditioner
-    npts = 50
-    xgrid, ygrid = obsgrid(-50e3, -20e3, 50e3, -1, npts)
+    npts = 100
+    # xgrid, ygrid = obsgrid(-50e3, -20e3, 50e3, -1, npts)
+    xgrid, ygrid = obsgrid(-30e3, -20e3, 30e3, -1, npts)
 
     # Element geometries and data structures for half space approximation
     els = Elements(Int(1e5))
@@ -52,7 +54,7 @@ function dislocationinabox()
     _, H_surf_all = PUTC(slip2dispstress, els, idx["surf"],
                          collect(1:1:els.endidx), mu, nu)
     bcs = zeros(2 * els.endidx)
-    bcs[1:2*nfault] .= -1 * sqrt(2) / 2
+    bcs[1:2*nfault] .= 1 * sqrt(2) / 2
     Ueffalt = inv([T_fault_all; alpha .* H_surf_all]) * bcs
     
     # Alternative forward evaluation
@@ -61,6 +63,42 @@ function dislocationinabox()
     plotfields(els, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                Ualt, Salt, "Alternative")
                
+    # Okada solution
+    ow = pyimport("okada_wrapper") # from okada_wrapper import dc3dwrapper
+    Uokada = zeros(length(xgrid), 2)
+    Sokada = zeros(length(xgrid), 3)
+    # dispokadats = zeros(length(x), 2)
+    # stressokadats = zeros(length(x), 3)
+    for i in 1:length(xgrid)
+        # Strike-slip
+        _, u, gradu = ow.dc3dwrapper((2.0/3.0),
+                                     [0.0, xgrid[i]+5e3, ygrid[i]],
+                                     5e3,
+                                     45,
+                                     [-1000000, 1000000],
+                                     [-5e3*sqrt(2), 5e3*sqrt(2)],
+                                     [0.0, 1.0, 0.0])
+        strain = @. 0.5 * (gradu' + gradu)
+        stress = mu*LinearAlgebra.I(3)*tr(strain) + 2.0*mu*strain
+        Uokada[i, 1] = u[2]
+        Uokada[i, 2] = u[3]
+        Sokada[i, 1] = stress[2, 2]
+        Sokada[i, 2] = stress[3, 3]
+        Sokada[i, 3] = stress[2, 3]
+
+        # # Tensile-slip
+        # _, u, gradu = ow.dc3dwrapper((2.0/3.0), [0.0, x[i], y[i]-deep], 0.0 + deep, 0.0, [-1000000, 1000000], [-0.5, 0.5], [0.0, 0.0, 1.0])
+        # strain = @. 0.5 * (gradu' + gradu)
+        # stress = mu*LinearAlgebra.I(3)*tr(strain) + 2.0*mu*strain
+        # dispokadats[i, 1] = u[2]
+        # dispokadats[i, 2] = u[3]
+        # stressokadats[i, 1] = stress[2, 2]
+        # stressokadats[i, 2] = stress[3, 3]
+        # stressokadats[i, 3] = stress[2, 3]
+    end
+    plotfields(els, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               Uokada, Sokada, "Okada")
+
     
     # # Plot surface displacements
     # fontsize = 20
