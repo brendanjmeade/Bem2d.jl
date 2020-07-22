@@ -25,12 +25,30 @@ function dislocationinabox()
     nfault = 1
     x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # 45 degree dipping fault
     addelsez!(elshalfspace, x1, y1, x2, y2, "fault")
-    nsurf = 800
+    nsurf = 100
     x1, y1, x2, y2 = discretizedline(-100e3, 0, 100e3, 0, nsurf) # Free surface
     addelsez!(elshalfspace, x1, y1, x2, y2, "surf")
     idxhalfspace = getidxdict(elshalfspace)
 
-    # Solve the BEM problem
+    # Element geometries and data structures for the box cases
+    elsbox = Elements(Int(1e5))
+    nfault = 1
+    x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # 45 degree dipping fault
+    addelsez!(elsbox, x1, y1, x2, y2, "fault")
+    nside = 40
+    x1, y1, x2, y2 = discretizedline(-30000, -20000, 30000, -20000, nside) # Bottom
+    addelsez!(elsbox, x1, y1, x2, y2, "B")
+    x1, y1, x2, y2 = discretizedline(30000, -20000, 30000, 0, nside) # Right hand side
+    addelsez!(elsbox, x1, y1, x2, y2, "R")
+    x1, y1, x2, y2 = discretizedline(30000, 0, -30000, 0, nside) # Top
+    addelsez!(elsbox, x1, y1, x2, y2, "T")
+    x1, y1, x2, y2 = discretizedline(-30000, 0, -30000, -20000, nside) # Left hand side
+    addelsez!(elsbox, x1, y1, x2, y2, "L")
+    idxbox = getidxdict(elsbox)
+
+    #
+    # Halfspace BEM problem
+    #
     _, H_surf_fault = PUTC(slip2dispstress, elshalfspace,
                            idxhalfspace["surf"], idxhalfspace["fault"], mu, nu)
     _, H_surf_surf = PUTC(slip2dispstress, elshalfspace,
@@ -105,6 +123,12 @@ function dislocationinabox()
                Utotalres, Stotalres, "Okada - Total")
         plotfields(elshalfspace, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                Ualtres, Saltres, "Okada - Alternative")
-    end    
+    end
+
+    #
+    # Box BEM problem
+    #
+
+
 end
 dislocationinabox()
