@@ -1137,4 +1137,22 @@ function thetasliplaw(v, theta, dc)
 end
 
 
+export gravityparticularfunctions
+"""
+    gravityparticularfunctions()
+
+From Pape and Bannerjee 1987
+"""
+function gravityparticularfunctions(x, y, g, rho, lambda, mu)
+    U = zeros(length(x), 2)
+    S = zeros(length(x), 3)
+    U[:, 1] = @. -lambda * rho * g / (4 * mu * (lambda + mu)) * x * y  # Pape and Banerjee (1987) equation (6a)
+    U[:, 2] = @. (rho * g) / (8 * mu * (lambda + mu)) * (lambda * x^2 + (lambda + 2 * mu) * y^2) # Pape and Banerjee (1987) equation (6b)
+    S[:, 1] .= 0 # Pape and Banerjee (1987) equation (6c)
+    S[:, 2] = @. rho * g * y  # Pape and Banerjee (1987) equation (6d)
+    S[:, 3] .= 0 # Pape and Banerjee (1987) equation (6e)
+    return U, S
+end
+
+
 end
