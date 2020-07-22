@@ -18,7 +18,8 @@ function dislocationinabox()
     nu = 0.25
     alpha = 1e-7 # scalar preconditioner
     npts = 50
-    xgrid, ygrid = obsgrid(-30e3, -20e3, 30e3, -1, npts)
+    offset = 1
+    xgrid, ygrid = obsgrid(-30e3+offset, -20e3+offset, 30e3-offset, -1-offset, npts)
 
     # Element geometries and data structures for half space approximation
     elshalfspace = Elements(Int(1e5))
@@ -86,8 +87,8 @@ function dislocationinabox()
     # Plot difference
     Udiff = @. Ualt - Utotal
     Sdiff = @. Salt - Stotal
-    plotfields(elshalfspace, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Udiff, Sdiff, "Alternative - Total")
+    # plotfields(elshalfspace, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+    #            Udiff, Sdiff, "Alternative - Total")
 
     # Okada comparison if on Linux.
     # I can only PyCall to see okada_wrapper there :(
@@ -128,7 +129,21 @@ function dislocationinabox()
     #
     # Box BEM problem
     #
-
+    T_faultB_faultBRTL, H_pfaultB_faultBRTL = PUTC(slip2dispstress, elsbox,
+                                                   [idxbox["fault"]; idxbox["B"]],
+                                                   collect(1:1:elsbox.endidx),
+                                                   mu, nu)
+    T_RTL_faultBRTL, H_RTL_faultBRTL = PUTC(slip2dispstress, elsbox,
+                                            [idxbox["R"]; idxbox["T"]; idxbox["L"]],
+                                            collect(1:1:elsbox.endidx),
+                                            mu, nu)
+    bcsbox = zeros(2*elsbox.endidx)
+    bcsbox[1:2] .= 0.5
+    Ueffbox = inv([T_faultB_faultBRTL ; alpha .* H_RTL_faultBRTL]) * bcsbox
+    Ubox, Sbox = constdispstress(slip2dispstress, xgrid, ygrid, elsbox,
+        collect(1:1:elsbox.endidx), Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
+    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               Ubox, Sbox, "Box")
 
 end
 dislocationinabox()
