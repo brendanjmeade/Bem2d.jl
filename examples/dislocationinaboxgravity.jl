@@ -20,7 +20,7 @@ function dislocationinabox()
     g = 9.81
     rho = 2700
     alpha = 1e-7 # scalar preconditioner
-    npts = 50
+    npts = 20
     offset = 1
     xgrid, ygrid = obsgrid(-30e3+offset, -20e3+offset, 30e3-offset, -1-offset, npts)
 
@@ -55,8 +55,8 @@ function dislocationinabox()
     Ueffbox = inv(THmat) * bcsbox
     Ubox, Sbox = constdispstress(slip2dispstress, xgrid, ygrid, elsbox,
         collect(1:1:elsbox.endidx), Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
-    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-    #            Ubox, Sbox, "Box")
+    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               Ubox, Sbox, "Dislocation only in box")
 
 
     #
@@ -74,34 +74,51 @@ function dislocationinabox()
     Uint, Sint = gravityparticularfunctions(xgrid, ygrid, g, rho, lambda, mu)
     U = @. Ucomp + Uint
     S = @. Scomp + Sint
-    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts), U, S, "Complementary + Particular solutions")
+    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               U, S, "Gravity on box edges only, no dislocation")
 
+
+    ### This is all super-strange with a slip BC on the dislocation
     
     #
     # Box BEM problem (dislocation and gravity)
     #
-
-    # Particular solution and effective boundary conditions
     Ug, Sg = gravityparticularfunctions(elsbox.xcenter[1:1:elsbox.endidx],
                                         elsbox.ycenter[1:1:elsbox.endidx], g, rho, lambda, mu)    
-    # bcsboxgravity = zeros(2 * length([idxbox["fault"]; idxbox["B"]]))
     bcsboxgravity = zeros(2 * elsbox.endidx)
+    bcsboxgravity[1:2:2*idxbox["B"][end]] = Ug[1:1:idxbox["B"][end], 1]
+    bcsboxgravity[2:2:2*idxbox["B"][end]] = Ug[1:1:idxbox["B"][end], 2]
+    bcsboxgravity *= -1
+    bcsboxgravity[1:2] .= 0.0 # Eliminate gravity here
+    Ueffboxparticular = inv(THmat) * bcsboxgravity    
+    Ucomp, Scomp = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, collect(1:1:elsbox.endidx),
+                                   Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
+    Uint, Sint = gravityparticularfunctions(xgrid, ygrid, g, rho, lambda, mu)
+    Udg = @. Ucomp + Uint
+    Sdg = @. Scomp + Sint
+    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               Udg, Sdg, "Gravity on box edges and dislocation")
     @infiltrate
     
-    # bcsboxgravity[1:2:6*nels] = UB[:, 1] # Bottom boundary (x-component)
-    # bcsboxgravity[2:2:6*nels] = UB[:, 2] # Bottom boundary (y-component)
-    # bcsboxgravity *= -1 # This is neccesary for the right answer and is consistent with derivation
+    #
+    # Box BEM gravity with a dislocation
+    #
+    bcsboxgravity = zeros(2 * elsbox.endidx)
+    bcsboxgravity[1:2:2*idxbox["B"][end]] = Ug[1:1:idxbox["B"][end], 1]
+    bcsboxgravity[2:2:2*idxbox["B"][end]] = Ug[1:1:idxbox["B"][end], 2]
+    bcsboxgravity *= -1
+    # bcsboxgravity[1:2] .+= 0.5
+    bcsboxgravity[1:2] .= 0.5 # Add fault slip and eliminate gravity here
+    @show cond(THmat)
+    Ueffboxparticular = inv(THmat) * bcsboxgravity    
+    Ucomp, Scomp = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, collect(1:1:elsbox.endidx),
+                                   Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
+    Uint, Sint = gravityparticularfunctions(xgrid, ygrid, g, rho, lambda, mu)
+    Udg2 = @. Ucomp + Uint
+    Sdg2 = @. Scomp + Sint
+    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               Udg2, Sdg2, "Gravity on box edges and dislocation")
 
-    # BEM solve to get particular solution
-    # Ueffparticular = inv(THmat) * bcsgravity
-
-    # # Evaluate and plot interior solution
-    # Uinteriorcomplementary, Sinteriorcomplementary = quaddispstress(slip2dispstress, x, y, els, bcidxall, quadstack(Ueffparticular[1:2:end]), quadstack(Ueffparticular[2:2:end]), mu, nu)
-    # Uinteriorparticular, Sinteriorparticular = gravityparticularfunctions(x, y, g, rho, lambda, mu)
-    # U = @. Uinteriorcomplementary + Uinteriorparticular
-    # S = @. Sinteriorcomplementary + Sinteriorparticular
-    # # plotfields(els, reshape(x, npts, npts), reshape(y, npts, npts), U, S, "Complementary + Particular solutions")
-
-
+    @infiltrate
 end
 dislocationinabox()
