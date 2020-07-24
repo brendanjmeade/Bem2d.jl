@@ -118,7 +118,11 @@ function dislocationinabox()
     #
     # Two layer box solutions
     #
-
+    bcslayer = zeros(2*elslayer.endidx)
+    bcslayer[4*nside:4*nside+1] .= 0.5
+    figure()
+    plot(bcslayer)
+    show()
     
 end
 dislocationinabox()
