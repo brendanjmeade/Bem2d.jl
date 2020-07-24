@@ -115,21 +115,70 @@ function dislocationinabox()
     #            Ubox, Sbox, "Box")
 
 
-    #
-    # Two layer box solutions
-    #
-    TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
-    C1idx = [idxlayer["F1"] ; idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
+    # #
+    # # Two layer box solutions
+    # #
+    # TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
+    # C1idx = [idxlayer["F1"] ; idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
+    # C2idx = [idxlayer["B2"] ; idxlayer["R2"] ; idxlayer["T2"] ; idxlayer["L2"]]
+    # C1idxlong = collect(minimum(C1idx):1:2*maximum(C1idx))
+    # C2idxlong = collect(2*minimum(C2idx):1:2*maximum(C2idx))
+    
+    # # Boundaries shared by C1 and C2
+    # T_B1_C1, H_B1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["B1"], C1idx, mu, nu)
+    # T_T2_C2, H_T2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["T2"], C2idx, mu, nu)
+
+    # # C1 only boundaries
+    # T_F1_C1, _ = PUTC(slip2dispstress, elslayer, idxlayer["F1"], C1idx, mu, nu)
+    # _, H_R1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["R1"], C1idx, mu, nu)
+    # _, H_T1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["T1"], C1idx, mu, nu)
+    # _, H_L1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L1"], C1idx, mu, nu)
+
+    # #C2 only boundaries
+    # T_B2_C2, _ = PUTC(slip2dispstress, elslayer, idxlayer["B2"], C2idx, mu, nu)
+    # _, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
+    # _, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
+
+    # # Place submatrices into large matrix
+    # TH[1:80, 1:322] = T_B1_C1
+    # TH[81:160, 1:322] = alpha .* H_B1_C1
+    # TH[1:80, 323:642] = T_T2_C2
+    # TH[81:160, 323:642] = -alpha .* H_T2_C2
+    # TH[161:162, 1:322] = T_F1_C1 # Fault
+    # TH[163:242, 1:322] = alpha .* H_R1_C1
+    # TH[243:322, 1:322] = alpha .* H_T1_C1
+    # TH[323:402, 1:322] = alpha .* H_L1_C1
+    # TH[403:482, 323:642] = T_B2_C2
+    # TH[483:562, 323:642] = alpha .* H_R2_C2
+    # TH[563:642, 323:642] = alpha .* H_L2_C2
+
+    # bcslayer = zeros(2*elslayer.endidx)
+    # bcslayer[1:2] .= 0.5
+
+    # Uefflayer = inv(TH) * bcslayer
+    # matshow(log10.(abs.(TH)))
+    # colorbar()
+    # title("TH")
+
+    # matshow(log10.(abs.(inv(TH))))
+    # colorbar()
+    # title("TH")
+
+    # figure()
+    # quiver(elslayer.xcenter[1:elslayer.endidx], elslayer.ycenter[1:elslayer.endidx],
+    #        Uefflayer[1:2:end], Uefflayer[2:2:end])
+
+
+    # Trying without fault (condition number is all that matters)
+    TH = zeros(2*elslayer.endidx-2, 2*elslayer.endidx-2)
+    C1idx = [idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
     C2idx = [idxlayer["B2"] ; idxlayer["R2"] ; idxlayer["T2"] ; idxlayer["L2"]]
-    C1idxlong = collect(minimum(C1idx):1:2*maximum(C1idx))
-    C2idxlong = collect(2*minimum(C2idx):1:2*maximum(C2idx))
     
     # Boundaries shared by C1 and C2
     T_B1_C1, H_B1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["B1"], C1idx, mu, nu)
     T_T2_C2, H_T2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["T2"], C2idx, mu, nu)
 
     # C1 only boundaries
-    T_F1_C1, _ = PUTC(slip2dispstress, elslayer, idxlayer["F1"], C1idx, mu, nu)
     _, H_R1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["R1"], C1idx, mu, nu)
     _, H_T1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["T1"], C1idx, mu, nu)
     _, H_L1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L1"], C1idx, mu, nu)
@@ -137,21 +186,42 @@ function dislocationinabox()
     #C2 only boundaries
     T_B2_C2, _ = PUTC(slip2dispstress, elslayer, idxlayer["B2"], C2idx, mu, nu)
     _, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
-    _, H_L2_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
+    _, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
 
     # Place submatrices into large matrix
-    TH[1:80, 1:322] = T_B1_C1
-    TH[81:160, 1:322] = H_B1_C1
-    TH[1:80, 323:642] = -T_T2_C2
-    TH[81:160, 323:642] = H_T2_C2
+    TH[1:80, 1:320] = T_B1_C1
+    TH[81:160, 1:320] = -alpha .* H_B1_C1
+    TH[1:80, 321:640] = T_T2_C2
+    TH[81:160, 321:640] = alpha .* H_T2_C2
+    TH[161:240, 1:320] = alpha .* H_R1_C1
+    TH[241:320, 1:320] = alpha .* H_T1_C1
+    TH[321:400, 1:320] = alpha .* H_L1_C1
+    TH[401:480, 321:640] = T_B2_C2
+    TH[481:560, 321:640] = alpha .* H_R2_C2
+    TH[561:640, 321:640] = alpha .* H_L2_C2
 
-    
+@show cond(TH)
+@show rank(TH)
 
-    bcslayer = zeros(2*elslayer.endidx)
-    bcslayer[4*nside:4*nside+1] .= 0.5
+    bcslayer = zeros(2*elslayer.endidx-2)
+    bcslayer[281:282] .= 0.5
 
+    Uefflayer = inv(TH) * bcslayer
     matshow(log10.(abs.(TH)))
     colorbar()
-    
+    title("TH")
+
+    matshow(log10.(abs.(inv(TH))))
+    colorbar()
+    title("TH")
+
+figure()
+plot(log10.(abs.(Uefflayer)))
+    figure()
+quiver(elslayer.xcenter[2:elslayer.endidx],
+       elslayer.ycenter[2:elslayer.endidx],
+       Uefflayer[1:2:end], Uefflayer[2:2:end])
+
+
 end
 dislocationinabox()
