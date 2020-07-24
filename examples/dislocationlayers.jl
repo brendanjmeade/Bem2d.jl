@@ -92,8 +92,8 @@ function dislocationinabox()
     U, S = constdispstress(slip2dispstress, xgrid, ygrid, elshalfspace,
                            collect(1:1:elshalfspace.endidx),
                            Ueff[1:2:end], Ueff[2:2:end], mu, nu)
-    plotfields(elshalfspace, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               U, S, "BEM halfspace")
+    # plotfields(elshalfspace, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+    #            U, S, "BEM halfspace")
 
     #
     # Box BEM problem
@@ -111,18 +111,47 @@ function dislocationinabox()
     Ueffbox = inv([T_faultB_faultBRTL ; alpha .* H_RTL_faultBRTL]) * bcsbox
     Ubox, Sbox = constdispstress(slip2dispstress, xgrid, ygrid, elsbox,
         collect(1:1:elsbox.endidx), Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
-    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ubox, Sbox, "Box")
+    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+    #            Ubox, Sbox, "Box")
 
 
     #
     # Two layer box solutions
     #
+    TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
+    C1idx = [idxlayer["F1"] ; idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
+    C2idx = [idxlayer["B2"] ; idxlayer["R2"] ; idxlayer["T2"] ; idxlayer["L2"]]
+    C1idxlong = collect(minimum(C1idx):1:2*maximum(C1idx))
+    C2idxlong = collect(2*minimum(C2idx):1:2*maximum(C2idx))
+    
+    # Boundaries shared by C1 and C2
+    T_B1_C1, H_B1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["B1"], C1idx, mu, nu)
+    T_T2_C2, H_T2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["T2"], C2idx, mu, nu)
+
+    # C1 only boundaries
+    T_F1_C1, _ = PUTC(slip2dispstress, elslayer, idxlayer["F1"], C1idx, mu, nu)
+    _, H_R1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["R1"], C1idx, mu, nu)
+    _, H_T1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["T1"], C1idx, mu, nu)
+    _, H_L1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L1"], C1idx, mu, nu)
+
+    #C2 only boundaries
+    T_B2_C2, _ = PUTC(slip2dispstress, elslayer, idxlayer["B2"], C2idx, mu, nu)
+    _, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
+    _, H_L2_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
+
+    # Place submatrices into large matrix
+    TH[1:80, 1:322] = T_B1_C1
+    TH[81:160, 1:322] = H_B1_C1
+    TH[1:80, 323:642] = -T_T2_C2
+    TH[81:160, 323:642] = H_T2_C2
+
+    
+
     bcslayer = zeros(2*elslayer.endidx)
     bcslayer[4*nside:4*nside+1] .= 0.5
-    figure()
-    plot(bcslayer)
-    show()
+
+    matshow(log10.(abs.(TH)))
+    colorbar()
     
 end
 dislocationinabox()
