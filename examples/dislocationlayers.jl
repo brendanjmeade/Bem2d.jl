@@ -78,6 +78,16 @@ function dislocationinabox()
     idxlayer = getidxdict(elslayer)
     plotelements(elslayer)
 
+
+    # Try a nice plot of elements, centroids and names
+    figure()
+    for i in length(keys(idxlayer))
+        idx = idxlayer[collect(keys(idxlayer))[i]]
+        @show i
+        @show idx
+        plot(elslayer.xcenter[idx], elslayer.ycenter[idx], ".r")
+    end
+    return
     
     #
     # Halfspace BEM solution
@@ -113,7 +123,7 @@ function dislocationinabox()
         collect(1:1:elsbox.endidx), Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
     # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
     #            Ubox, Sbox, "Box")
-
+    
 
     # #
     # # Two layer box solutions
@@ -139,6 +149,7 @@ function dislocationinabox()
     # _, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
     # _, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
 
+
     # # Place submatrices into large matrix
     # TH[1:80, 1:322] = T_B1_C1
     # TH[81:160, 1:322] = alpha .* H_B1_C1
@@ -159,6 +170,7 @@ function dislocationinabox()
     # matshow(log10.(abs.(TH)))
     # colorbar()
     # title("TH")
+    
 
     # matshow(log10.(abs.(inv(TH))))
     # colorbar()
@@ -167,6 +179,7 @@ function dislocationinabox()
     # figure()
     # quiver(elslayer.xcenter[1:elslayer.endidx], elslayer.ycenter[1:elslayer.endidx],
     #        Uefflayer[1:2:end], Uefflayer[2:2:end])
+
 
 
     # Trying without fault (condition number is all that matters)
@@ -213,12 +226,12 @@ function dislocationinabox()
     colorbar()
     title("TH")
 
-figure()
-plot(log10.(abs.(Uefflayer)))
     figure()
-quiver(elslayer.xcenter[2:elslayer.endidx],
-       elslayer.ycenter[2:elslayer.endidx],
-       Uefflayer[1:2:end], Uefflayer[2:2:end])
+    plot(log10.(abs.(Uefflayer)))
+    figure()
+    quiver(elslayer.xcenter[2:elslayer.endidx],
+           elslayer.ycenter[2:elslayer.endidx],
+           Uefflayer[1:2:end], Uefflayer[2:2:end])
 
     # Try a displacement only bottom layer problem
     T_B2_C2, H_B2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["B2"], C2idx, mu, nu)
@@ -234,6 +247,8 @@ quiver(elslayer.xcenter[2:elslayer.endidx],
     @show cond(TH)
     @show rank(TH)
     @show det(TH)
+    ## These are horrible :(
+    
 
     # Try a displacement only top layer problem
     T_B1_C1, H_B1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["B1"], C1idx, mu, nu)
@@ -249,6 +264,7 @@ quiver(elslayer.xcenter[2:elslayer.endidx],
     @show cond(TH)
     @show rank(TH)
     @show det(TH)
+    ## These are reasonable :)
 
 
 @infiltrate
