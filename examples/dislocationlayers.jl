@@ -152,7 +152,6 @@ function dislocationinabox()
     # _, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
     # _, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
 
-
     # # Place submatrices into large matrix
     # TH[1:80, 1:322] = T_B1_C1
     # TH[81:160, 1:322] = alpha .* H_B1_C1
@@ -170,19 +169,10 @@ function dislocationinabox()
     # bcslayer[1:2] .= 0.5
 
     # Uefflayer = inv(TH) * bcslayer
-    # matshow(log10.(abs.(TH)))
-    # colorbar()
-    # title("TH")
-    
-
-    # matshow(log10.(abs.(inv(TH))))
-    # colorbar()
-    # title("TH")
 
     # figure()
     # quiver(elslayer.xcenter[1:elslayer.endidx], elslayer.ycenter[1:elslayer.endidx],
     #        Uefflayer[1:2:end], Uefflayer[2:2:end])
-
 
 
     # Trying without fault (condition number is all that matters)
@@ -216,65 +206,27 @@ function dislocationinabox()
     TH[481:560, 321:640] = alpha .* H_R2_C2
     TH[561:640, 321:640] = alpha .* H_L2_C2
 
-
-    @show cond(TH)
-    @show rank(TH)
-    return
-
     bcslayer = zeros(2*elslayer.endidx-2)
     bcslayer[281:282] .= 0.5
-
     Uefflayer = inv(TH) * bcslayer
-    matshow(log10.(abs.(TH)))
-    colorbar()
-    title("TH")
 
-    matshow(log10.(abs.(inv(TH))))
-    colorbar()
-    title("TH")
-
-    figure()
-    plot(log10.(abs.(Uefflayer)))
     figure()
     quiver(elslayer.xcenter[2:elslayer.endidx],
            elslayer.ycenter[2:elslayer.endidx],
            Uefflayer[1:2:end], Uefflayer[2:2:end])
 
-    # Try a displacement only bottom layer problem
-    T_B2_C2, H_B2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["B2"], C2idx, mu, nu)
-    H_R2_C2, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
-    T_T2_C2, H_T2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["T2"], C2idx, mu, nu)
-    H_L2_C2, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
-    TH = zeros(320, 320)
-    TH[1:80, :] = T_B2_C2
-    TH[81:160, :] = alpha .* H_R2_C2
-    TH[161:240, :] = alpha .* H_T2_C2
-    TH[241:320, :] = alpha .* H_L2_C2
+    npts = 30
 
-    @show cond(TH)
-    @show rank(TH)
-    @show det(TH)
-    ## These are horrible :(
-    
+    # Try volume vidualization
+    # xgrid, ygrid = obsgrid(, , , npts)
+    xgrid, ygrid = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -1-offset, npts)
 
-    # Try a displacement only top layer problem
-    T_B1_C1, H_B1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["B1"], C1idx, mu, nu)
-    H_R1_C1, H_R1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["R1"], C1idx, mu, nu)
-    T_T1_C1, H_T1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["T1"], C1idx, mu, nu)
-    H_L1_C1, H_L1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L1"], C1idx, mu, nu)
-    TH = zeros(320, 320)
-    TH[1:80, :] = T_B1_C1
-    TH[81:160, :] = alpha .* H_R1_C1
-    TH[161:240, :] = alpha .* H_T1_C1
-    TH[241:320, :] = alpha .* H_L1_C1
-
-    @show cond(TH)
-    @show rank(TH)
-    @show det(TH)
-    ## These are reasonable :)
-
-
-@infiltrate
+    Ulayer, Slayer = constdispstress(slip2dispstress, xgrid, ygrid,
+                                     elslayer, collect(2:1:elslayer.endidx),
+                                     Uefflayer[1:2:end], Uefflayer[2:2:end], mu, nu)
+    plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               Ulayer, Slayer, "Layer - no fault")
+    @infiltrate
 
 end
 dislocationinabox()
