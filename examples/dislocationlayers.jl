@@ -196,9 +196,9 @@ function dislocationinabox()
 
     # Place submatrices into large matrix
     TH[1:80, 1:320] = T_B1_C1
-    TH[81:160, 1:320] = -alpha .* H_B1_C1
+    TH[81:160, 1:320] = alpha .* H_B1_C1
     TH[1:80, 321:640] = T_T2_C2
-    TH[81:160, 321:640] = alpha .* H_T2_C2
+    TH[81:160, 321:640] = -alpha .* H_T2_C2
     TH[161:240, 1:320] = alpha .* H_R1_C1
     TH[241:320, 1:320] = alpha .* H_T1_C1
     TH[321:400, 1:320] = alpha .* H_L1_C1
@@ -215,17 +215,43 @@ function dislocationinabox()
            elslayer.ycenter[2:elslayer.endidx],
            Uefflayer[1:2:end], Uefflayer[2:2:end])
 
+    # Try volume visualization
     npts = 30
-
-    # Try volume vidualization
-    # xgrid, ygrid = obsgrid(, , , npts)
     xgrid, ygrid = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -1-offset, npts)
+    xgrid1, ygrid1 = obsgrid(-30e3+offset, -15e3+offset, 30e3-offset, -1-offset, npts)
+    xgrid2, ygrid2 = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -15e3-offset, npts)
 
     Ulayer, Slayer = constdispstress(slip2dispstress, xgrid, ygrid,
                                      elslayer, collect(2:1:elslayer.endidx),
                                      Uefflayer[1:2:end], Uefflayer[2:2:end], mu, nu)
     plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                Ulayer, Slayer, "Layer - no fault")
+
+    # Layer 1
+    Ulayer1, Slayer1 = constdispstress(slip2dispstress, xgrid1, ygrid1,
+                                       elslayer, C1idx,
+                                       Uefflayer[1:2:end], Uefflayer[2:2:end],
+                                       mu, nu)
+    plotfields(elslayer, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+               Ulayer1, Slayer1, "Layer 1 - no fault")
+
+    # Layer 2
+    Ulayer2, Slayer2 = constdispstress(slip2dispstress, xgrid2, ygrid2,
+                                       elslayer, C2idx,
+                                       Uefflayer[1:2:end], Uefflayer[2:2:end],
+                                       mu, nu)
+    plotfields(elslayer, reshape(xgrid2, npts, npts), reshape(ygrid2, npts, npts),
+               Ulayer2, Slayer2, "Layer 2 - no fault")
+
+    # Plot combined displacements
+    uxmat1 = reshape(Ulayer1[:, 1], npts, npts)
+    uymat1 = reshape(Ulayer1[:, 2], npts, npts)
+    uxmat2 = reshape(Ulayer2[:, 1], npts, npts)
+    uymat2 = reshape(Ulayer2[:, 2], npts, npts)
+
+    uxmat = [uxmat1' ; uxmat2']
+    uymat = [uymat1' ; uymat2']
+    matshow(uxmat)
     @infiltrate
 
 end
