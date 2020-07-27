@@ -128,7 +128,7 @@ function discannulus()
     @show cond(Tstarr1)
     @show cond(Tstarr2)
     @show cond(Tstarr1 - Tstarr2)
-    @infiltrate
+    # @infiltrate
 
     #! Internal stresses from applied displacements
     Udisp, Sdisp = constdispstress(slip2dispstress, x, y, els, idx["r2"], Ur2x, Ur2y, mu, nu)

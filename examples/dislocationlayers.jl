@@ -261,7 +261,7 @@ function dislocationinabox()
                                      elslayer, collect(2:1:elslayer.endidx),
                                      Uefflayer[1:2:end], Uefflayer[2:2:end], mu, nu)
     plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ulayer, Slayer, "Layer - no fault")
+               Ulayer, Slayer, "Layer 1&2 - no fault")
 
     # Layer 1
     Ulayer1, Slayer1 = constdispstress(slip2dispstress, xgrid1, ygrid1,
