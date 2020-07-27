@@ -71,31 +71,32 @@ function discmaterial()
     mu = 3e10
     nu = 0.25
     p = -1.0e5 # Applied radial pressure over arc
-    theta0 = deg2rad(1.0) # Arc length over which pressure is applied
     nels = 360
-    R = nels / (2 * pi)
+    Ra = 1
+    Rb = 2
     npts = 50
-    x, y = obsgrid(-R, -R, R, R, npts)
+    x, y = obsgrid(-3, -3, 3, 3, npts)
     r = @. sqrt(x^2 + y^2)
 
-    # Define BEM Geometry
+    # Define BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, nels)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), Ra, nels)
     addelsez!(els, x1, y1, x2, y2, "a")
+    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), Rb, nels)
+    addelsez!(els, x1, y1, x2, y2, "b")
     idx = getidxdict(els)
 
     # Apply normal tractions everywhere and convert from radial to Cartesian
-    xtracC = zeros(els.endidx)
-    ytracC = zeros(els.endidx)
-    thetaels = @. atan(els.ycenter[1:1:els.endidx], els.xcenter[1:1:els.endidx])
-    for i in 1:els.endidx # Calcuate the x and y components of the tractions
+    xtraca = zeros(length(idx["a"]))
+    ytraca = zeros(length(idx["a"]))
+    for i in 1:length(idx["a"]) # Calcuate the x and y components of the tractions
         normalTractions = [0; p] # Pressure in fault normal component only.
-        xtracC[i], ytracC[i] = els.rotmat[i, :, :] * normalTractions
+        xtraca[i], ytraca[i] = els.rotmat[idx["a"][i], :, :] * normalTractions
     end
-
+    
     #Kernels
     T_a_a, H_a_a = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu, nu)
-    Ueff = inv(H_a_a) * interleave(xtracC, ytracC)
+    Ueff = inv(H_a_a) * interleave(xtraca, ytraca)
     U, S = constdispstress(slip2dispstress, x, y, els, idx["a"], Ueff[1:2:end], Ueff[2:2:end], mu, nu)
     
     #! Summary figure
@@ -104,23 +105,19 @@ function discmaterial()
     nrows = 3
     ncols = 3
 
-    # Applied tractions
-    subplot(nrows, ncols, 1)
-    plot(rad2deg.(thetaels), xtracC, ".r")
-    plot(rad2deg.(thetaels), ytracC, "+b")
-    title("applied tractions", fontsize=fontsize)
-    gca().tick_params(labelsize=fontsize)
-
     # Effective displacements
     subplot(nrows, ncols, 2)
-    plot(rad2deg.(thetaels), Ueff[1:2:end], ".r")
-    plot(rad2deg.(thetaels), Ueff[2:2:end], "+b")
+    plot(Ueff[1:2:end], ".r", label="ux")
+    plot(Ueff[2:2:end], "+b", label="uy")
+    legend()
     title("Effective displacements", fontsize=fontsize)
-    gca().tick_params(labelsize=fontsize)
 
     # BEM solutions
-    circle_subplot(nrows, ncols, 4, x, y, S[:, 1], npts, R, theta0, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 5, x, y, S[:, 2], npts, R, theta0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 6, x, y, S[:, 3], npts, R, theta0, "Sxy (DDM)")
+    circle_subplot(nrows, ncols, 4, x, y, U[:, 1], npts, Ra, 0, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 5, x, y, U[:, 2], npts, Ra, 0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 6, x, y, sqrt.(U[:, 1].^2 + U[:, 2].^2), npts, Ra, 0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 7, x, y, S[:, 1], npts, Ra, 0, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 8, x, y, S[:, 2], npts, Ra, 0, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 9, x, y, S[:, 3], npts, Ra, 0, "Sxy (DDM)")
 end
 discmaterial()
