@@ -70,24 +70,44 @@ function dislocationinabox()
     nfault = 1
     nside = 40
 
+    # x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # 45 degree dipping fault
+    # addelsez!(elslayer, x1, y1, x2, y2, "F1")
+    # x1, y1, x2, y2 = discretizedline(-30e3, -15e3, 30e3, -15e3, nside) # Bottom
+    # addelsez!(elslayer, x1, y1, x2, y2, "B1")
+    # x1, y1, x2, y2 = discretizedline(30e3, -15e3, 30e3, 0, nside) # Right hand side
+    # addelsez!(elslayer, x1, y1, x2, y2, "R1")
+    # x1, y1, x2, y2 = discretizedline(30e3, 0, -30e3, 0, nside) # Top
+    # addelsez!(elslayer, x1, y1, x2, y2, "T1")
+    # x1, y1, x2, y2 = discretizedline(-30e3, 0, -30e3, -15e3, nside) # Left hand side
+    # addelsez!(elslayer, x1, y1, x2, y2, "L1")
+    
+    # x1, y1, x2, y2 = discretizedline(-30e3, -30e3, 30e3, -30e3, nside) # Bottom
+    # addelsez!(elslayer, x1, y1, x2, y2, "B2")
+    # x1, y1, x2, y2 = discretizedline(30e3, -30e3, 30e3, -15e3, nside) # Right hand side
+    # addelsez!(elslayer, x1, y1, x2, y2, "R2")
+    # x1, y1, x2, y2 = discretizedline(30e3, -15e3, -30e3, -15e3, nside) # Top
+    # addelsez!(elslayer, x1, y1, x2, y2, "T2")
+    # x1, y1, x2, y2 = discretizedline(-30e3, -15e3, -30e3, -30e3, nside) # Left hand side
+    # addelsez!(elslayer, x1, y1, x2, y2, "L2")
+
     x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # 45 degree dipping fault
     addelsez!(elslayer, x1, y1, x2, y2, "F1")
-    x1, y1, x2, y2 = discretizedline(-30e3, -15e3, 30e3, -15e3, nside) # Bottom
+    x1, y1, x2, y2 = discretizedline(-30e3, -60e3, 30e3, -60e3, nside) # Bottom
     addelsez!(elslayer, x1, y1, x2, y2, "B1")
-    x1, y1, x2, y2 = discretizedline(30e3, -15e3, 30e3, 0, nside) # Right hand side
+    x1, y1, x2, y2 = discretizedline(30e3, -60e3, 30e3, 0, nside) # Right hand side
     addelsez!(elslayer, x1, y1, x2, y2, "R1")
     x1, y1, x2, y2 = discretizedline(30e3, 0, -30e3, 0, nside) # Top
     addelsez!(elslayer, x1, y1, x2, y2, "T1")
-    x1, y1, x2, y2 = discretizedline(-30e3, 0, -30e3, -15e3, nside) # Left hand side
+    x1, y1, x2, y2 = discretizedline(-30e3, 0, -30e3, -60e3, nside) # Left hand side
     addelsez!(elslayer, x1, y1, x2, y2, "L1")
     
-    x1, y1, x2, y2 = discretizedline(-30e3, -30e3, 30e3, -30e3, nside) # Bottom
+    x1, y1, x2, y2 = discretizedline(-30e3, -120e3, 30e3, -120e3, nside) # Bottom
     addelsez!(elslayer, x1, y1, x2, y2, "B2")
-    x1, y1, x2, y2 = discretizedline(30e3, -30e3, 30e3, -15e3, nside) # Right hand side
+    x1, y1, x2, y2 = discretizedline(30e3, -120e3, 30e3, -60e3, nside) # Right hand side
     addelsez!(elslayer, x1, y1, x2, y2, "R2")
-    x1, y1, x2, y2 = discretizedline(30e3, -15e3, -30e3, -15e3, nside) # Top
+    x1, y1, x2, y2 = discretizedline(30e3, -60e3, -30e3, -60e3, nside) # Top
     addelsez!(elslayer, x1, y1, x2, y2, "T2")
-    x1, y1, x2, y2 = discretizedline(-30e3, -15e3, -30e3, -30e3, nside) # Left hand side
+    x1, y1, x2, y2 = discretizedline(-30e3, -60e3, -30e3, -120e3, nside) # Left hand side
     addelsez!(elslayer, x1, y1, x2, y2, "L2")
 
     idxlayer = getidxdict(elslayer)
@@ -98,15 +118,11 @@ function dislocationinabox()
     figure()
     for i in 1:length(keys(idxlayer))
         idx = idxlayer[collect(keys(idxlayer))[i]]
-        @show i
-        @show idx
         plot(elslayer.xcenter[idx], elslayer.ycenter[idx], "or", markersize=1)
     end
     gca().set_aspect("equal")
     xlabel("x (m)")
     ylabel("y (m)")
-    
-    return
     
     #
     # Halfspace BEM solution
