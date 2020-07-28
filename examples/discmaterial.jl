@@ -81,15 +81,34 @@ function discmaterial()
         xtraca[i], ytraca[i] = els.rotmat[idx["a"][i], :, :] * normalTractions
     end
     
-    # Kernels
-    T_a_a, H_a_a = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu, nu)
-    T_b_a, H_b_a = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu, nu)
-    T_b_b, H_b_b = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu, nu)
+    # Kernels and assembly
+    TH = zeros(6*nels, 6*nels)
 
-    Ueff = inv(H_a_a) * interleave(xtraca, ytraca)
+    # Region 1 materials
+    T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu, nu)    
+    T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu, nu)
+    T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu, nu)
 
-    @infiltrate
-    return
+    # Region 2 materials
+    alpha = 1
+    T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b"], idx["b"], 2*mu, nu)
+    TH[1:720, 1:720] = T_b2_b2
+    TH[1:720, 721:1440] = T_b1_b1
+    TH[1:720, 1441:2160] = T_b1_a1
+    TH[721:1440, 1:720] = alpha .* H_b2_b2
+    TH[721:1440, 721:1440] = alpha .* H_b1_b1
+    TH[721:1440, 1441:2160] = alpha .* H_b1_a1
+    TH[1441:2160, 1441:2160] = alpha .* H_a1_a1
+    matshow(log10.(abs.(TH)))
+    colorbar()
+    bcs = zeros(6*nels)
+    bcs[1441:2160] = interleave(xtraca, ytraca)
+    @show cond(TH)
+    
+    # Solve BEM problem
+    # Ueff = inv(H_a1_a1) * interleave(xtraca, ytraca)
+    Ueff = (H_a1_a1) \ interleave(xtraca, ytraca)
+    @show cond(H_a1_a1)
     
     U, S = constdispstress(slip2dispstress, x, y, els, idx["a"], Ueff[1:2:end], Ueff[2:2:end], mu, nu)
     
