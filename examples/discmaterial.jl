@@ -106,10 +106,15 @@ function discmaterial()
     @show cond(TH)
     
     # Solve BEM problem
-    # Ueff = inv(H_a1_a1) * interleave(xtraca, ytraca)
-    Ueff = (H_a1_a1) \ interleave(xtraca, ytraca)
-    @show cond(H_a1_a1)
-    
+    Ueff = H_a1_a1 \ interleave(xtraca, ytraca)
+    Ueff = TH \ bcs
+
+    @show size(Ueff)
+    @show 2*els.endidx
+
+    @infiltrate
+    return
+    # Forward evaluation
     U, S = constdispstress(slip2dispstress, x, y, els, idx["a"], Ueff[1:2:end], Ueff[2:2:end], mu, nu)
     
     # Summary figure
@@ -124,12 +129,12 @@ function discmaterial()
     legend()
     title("Ueff")
 
-    # BEM solutions
-    circle_subplot(nrows, ncols, 4, els, x, y, U[:, 1], npts, "ux (DDM)")
-    circle_subplot(nrows, ncols, 5, els, x, y, U[:, 2], npts, "uy (DDM)")
-    circle_subplot(nrows, ncols, 6, els, x, y, sqrt.(U[:, 1].^2 + U[:, 2].^2), npts, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 7, els, x, y, S[:, 1], npts, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 8, els, x, y, S[:, 2], npts, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 9, els, x, y, S[:, 3], npts, "Sxy (DDM)")
+    # # BEM solutions
+    # circle_subplot(nrows, ncols, 4, els, x, y, U[:, 1], npts, "ux (DDM)")
+    # circle_subplot(nrows, ncols, 5, els, x, y, U[:, 2], npts, "uy (DDM)")
+    # circle_subplot(nrows, ncols, 6, els, x, y, sqrt.(U[:, 1].^2 + U[:, 2].^2), npts, "Syy (DDM)")
+    # circle_subplot(nrows, ncols, 7, els, x, y, S[:, 1], npts, "Sxx (DDM)")
+    # circle_subplot(nrows, ncols, 8, els, x, y, S[:, 2], npts, "Syy (DDM)")
+    # circle_subplot(nrows, ncols, 9, els, x, y, S[:, 3], npts, "Sxy (DDM)")
 end
 discmaterial()
