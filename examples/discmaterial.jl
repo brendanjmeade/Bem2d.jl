@@ -30,34 +30,21 @@ end
 
 Plot field (displacement, stress) within a circular disk and style
 """
-function circle_subplot(nrows, ncols, plotidx, x, y, mat, npts, R, theta0, title_string)
-    fontsize = 12
+function circle_subplot(nrows, ncols, plotidx, els, x, y, mat, npts, title_string)
     contour_levels = 100
     contour_color = "white"
     contour_linewidth = 0.5
-    color_scale = 1
 
     subplot(nrows, ncols, plotidx)
     contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels)
     cbar = colorbar(fraction=0.05, pad=0.05, extend = "both")
-    cbar.ax.tick_params(labelsize=fontsize)
     contour(reshape(x, npts, npts), reshape(y, npts, npts), reshape(mat, npts, npts), levels=contour_levels, colors=contour_color, linewidths=contour_linewidth)
-    xlabel("x (m)", fontsize=fontsize)
-    ylabel("y (m)", fontsize=fontsize)
-    title(title_string, fontsize=fontsize)
-
-    # Draw entire circle and region of applied tractions
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), R, 360)
-    plot([x1, x2], [y1, y2], "-k", linewidth=2)
-    x1, y1, x2, y2 = discretized_arc(-theta0, theta0, R, 50)
-    plot([x1, x2], [y1, y2], "-r", linewidth=2)
-    x1, y1, x2, y2 = discretized_arc(-theta0+deg2rad(180), theta0+deg2rad(180), R, 50)
-    plot([x1, x2], [y1, y2], "-r", linewidth=2)
+    xlabel("x (m)")
+    ylabel("y (m)")
+    title(title_string)
+    plotelements(els)
     gca().set_aspect("equal")
-    gca().tick_params(labelsize=fontsize)
 end
-
-
 
 
 """
@@ -74,7 +61,7 @@ function discmaterial()
     nels = 360
     Ra = 1
     Rb = 2
-    npts = 50
+    npts = 200
     x, y = obsgrid(-3, -3, 3, 3, npts)
     r = @. sqrt(x^2 + y^2)
 
@@ -94,14 +81,20 @@ function discmaterial()
         xtraca[i], ytraca[i] = els.rotmat[idx["a"][i], :, :] * normalTractions
     end
     
-    #Kernels
+    # Kernels
     T_a_a, H_a_a = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu, nu)
+    T_b_a, H_b_a = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu, nu)
+    T_b_b, H_b_b = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu, nu)
+
     Ueff = inv(H_a_a) * interleave(xtraca, ytraca)
+
+    @infiltrate
+    return
+    
     U, S = constdispstress(slip2dispstress, x, y, els, idx["a"], Ueff[1:2:end], Ueff[2:2:end], mu, nu)
     
-    #! Summary figure
+    # Summary figure
     figure(figsize=(30,20))
-    fontsize = 12
     nrows = 3
     ncols = 3
 
@@ -110,14 +103,14 @@ function discmaterial()
     plot(Ueff[1:2:end], ".r", label="ux")
     plot(Ueff[2:2:end], "+b", label="uy")
     legend()
-    title("Effective displacements", fontsize=fontsize)
+    title("Ueff")
 
     # BEM solutions
-    circle_subplot(nrows, ncols, 4, x, y, U[:, 1], npts, Ra, 0, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 5, x, y, U[:, 2], npts, Ra, 0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 6, x, y, sqrt.(U[:, 1].^2 + U[:, 2].^2), npts, Ra, 0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 7, x, y, S[:, 1], npts, Ra, 0, "Sxx (DDM)")
-    circle_subplot(nrows, ncols, 8, x, y, S[:, 2], npts, Ra, 0, "Syy (DDM)")
-    circle_subplot(nrows, ncols, 9, x, y, S[:, 3], npts, Ra, 0, "Sxy (DDM)")
+    circle_subplot(nrows, ncols, 4, els, x, y, U[:, 1], npts, "ux (DDM)")
+    circle_subplot(nrows, ncols, 5, els, x, y, U[:, 2], npts, "uy (DDM)")
+    circle_subplot(nrows, ncols, 6, els, x, y, sqrt.(U[:, 1].^2 + U[:, 2].^2), npts, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 7, els, x, y, S[:, 1], npts, "Sxx (DDM)")
+    circle_subplot(nrows, ncols, 8, els, x, y, S[:, 2], npts, "Syy (DDM)")
+    circle_subplot(nrows, ncols, 9, els, x, y, S[:, 3], npts, "Sxy (DDM)")
 end
 discmaterial()
