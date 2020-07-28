@@ -59,9 +59,9 @@ function discmaterial()
     nu = 0.25
     p = -1.0e5 # Applied radial pressure over arc
     nels = 360
-    Ra = 1
-    Rb = 2
-    npts = 200
+    Ra = 0.5
+    Rb = 1.0
+    npts = 50
     x, y = obsgrid(-3, -3, 3, 3, npts)
     r = @. sqrt(x^2 + y^2)
 
@@ -85,13 +85,13 @@ function discmaterial()
     TH = zeros(6*nels, 6*nels)
 
     # Region 1 materials
-    T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu, nu)    
-    T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu, nu)
-    T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu, nu)
+    T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], 2*mu, nu)    
+    T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b"], idx["a"], 2*mu, nu)
+    T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b"], idx["b"], 2*mu, nu)
 
     # Region 2 materials
     alpha = 1
-    T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b"], idx["b"], 2*mu, nu)
+    T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b"], idx["b"], 1*mu, nu)
     TH[1:720, 1:720] = T_b2_b2
     TH[1:720, 721:1440] = T_b1_b1
     TH[1:720, 1441:2160] = T_b1_a1
@@ -106,35 +106,99 @@ function discmaterial()
     @show cond(TH)
     
     # Solve BEM problem
-    Ueff = H_a1_a1 \ interleave(xtraca, ytraca)
     Ueff = TH \ bcs
-
-    @show size(Ueff)
-    @show 2*els.endidx
-
-    @infiltrate
-    return
-    # Forward evaluation
-    U, S = constdispstress(slip2dispstress, x, y, els, idx["a"], Ueff[1:2:end], Ueff[2:2:end], mu, nu)
-    
-    # Summary figure
-    figure(figsize=(30,20))
-    nrows = 3
-    ncols = 3
+    Ueffb2 = Ueff[1:1:720]
+    Ueffb1 = Ueff[721:1:1440]
+    Ueffa1 = Ueff[1441:1:2160]
 
     # Effective displacements
-    subplot(nrows, ncols, 2)
-    plot(Ueff[1:2:end], ".r", label="ux")
-    plot(Ueff[2:2:end], "+b", label="uy")
-    legend()
-    title("Ueff")
+    # figure(figsize=(20, 10))
+    # subplot(1, 2, 1)
+    # plot(Ueff[1:2:end], ".r", label="ux")
+    # plot(Ueff[2:2:end], "+b", label="uy")
+    # legend()
+    # title("Ueff - whole vector")
 
-    # # BEM solutions
-    # circle_subplot(nrows, ncols, 4, els, x, y, U[:, 1], npts, "ux (DDM)")
-    # circle_subplot(nrows, ncols, 5, els, x, y, U[:, 2], npts, "uy (DDM)")
-    # circle_subplot(nrows, ncols, 6, els, x, y, sqrt.(U[:, 1].^2 + U[:, 2].^2), npts, "Syy (DDM)")
-    # circle_subplot(nrows, ncols, 7, els, x, y, S[:, 1], npts, "Sxx (DDM)")
-    # circle_subplot(nrows, ncols, 8, els, x, y, S[:, 2], npts, "Syy (DDM)")
-    # circle_subplot(nrows, ncols, 9, els, x, y, S[:, 3], npts, "Sxy (DDM)")
+    # subplot(1, 2, 2)
+    # plot(Ueffb2, ".r", label="ux, b2")
+    # plot(Ueffb1, ".b", label="ux, b1")
+    # plot(Ueffa1, ".g", label="ux, a1")
+    # legend()
+    # title("Ueff - subset selection")
+
+    # figure(figsize=(20, 10))
+    # subplot(1, 3, 1)
+    # quiver(els.xcenter[idx["b"]], els.ycenter[idx["b"]],
+    #        Ueffb2[1:2:end], Ueffb2[2:2:end])
+    # gca().set_aspect("equal")
+    # title("Ueff b2")
+
+    # subplot(1, 3, 2)
+    # quiver(els.xcenter[idx["b"]], els.ycenter[idx["b"]],
+    #        Ueffb1[1:2:end], Ueffb1[2:2:end])
+    # gca().set_aspect("equal")
+    # title("Ueff b1")
+
+    # subplot(1, 3, 3)
+    # quiver(els.xcenter[idx["a"]], els.ycenter[idx["a"]],
+    #        Ueffa1[1:2:end], Ueffa1[2:2:end])
+    # gca().set_aspect("equal")
+    # title("Ueff a1")
+
+    # Forward line evaluation
+    nprof = 100
+    xprof = LinRange(0.51, 1.49, nprof)
+    yprof = zeros(size(xprof))    
+    Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els,
+                               idx["b"],
+                               Ueffb2[1:2:end], Ueffb2[2:2:end], 1*mu, nu)
+    Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els,
+                               idx["b"],
+                               Ueffb1[1:2:end], Ueffb1[2:2:end], 2*mu, nu)
+    Ua1, Sa1 = constdispstress(slip2dispstress, xprof, yprof, els,
+                               idx["a"],
+                               Ueffa1[1:2:end], Ueffa1[2:2:end], 2*mu, nu)
+
+    # Analytic solution    
+    figure(figsize=(6,6))
+    subplot(2, 1, 1)
+    plot(xprof, Sb2[:, 1] ./ p, "-g", label=L"\sigma_{yy}, b2")
+    plot(xprof, Sb1[:, 1] ./ p, "-r", label=L"\sigma_{yy}, b1")
+    plot(xprof, Sa1[:, 1] ./ p, "-b", label=L"\sigma_{yy}, a1")
+    xlabel("x / b")
+    ylabel(L"\sigma_{yy} / p")
+    legend()
+
+    subplot(2, 1, 2)
+    plot(xprof, Sb2[:, 1] ./ p, "-g", label=L"\sigma_{xx}, b2")
+    plot(xprof, Sb1[:, 1] ./ p, "-r", label=L"\sigma_{xx}, b1")
+    plot(xprof, Sa1[:, 1] ./ p, "-b", label=L"\sigma_{xx}, a1")
+    xlabel("x / b")
+    ylabel(L"\sigma_{xx} / p")
+    legend()
+    
+    # Forward volume evaluation
+    # Ub2, Sb2 = constdispstress(slip2dispstress, x, y, els,
+    #                            idx["b"],
+    #                            Ueffb2[1:2:end], Ueffb2[2:2:end], 2*mu, nu)
+    # Ub1, Sb1 = constdispstress(slip2dispstress, x, y, els,
+    #                            idx["b"],
+    #                            Ueffb1[1:2:end], Ueffb1[2:2:end], mu, nu)
+    # Ua1, Sa1 = constdispstress(slip2dispstress, x, y, els,
+    #                            idx["a"],
+    #                            Ueffa1[1:2:end], Ueffa1[2:2:end], mu, nu)
+        
+    # # Summary figure
+    # figure(figsize=(20,10))
+    # nrows = 3
+    # ncols = 4
+    
+    # # Volume solutions
+    # circle_subplot(nrows, ncols, 1, els, x, y, Ub2[:, 1], npts, "ux (b2)")
+    # circle_subplot(nrows, ncols, 2, els, x, y, Ub2[:, 2], npts, "uy (b2)")
+    # circle_subplot(nrows, ncols, 5, els, x, y, Ub1[:, 1], npts, "ux (b1)")
+    # circle_subplot(nrows, ncols, 6, els, x, y, Ub1[:, 2], npts, "uy (b1)")
+    # circle_subplot(nrows, ncols, 9, els, x, y, Ua1[:, 1], npts, "ux (a1)")
+    # circle_subplot(nrows, ncols, 10, els, x, y, Ua1[:, 2], npts, "uy (a1)")
 end
 discmaterial()
