@@ -121,7 +121,10 @@ function discmaterial()
     # Forward line evaluation
     nprof = 100
     xprof = LinRange(0.51, 1.49, nprof)
-    yprof = zeros(size(xprof))    
+    yprof = zeros(size(xprof))
+    aidx = findall(x -> x<=b, xprof)
+    bidx = findall(x -> x>b, xprof)
+
     Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els,
                                idx["b"],
                                Ueffb2[1:2:end], Ueffb2[2:2:end], mu2, nu2)
@@ -133,29 +136,44 @@ function discmaterial()
                                Ueffa1[1:2:end], Ueffa1[2:2:end], mu1, nu1)
 
     # Analytic solution
+    nprofanalytic = 10000
+    # xprofanalytic = LinRange(0.51, 1.49, nprofanalytic)
+    r = LinRange(0.51, 1.49, nprofanalytic)
+    aidx = findall(x -> x<=b, r)
+    bidx = findall(x -> x>b, r)
     pprime = (2*(1-nu1)*p*a^2/b^2) / (2*(1-nu1)+(mu1/mu2-1)*(1-a^2/b^2))
-    Srr2 = @. -pprime * b^2 / xprof^2
-    Stt2 = @. pprime * b^2 / xprof^2
+    a2b2 = a^2/b^2
+    Srr1 = @. 1/(1-a2b2) * (p*a2b2-pprime - (p-pprime)*a^2/r^2)
+    Stt1 = @. 1/(1-a2b2) * (p*a2b2-pprime + (p-pprime)*a^2/r^2)
+    Srr2 = @. -pprime * b^2 / r^2
+    Stt2 = @. pprime * b^2 / r^2
+    Srr = zeros(size(Srr1))
+    Stt = zeros(size(Stt1))
+    Srr[aidx] = Srr1[aidx]
+    Srr[bidx] = Srr2[bidx]
+    Stt[aidx] = Stt1[aidx]
+    Stt[bidx] = Stt2[bidx]
     
-
     # Graphically compare analytic and BEM solutions
+    linewidth = 0.5
     figure(figsize=(6,6))
     subplot(2, 1, 1)
-    plot(xprof, Stt2 ./ p, "-k", label="analytic")
-    plot(xprof, Sb2[:, 1] ./ p, "-g", label=L"\sigma_{yy}, b_2")
-    plot(xprof, Sb1[:, 1] ./ p, "-r", label=L"\sigma_{yy}, b_1")
-    plot(xprof, Sa1[:, 1] ./ p, "-b", label=L"\sigma_{yy}, a_1")
+    plot(r, Stt ./ p, "-k", linewidth=linewidth, label="analytic")
+    plot(xprof, Sb2[:, 1] ./ p, ".g", label=L"\sigma_{yy}, b_2")
+    plot(xprof, Sb1[:, 1] ./ p, ".r", label=L"\sigma_{yy}, b_1")
+    plot(xprof, Sa1[:, 1] ./ p, ".b", label=L"\sigma_{yy}, a_1")
     xlabel(L"x / b")
     ylabel(L"\sigma_{yy} / p")
     legend()
 
     subplot(2, 1, 2)
-    plot(xprof, Srr2 ./ p, "-k", label="analytic")
-    plot(xprof, Sb2[:, 1] ./ p, "-g", label=L"\sigma_{xx}, b_2")
-    plot(xprof, Sb1[:, 1] ./ p, "-r", label=L"\sigma_{xx}, b_1")
-    plot(xprof, Sa1[:, 1] ./ p, "-b", label=L"\sigma_{xx}, a_1")
+    plot(r, Srr ./ p, "-k", linewidth=linewidth, label="analytic")
+    plot(xprof, Sb2[:, 1] ./ p, ".g", label=L"\sigma_{xx}, b_2")
+    plot(xprof, Sb1[:, 1] ./ p, ".r", label=L"\sigma_{xx}, b_1")
+    plot(xprof, Sa1[:, 1] ./ p, ".b", label=L"\sigma_{xx}, a_1")
     xlabel(L"x / b")
     ylabel(L"\sigma_{xx} / p")
     legend()
+    @infiltrate
 end
 discmaterial()
