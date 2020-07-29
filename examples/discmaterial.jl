@@ -90,6 +90,7 @@ function discmaterial()
     T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu1, nu1)    
     T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu1, nu1)
     T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu1, nu1)
+    T_a1_b1, H_a1_b1 = PUTC(slip2dispstress, els, idx["a"], idx["b"], mu1, nu1)
 
     # Region 2 materials
     T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu2, nu2)
@@ -101,9 +102,11 @@ function discmaterial()
     TH[721:1440, 1:720] = H_b2_b2
     TH[721:1440, 721:1440] = H_b1_b1
     TH[721:1440, 1441:2160] = H_b1_a1
+    TH[1441:2160, 721:1440] = H_a1_b1 # Was I missing this before?
     TH[1441:2160, 1441:2160] = H_a1_a1
     bcs = zeros(6*nels)
     bcs[1441:2160] = interleave(xtraca, ytraca)
+    matshow(log10.(abs.(TH)))
     
     # Solve BEM problem
     Ueff = TH \ bcs
@@ -119,26 +122,21 @@ function discmaterial()
     # title("Ueff - whole vector")
     
     # Forward line evaluation
-    nprof = 100
+    nprof = 70
     xprof = LinRange(0.51, 1.49, nprof)
     yprof = zeros(size(xprof))
-    aidx = findall(x -> x<=b, xprof)
-    bidx = findall(x -> x>b, xprof)
-
-    Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els,
-                               idx["b"],
+    aidx = findall(x -> x <= b, xprof)
+    bidx = findall(x -> x > b, xprof)
+    Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b"],
                                Ueffb2[1:2:end], Ueffb2[2:2:end], mu2, nu2)
-    Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els,
-                               idx["b"],
+    Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b"],
                                Ueffb1[1:2:end], Ueffb1[2:2:end], mu1, nu1)
-    Ua1, Sa1 = constdispstress(slip2dispstress, xprof, yprof, els,
-                               idx["a"],
+    Ua1, Sa1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["a"],
                                Ueffa1[1:2:end], Ueffa1[2:2:end], mu1, nu1)
 
     # Analytic solution
     nprofanalytic = 10000
-    # xprofanalytic = LinRange(0.51, 1.49, nprofanalytic)
-    r = LinRange(0.51, 1.49, nprofanalytic)
+    r = LinRange(0.5+1e-3, 1.50-1e-3, nprofanalytic)
     aidx = findall(x -> x<=b, r)
     bidx = findall(x -> x>b, r)
     pprime = (2*(1-nu1)*p*a^2/b^2) / (2*(1-nu1)+(mu1/mu2-1)*(1-a^2/b^2))
@@ -155,25 +153,28 @@ function discmaterial()
     Stt[bidx] = Stt2[bidx]
     
     # Graphically compare analytic and BEM solutions
-    linewidth = 0.5
-    figure(figsize=(6,6))
+    linewidth = 1.0
+    figure(figsize=(8, 8))
     subplot(2, 1, 1)
     plot(r, Stt ./ p, "-k", linewidth=linewidth, label="analytic")
     plot(xprof, Sb2[:, 1] ./ p, ".g", label=L"\sigma_{yy}, b_2")
     plot(xprof, Sb1[:, 1] ./ p, ".r", label=L"\sigma_{yy}, b_1")
-    plot(xprof, Sa1[:, 1] ./ p, ".b", label=L"\sigma_{yy}, a_1")
+    plot(xprof, Sa1[:, 1] ./ p, ".c", label=L"\sigma_{yy}, a_1")
     xlabel(L"x / b")
     ylabel(L"\sigma_{yy} / p")
+    xlim([0.5, 1.5])
+    ylim([-1.2, 1.2])
     legend()
 
     subplot(2, 1, 2)
     plot(r, Srr ./ p, "-k", linewidth=linewidth, label="analytic")
     plot(xprof, Sb2[:, 1] ./ p, ".g", label=L"\sigma_{xx}, b_2")
     plot(xprof, Sb1[:, 1] ./ p, ".r", label=L"\sigma_{xx}, b_1")
-    plot(xprof, Sa1[:, 1] ./ p, ".b", label=L"\sigma_{xx}, a_1")
+    plot(xprof, Sa1[:, 1] ./ p, ".c", label=L"\sigma_{xx}, a_1")
     xlabel(L"x / b")
     ylabel(L"\sigma_{xx} / p")
+    xlim([0.5, 1.5])
+    ylim([-1.2, 1.2])
     legend()
-    @infiltrate
 end
 discmaterial()
