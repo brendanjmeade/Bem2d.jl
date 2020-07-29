@@ -91,13 +91,13 @@ function discmaterial()
     T_a1_b1, H_a1_b1 = PUTC(slip2dispstress, els, idx["a"], idx["b"], mu1, nu1)
     T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu1, nu1)
     T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu1, nu1)
-
+    
     # Region 2 materials
     T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu2, nu2)
 
     # Assemble BEM operator and boundary conditions
-    alpha = 1e-10
-    TH[1:720, 1:720] = T_b2_b2
+    alpha = 1e0
+    TH[1:720, 1:720] = -T_b2_b2
     TH[1:720, 721:1440] = T_b1_b1
     TH[1:720, 1441:2160] = T_b1_a1
     TH[721:1440, 1:720] = alpha .* H_b2_b2
