@@ -88,46 +88,51 @@ function discmaterial()
 
     # Region 1 materials
     T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu1, nu1)    
+    T_a1_b1, H_a1_b1 = PUTC(slip2dispstress, els, idx["a"], idx["b"], mu1, nu1)
     T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu1, nu1)
     T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu1, nu1)
-    T_a1_b1, H_a1_b1 = PUTC(slip2dispstress, els, idx["a"], idx["b"], mu1, nu1)
 
     # Region 2 materials
     T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu2, nu2)
 
     # Assemble BEM operator and boundary conditions
-    TH[1:720, 1:720] = -T_b2_b2
+    alpha = 1e-10
+    TH[1:720, 1:720] = T_b2_b2
     TH[1:720, 721:1440] = T_b1_b1
     TH[1:720, 1441:2160] = T_b1_a1
-    TH[721:1440, 1:720] = H_b2_b2
-    TH[721:1440, 721:1440] = H_b1_b1
-    TH[721:1440, 1441:2160] = H_b1_a1
-    TH[1441:2160, 721:1440] = H_a1_b1 # Was I missing this before?
-    TH[1441:2160, 1441:2160] = H_a1_a1
+    TH[721:1440, 1:720] = alpha .* H_b2_b2
+    TH[721:1440, 721:1440] = alpha .* H_b1_b1
+    TH[721:1440, 1441:2160] = alpha .* H_b1_a1
+    TH[1441:2160, 721:1440] = alpha .* H_a1_b1 # Was I missing this before?
+    TH[1441:2160, 1441:2160] = alpha .* H_a1_a1
     @show cond(TH)
+    @show rank(TH)
     bcs = zeros(6*nels)
     bcs[1441:2160] = interleave(xtraca, ytraca)
     matshow(log10.(abs.(TH)))
+    colorbar()
     
     # Solve BEM problem
-    Ueff = TH \ bcs
+    Ueff = TH \ bcs # Looks more reasonable but is it?
+    # Ueff = inv(TH) * bcs # Horrible solution
+
     Ueffb2 = Ueff[1:1:720]
     Ueffb1 = Ueff[721:1:1440]
     Ueffa1 = Ueff[1441:1:2160]
 
     # Effective displacements
-    # figure(figsize=(20, 10))
-    # plot(Ueff[1:2:end], ".r", label="ux")
-    # plot(Ueff[2:2:end], "+b", label="uy")
-    # legend()
-    # title("Ueff - whole vector")
+    figure()
+    plot(Ueff[1:2:end], ".r", label="ux")
+    plot(Ueff[2:2:end], "+b", label="uy")
+    legend()
+    title("Ueff - whole vector")
     
     # Forward line evaluation
     nprof = 70
     xprof = LinRange(0.51, 1.49, nprof)
     yprof = zeros(size(xprof))
-    aidx = findall(x -> x <= b, xprof)
-    bidx = findall(x -> x > b, xprof)
+    # aidx = findall(x -> x <= b, xprof)
+    # bidx = findall(x -> x > b, xprof)
     Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b"],
                                Ueffb2[1:2:end], Ueffb2[2:2:end], mu2, nu2)
     Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b"],
@@ -138,8 +143,8 @@ function discmaterial()
     # Analytic solution
     nprofanalytic = 10000
     r = LinRange(0.5+1e-3, 1.50-1e-3, nprofanalytic)
-    aidx = findall(x -> x<=b, r)
-    bidx = findall(x -> x>b, r)
+    aidx = findall(x -> x <= b, r)
+    bidx = findall(x -> x > b, r)
     pprime = (2*(1-nu1)*p*a^2/b^2) / (2*(1-nu1)+(mu1/mu2-1)*(1-a^2/b^2))
     a2b2 = a^2/b^2
     Srr1 = @. 1/(1-a2b2) * (p*a2b2-pprime - (p-pprime)*a^2/r^2)
@@ -164,7 +169,7 @@ function discmaterial()
     xlabel(L"x \; / \; b")
     ylabel(L"\sigma_{yy} \; / \; p")
     xlim([0.5, 1.5])
-    ylim([-1.2, 1.2])
+    # ylim([-1.2, 1.2])
     legend()
 
     subplot(2, 1, 2)
@@ -175,7 +180,7 @@ function discmaterial()
     xlabel(L"x \; / \; b")
     ylabel(L"\sigma_{xx} \; / \; p")
     xlim([0.5, 1.5])
-    ylim([-1.2, 1.2])
+    # ylim([-1.2, 1.2])
     legend()
 end
 discmaterial()
