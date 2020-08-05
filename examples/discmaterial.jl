@@ -60,22 +60,39 @@ function discmaterial()
     mu2 = 0.5 * mu1
     nu2 = 0.25
     p = mu1 / 1e3 # CS example
-    nels = 360
+    nels = 180
     a = 0.5
     b = 1.0
     npts = 50
     x, y = obsgrid(-3, -3, 3, 3, npts)
     r = @. sqrt(x^2 + y^2)
 
+    start_angle = -180
+    end_angle = -start_angle
+
     # Define BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(deg2rad(180), deg2rad(-180), a, nels)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(start_angle), deg2rad(end_angle), a, nels)
     addelsez!(els, x1, y1, x2, y2, "a")
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), b, nels)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(end_angle), deg2rad(start_angle), b, nels)
     addelsez!(els, x1, y1, x2, y2, "b_I")
-    x1, y1, x2, y2 = discretized_arc(deg2rad(180), deg2rad(-180), b, nels)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(start_angle), deg2rad(end_angle), b, nels)
     addelsez!(els, x1, y1, x2, y2, "b_II")
     idx = getidxdict(els)
+
+    figure()
+    for n in ["a", "b_I"]
+        plot(els.x1[idx[n]], els.y1[idx[n]])
+        quiver(els.x1[idx[n]], els.y1[idx[n]], els.xnormal[idx[n]], els.ynormal[idx[n]])
+    end
+    title("region I boundaries and normals")
+
+    figure()
+    for n in ["b_II"]
+        plot(els.x1[idx[n]], els.y1[idx[n]])
+        quiver(els.x1[idx[n]], els.y1[idx[n]], els.xnormal[idx[n]], els.ynormal[idx[n]])
+    end
+    title("region II boundaries and normals")
 
     # Apply normal tractions everywhere and convert from radial to Cartesian
     xtraca = zeros(length(idx["a"]))
@@ -101,29 +118,29 @@ function discmaterial()
     alpha = 1e0
 
     # This row of equations enforces displacement equality at the boundary between regions.
-    TH[1:720, 1:720] = -T_b2_b2
-    TH[1:720, 721:1440] = T_b1_b1
-    TH[1:720, 1441:2160] = T_b1_a1
+    TH[1:(nels*2), 1:(nels*2)] = -T_b2_b2
+    TH[1:(nels*2), (nels*2+1):(nels*4)] = T_b1_b1
+    TH[1:(nels*2), (nels*4+1):(nels*6)] = T_b1_a1
 
     # This row of equations enforces traction continuity at the boundary between regions.
-    TH[721:1440, 1:720] = alpha .* H_b2_b2
-    TH[721:1440, 721:1440] = alpha .* H_b1_b1
-    TH[721:1440, 1441:2160] = alpha .* H_b1_a1
+    TH[(nels*2+1):(nels*4), 1:(nels*2)] = alpha .* H_b2_b2
+    TH[(nels*2+1):(nels*4), (nels*2+1):(nels*4)] = alpha .* H_b1_b1
+    TH[(nels*2+1):(nels*4), (nels*4+1):(nels*6)] = alpha .* H_b1_a1
 
     # This row of equations enforces the radial traction BC
-    TH[1441:2160, 721:1440] = alpha .* H_a1_b1 # Was I missing this before?
-    TH[1441:2160, 1441:2160] = alpha .* H_a1_a1
+    TH[(nels*4+1):(nels*6), (nels*2+1):(nels*4)] = alpha .* H_a1_b1 # Was I missing this before?
+    TH[(nels*4+1):(nels*6), (nels*4+1):(nels*6)] = alpha .* H_a1_a1
 
     @show cond(TH)
     @show rank(TH)
     bcs = zeros(6*nels)
-    bcs[1441:2160] = interleave(xtraca, ytraca)
+    bcs[(nels*4+1):(nels*6)] = interleave(xtraca, ytraca)
     matshow(log10.(abs.(TH)))
     colorbar()
 
     figure()
-    plot(bcs[1441:2:end], ".r", label="tx")
-    plot(bcs[1442:2:end], "+b", label="ty")
+    plot(els.x1[idx["a"]], els.y1[idx["a"]])
+    quiver(els.x1[idx["a"]], els.y1[idx["a"]], bcs[(nels*4+1):2:end], bcs[(nels*4+2):2:end])
     legend()
     title("r=a traction BCs")
     
@@ -131,9 +148,9 @@ function discmaterial()
     Ueff = TH \ bcs # Looks more reasonable but is it?
     # Ueff = inv(TH) * bcs # Horrible solution
 
-    Ueffb2 = Ueff[1:1:720]
-    Ueffb1 = Ueff[721:1:1440]
-    Ueffa1 = Ueff[1441:1:2160]
+    Ueffb2 = Ueff[1:1:(nels*2)]
+    Ueffb1 = Ueff[(nels*2+1):1:(nels*4)]
+    Ueffa1 = Ueff[(nels*4+1):1:(nels*6)]
 
     # Effective displacements
     figure()
