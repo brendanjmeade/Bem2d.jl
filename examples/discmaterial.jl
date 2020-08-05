@@ -98,7 +98,7 @@ function discmaterial()
     xtraca = zeros(length(idx["a"]))
     ytraca = zeros(length(idx["a"]))
     for i in 1:length(idx["a"]) # Calcuate the x and y components of the tractions
-        normalTractions = [0; p] # Pressure in fault normal component only.
+        normalTractions = [0; -p] # Pressure in fault normal component only.
         xtraca[i], ytraca[i] = els.rotmat[idx["a"][i], :, :] * normalTractions
     end
     
@@ -115,7 +115,7 @@ function discmaterial()
     T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b_II"], idx["b_II"], mu2, nu2)
 
     # Assemble BEM operator and boundary conditions
-    alpha = 1e0
+    alpha = 1e-10
 
     # This row of equations enforces displacement equality at the boundary between regions.
     TH[1:(nels*2), 1:(nels*2)] = -T_b2_b2
@@ -134,7 +134,7 @@ function discmaterial()
     @show cond(TH)
     @show rank(TH)
     bcs = zeros(6*nels)
-    bcs[(nels*4+1):(nels*6)] = interleave(xtraca, ytraca)
+    bcs[(nels*4+1):(nels*6)] = alpha .* interleave(xtraca, ytraca)
     matshow(log10.(abs.(TH)))
     colorbar()
 
