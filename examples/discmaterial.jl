@@ -69,10 +69,12 @@ function discmaterial()
 
     # Define BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), a, nels)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(180), deg2rad(-180), a, nels)
     addelsez!(els, x1, y1, x2, y2, "a")
     x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), b, nels)
-    addelsez!(els, x1, y1, x2, y2, "b")
+    addelsez!(els, x1, y1, x2, y2, "b_I")
+    x1, y1, x2, y2 = discretized_arc(deg2rad(180), deg2rad(-180), b, nels)
+    addelsez!(els, x1, y1, x2, y2, "b_II")
     idx = getidxdict(els)
 
     # Apply normal tractions everywhere and convert from radial to Cartesian
@@ -88,29 +90,42 @@ function discmaterial()
 
     # Region 1 materials
     T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu1, nu1)    
-    T_a1_b1, H_a1_b1 = PUTC(slip2dispstress, els, idx["a"], idx["b"], mu1, nu1)
-    T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu1, nu1)
-    T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu1, nu1)
+    T_a1_b1, H_a1_b1 = PUTC(slip2dispstress, els, idx["a"], idx["b_I"], mu1, nu1)
+    T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b_I"], idx["a"], mu1, nu1)
+    T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b_I"], idx["b_I"], mu1, nu1)
     
     # Region 2 materials
-    T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu2, nu2)
+    T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b_II"], idx["b_II"], mu2, nu2)
 
     # Assemble BEM operator and boundary conditions
     alpha = 1e0
+
+    # This row of equations enforces displacement equality at the boundary between regions.
     TH[1:720, 1:720] = -T_b2_b2
     TH[1:720, 721:1440] = T_b1_b1
     TH[1:720, 1441:2160] = T_b1_a1
+
+    # This row of equations enforces traction continuity at the boundary between regions.
     TH[721:1440, 1:720] = alpha .* H_b2_b2
     TH[721:1440, 721:1440] = alpha .* H_b1_b1
     TH[721:1440, 1441:2160] = alpha .* H_b1_a1
+
+    # This row of equations enforces the radial traction BC
     TH[1441:2160, 721:1440] = alpha .* H_a1_b1 # Was I missing this before?
     TH[1441:2160, 1441:2160] = alpha .* H_a1_a1
+
     @show cond(TH)
     @show rank(TH)
     bcs = zeros(6*nels)
     bcs[1441:2160] = interleave(xtraca, ytraca)
     matshow(log10.(abs.(TH)))
     colorbar()
+
+    figure()
+    plot(bcs[1441:2:end], ".r", label="tx")
+    plot(bcs[1442:2:end], "+b", label="ty")
+    legend()
+    title("r=a traction BCs")
     
     # Solve BEM problem
     Ueff = TH \ bcs # Looks more reasonable but is it?
@@ -133,9 +148,9 @@ function discmaterial()
     yprof = zeros(size(xprof))
     # aidx = findall(x -> x <= b, xprof)
     # bidx = findall(x -> x > b, xprof)
-    Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b"],
+    Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b_II"],
                                Ueffb2[1:2:end], Ueffb2[2:2:end], mu2, nu2)
-    Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b"],
+    Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b_I"],
                                Ueffb1[1:2:end], Ueffb1[2:2:end], mu1, nu1)
     Ua1, Sa1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["a"],
                                Ueffa1[1:2:end], Ueffa1[2:2:end], mu1, nu1)
