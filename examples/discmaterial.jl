@@ -60,7 +60,7 @@ function discmaterial()
     mu2 = 0.5 * mu1
     nu2 = 0.25
     p = mu1 / 1e3 # CS example
-    nels = 180
+    nels = 100
     a = 0.5
     b = 1.0
     npts = 50
@@ -98,12 +98,12 @@ function discmaterial()
     xtraca = zeros(length(idx["a"]))
     ytraca = zeros(length(idx["a"]))
     for i in 1:length(idx["a"]) # Calcuate the x and y components of the tractions
-        normalTractions = [0; -p] # Pressure in fault normal component only.
+        normalTractions = [0; p] # Pressure in fault normal component only.
         xtraca[i], ytraca[i] = els.rotmat[idx["a"][i], :, :] * normalTractions
     end
     
     # Kernels and assembly
-    TH = zeros(6*nels, 6*nels)
+    TH = zeros(6*nels+4, 6*nels)
 
     # Region 1 materials
     T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu1, nu1)    
@@ -115,33 +115,49 @@ function discmaterial()
     T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b_II"], idx["b_II"], mu2, nu2)
 
     # Assemble BEM operator and boundary conditions
-    alpha = 1e-10
-
     # This row of equations enforces displacement equality at the boundary between regions.
     TH[1:(nels*2), 1:(nels*2)] = -T_b2_b2
     TH[1:(nels*2), (nels*2+1):(nels*4)] = T_b1_b1
-    TH[1:(nels*2), (nels*4+1):(nels*6)] = T_b1_a1
+    TH[1:(nels*2), (nels*4+1):(nels*6)] = -T_b1_a1
 
     # This row of equations enforces traction continuity at the boundary between regions.
-    TH[(nels*2+1):(nels*4), 1:(nels*2)] = alpha .* H_b2_b2
-    TH[(nels*2+1):(nels*4), (nels*2+1):(nels*4)] = alpha .* H_b1_b1
-    TH[(nels*2+1):(nels*4), (nels*4+1):(nels*6)] = alpha .* H_b1_a1
+    TH[(nels*2+1):(nels*4), 1:(nels*2)] = H_b2_b2
+    TH[(nels*2+1):(nels*4), (nels*2+1):(nels*4)] = H_b1_b1
+    TH[(nels*2+1):(nels*4), (nels*4+1):(nels*6)] = H_b1_a1
 
     # This row of equations enforces the radial traction BC
-    TH[(nels*4+1):(nels*6), (nels*2+1):(nels*4)] = alpha .* H_a1_b1 # Was I missing this before?
-    TH[(nels*4+1):(nels*6), (nels*4+1):(nels*6)] = alpha .* H_a1_a1
+    TH[(nels*4+1):(nels*6), (nels*2+1):(nels*4)] = H_a1_b1
+    TH[(nels*4+1):(nels*6), (nels*4+1):(nels*6)] = H_a1_a1
+
+    # Avoid rigid body translations and rotations. TODO: I don't think this is
+    # quite right. Possibly unnecessary
+    # TH[nels*6+1, nels*2+1] = 1.0
+    # TH[nels*6+2, nels*2+2] = 1.0
+    # TH[nels*6+3, nels*4+3] = 1.0
+    # TH[nels*6+4, nels*4+4] = 1.0
+
+    bcs = zeros(6*nels+4)
+    bcs[(nels*4+1):(nels*6)] = interleave(xtraca, ytraca)
+
+    # Simple diagonal preconditioner. Multiply every row by the inverse of its
+    # diagonal entry so that the diagonal will be all ones.
+    diag_entries = ones(6*nels+4)
+    diag_entries[1:(6*nels)] = diag(TH)
+    TH = TH ./ diag_entries
+    bcs = bcs ./ diag_entries
 
     @show cond(TH)
     @show rank(TH)
-    bcs = zeros(6*nels)
-    bcs[(nels*4+1):(nels*6)] = alpha .* interleave(xtraca, ytraca)
+    @show size(TH)
+    @show size(TH)
+
+    figure()
     matshow(log10.(abs.(TH)))
     colorbar()
 
     figure()
     plot(els.x1[idx["a"]], els.y1[idx["a"]])
     quiver(els.x1[idx["a"]], els.y1[idx["a"]], bcs[(nels*4+1):2:end], bcs[(nels*4+2):2:end])
-    legend()
     title("r=a traction BCs")
     
     # Solve BEM problem
@@ -151,6 +167,18 @@ function discmaterial()
     Ueffb2 = Ueff[1:1:(nels*2)]
     Ueffb1 = Ueff[(nels*2+1):1:(nels*4)]
     Ueffa1 = Ueff[(nels*4+1):1:(nels*6)]
+
+    figure()
+    plot(els.x1[idx["a"]], els.y1[idx["a"]])
+    quiver(els.x1[idx["a"]], els.y1[idx["a"]], Ueffa1[1:2:end], Ueffa1[2:2:end])
+    plot(els.x1[idx["b_I"]], els.y1[idx["b_I"]])
+    quiver(els.x1[idx["b_I"]], els.y1[idx["b_I"]], Ueffb1[1:2:end], Ueffb1[2:2:end])
+    title("region I Ueff")
+
+    figure()
+    plot(els.x1[idx["b_II"]], els.y1[idx["b_II"]])
+    quiver(els.x1[idx["b_II"]], els.y1[idx["b_II"]], Ueffb2[1:2:end], Ueffb2[2:2:end])
+    title("region II Ueff")
 
     # Effective displacements
     figure()
@@ -171,6 +199,10 @@ function discmaterial()
                                Ueffb1[1:2:end], Ueffb1[2:2:end], mu1, nu1)
     Ua1, Sa1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["a"],
                                Ueffa1[1:2:end], Ueffa1[2:2:end], mu1, nu1)
+    U2 = Ub2
+    S2 = Sb2
+    U1 = Ub1 .+ Ua1
+    S1 = Sb1 .+ Sa1
 
     # Analytic solution
     nprofanalytic = 10000
@@ -195,9 +227,8 @@ function discmaterial()
     figure(figsize=(8, 8))
     subplot(2, 1, 1)
     plot(r, Stt ./ p, "-k", linewidth=linewidth, label="analytic")
-    plot(xprof, Sb2[:, 1] ./ p, ".g", label=L"\sigma_{yy}, b^{II}")
-    plot(xprof, Sb1[:, 1] ./ p, ".r", label=L"\sigma_{yy}, b^{I}")
-    plot(xprof, Sa1[:, 1] ./ p, ".c", label=L"\sigma_{yy}, a^{I}")
+    plot(xprof, S2[:, 2] ./ p, ".g", label=L"\sigma_{yy}, II")
+    plot(xprof, S1[:, 2] ./ p, ".c", label=L"\sigma_{yy}, I")
     xlabel(L"x \; / \; b")
     ylabel(L"\sigma_{yy} \; / \; p")
     xlim([0.5, 1.5])
@@ -206,9 +237,8 @@ function discmaterial()
 
     subplot(2, 1, 2)
     plot(r, Srr ./ p, "-k", linewidth=linewidth, label="analytic")
-    plot(xprof, Sb2[:, 1] ./ p, ".g", label=L"\sigma_{xx}, b^{II}")
-    plot(xprof, Sb1[:, 1] ./ p, ".r", label=L"\sigma_{xx}, b^{I}")
-    plot(xprof, Sa1[:, 1] ./ p, ".c", label=L"\sigma_{xx}, a^{I}")
+    plot(xprof, S2[:, 1] ./ p, ".g", label=L"\sigma_{xx}, II")
+    plot(xprof, S1[:, 1] ./ p, ".c", label=L"\sigma_{xx}, I")
     xlabel(L"x \; / \; b")
     ylabel(L"\sigma_{xx} \; / \; p")
     xlim([0.5, 1.5])
