@@ -60,7 +60,7 @@ function discmaterial()
     mu2 = 0.5 * mu1
     nu2 = 0.25
     p = mu1 / 1e3 # CS example
-    nels = 100
+    nels = 72
     a = 0.5
     b = 1.0
     npts = 50
@@ -103,7 +103,8 @@ function discmaterial()
     end
     
     # Kernels and assembly
-    TH = zeros(6*nels+4, 6*nels)
+    # TH = zeros(6*nels+4, 6*nels)
+    TH = zeros(6*nels, 6*nels)
 
     # Region 1 materials
     T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu1, nu1)    
@@ -136,12 +137,12 @@ function discmaterial()
     # TH[nels*6+3, nels*4+3] = 1.0
     # TH[nels*6+4, nels*4+4] = 1.0
 
-    bcs = zeros(6*nels+4)
+    bcs = zeros(6*nels)
     bcs[(nels*4+1):(nels*6)] = interleave(xtraca, ytraca)
 
     # Simple diagonal preconditioner. Multiply every row by the inverse of its
     # diagonal entry so that the diagonal will be all ones.
-    diag_entries = ones(6*nels+4)
+    diag_entries = ones(6*nels)
     diag_entries[1:(6*nels)] = diag(TH)
     TH = TH ./ diag_entries
     bcs = bcs ./ diag_entries
@@ -150,7 +151,7 @@ function discmaterial()
     @show rank(TH)
     @show size(TH)
     @show size(TH)
-
+    
     figure()
     matshow(log10.(abs.(TH)))
     colorbar()
