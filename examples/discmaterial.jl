@@ -60,20 +60,39 @@ function discmaterial()
     mu2 = 0.5 * mu1
     nu2 = 0.25
     p = mu1 / 1e3 # CS example
-    nels = 360
+    nels = 100
     a = 0.5
     b = 1.0
     npts = 50
     x, y = obsgrid(-3, -3, 3, 3, npts)
     r = @. sqrt(x^2 + y^2)
 
+    start_angle = -180
+    end_angle = -start_angle
+
     # Define BEM geometry
     els = Elements(Int(1e5))
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), a, nels)
+    x1, y1, x2, y2 = discretized_arc(deg2rad(start_angle), deg2rad(end_angle), a, nels)
     addelsez!(els, x1, y1, x2, y2, "a")
-    x1, y1, x2, y2 = discretized_arc(deg2rad(-180), deg2rad(180), b, nels)
-    addelsez!(els, x1, y1, x2, y2, "b")
+    x1, y1, x2, y2 = discretized_arc(deg2rad(end_angle), deg2rad(start_angle), b, nels)
+    addelsez!(els, x1, y1, x2, y2, "b_I")
+    x1, y1, x2, y2 = discretized_arc(deg2rad(start_angle), deg2rad(end_angle), b, nels)
+    addelsez!(els, x1, y1, x2, y2, "b_II")
     idx = getidxdict(els)
+
+    figure()
+    for n in ["a", "b_I"]
+        plot(els.x1[idx[n]], els.y1[idx[n]])
+        quiver(els.x1[idx[n]], els.y1[idx[n]], els.xnormal[idx[n]], els.ynormal[idx[n]])
+    end
+    title("region I boundaries and normals")
+
+    figure()
+    for n in ["b_II"]
+        plot(els.x1[idx[n]], els.y1[idx[n]])
+        quiver(els.x1[idx[n]], els.y1[idx[n]], els.xnormal[idx[n]], els.ynormal[idx[n]])
+    end
+    title("region II boundaries and normals")
 
     # Apply normal tractions everywhere and convert from radial to Cartesian
     xtraca = zeros(length(idx["a"]))
@@ -84,41 +103,82 @@ function discmaterial()
     end
     
     # Kernels and assembly
-    TH = zeros(6*nels, 6*nels)
+    TH = zeros(6*nels+4, 6*nels)
 
     # Region 1 materials
     T_a1_a1, H_a1_a1 = PUTC(slip2dispstress, els, idx["a"], idx["a"], mu1, nu1)    
-    T_a1_b1, H_a1_b1 = PUTC(slip2dispstress, els, idx["a"], idx["b"], mu1, nu1)
-    T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b"], idx["a"], mu1, nu1)
-    T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu1, nu1)
+    T_a1_b1, H_a1_b1 = PUTC(slip2dispstress, els, idx["a"], idx["b_I"], mu1, nu1)
+    T_b1_a1, H_b1_a1 = PUTC(slip2dispstress, els, idx["b_I"], idx["a"], mu1, nu1)
+    T_b1_b1, H_b1_b1 = PUTC(slip2dispstress, els, idx["b_I"], idx["b_I"], mu1, nu1)
     
     # Region 2 materials
-    T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b"], idx["b"], mu2, nu2)
+    T_b2_b2, H_b2_b2 = PUTC(slip2dispstress, els, idx["b_II"], idx["b_II"], mu2, nu2)
 
     # Assemble BEM operator and boundary conditions
-    alpha = 1e0
-    TH[1:720, 1:720] = -T_b2_b2
-    TH[1:720, 721:1440] = T_b1_b1
-    TH[1:720, 1441:2160] = T_b1_a1
-    TH[721:1440, 1:720] = alpha .* H_b2_b2
-    TH[721:1440, 721:1440] = alpha .* H_b1_b1
-    TH[721:1440, 1441:2160] = alpha .* H_b1_a1
-    TH[1441:2160, 721:1440] = alpha .* H_a1_b1 # Was I missing this before?
-    TH[1441:2160, 1441:2160] = alpha .* H_a1_a1
+    # This row of equations enforces displacement equality at the boundary between regions.
+    TH[1:(nels*2), 1:(nels*2)] = -T_b2_b2
+    TH[1:(nels*2), (nels*2+1):(nels*4)] = T_b1_b1
+    TH[1:(nels*2), (nels*4+1):(nels*6)] = -T_b1_a1
+
+    # This row of equations enforces traction continuity at the boundary between regions.
+    TH[(nels*2+1):(nels*4), 1:(nels*2)] = H_b2_b2
+    TH[(nels*2+1):(nels*4), (nels*2+1):(nels*4)] = H_b1_b1
+    TH[(nels*2+1):(nels*4), (nels*4+1):(nels*6)] = H_b1_a1
+
+    # This row of equations enforces the radial traction BC
+    TH[(nels*4+1):(nels*6), (nels*2+1):(nels*4)] = H_a1_b1
+    TH[(nels*4+1):(nels*6), (nels*4+1):(nels*6)] = H_a1_a1
+
+    # Avoid rigid body translations and rotations. TODO: I don't think this is
+    # quite right. Possibly unnecessary
+    # TH[nels*6+1, nels*2+1] = 1.0
+    # TH[nels*6+2, nels*2+2] = 1.0
+    # TH[nels*6+3, nels*4+3] = 1.0
+    # TH[nels*6+4, nels*4+4] = 1.0
+
+    bcs = zeros(6*nels+4)
+    bcs[(nels*4+1):(nels*6)] = interleave(xtraca, ytraca)
+
+    # Simple diagonal preconditioner. Multiply every row by the inverse of its
+    # diagonal entry so that the diagonal will be all ones.
+    diag_entries = ones(6*nels+4)
+    diag_entries[1:(6*nels)] = diag(TH)
+    TH = TH ./ diag_entries
+    bcs = bcs ./ diag_entries
+
     @show cond(TH)
     @show rank(TH)
-    bcs = zeros(6*nels)
-    bcs[1441:2160] = interleave(xtraca, ytraca)
+    @show size(TH)
+    @show size(TH)
+
+    figure()
     matshow(log10.(abs.(TH)))
     colorbar()
+
+    figure()
+    plot(els.x1[idx["a"]], els.y1[idx["a"]])
+    quiver(els.x1[idx["a"]], els.y1[idx["a"]], bcs[(nels*4+1):2:end], bcs[(nels*4+2):2:end])
+    title("r=a traction BCs")
     
     # Solve BEM problem
     Ueff = TH \ bcs # Looks more reasonable but is it?
     # Ueff = inv(TH) * bcs # Horrible solution
 
-    Ueffb2 = Ueff[1:1:720]
-    Ueffb1 = Ueff[721:1:1440]
-    Ueffa1 = Ueff[1441:1:2160]
+    Ueffb2 = Ueff[1:1:(nels*2)]
+    Ueffb1 = Ueff[(nels*2+1):1:(nels*4)]
+    Ueffa1 = Ueff[(nels*4+1):1:(nels*6)]
+
+    figure()
+    plot(els.x1[idx["a"]], els.y1[idx["a"]])
+    quiver(els.x1[idx["a"]], els.y1[idx["a"]], Ueffa1[1:2:end], Ueffa1[2:2:end])
+    plot(els.x1[idx["b_I"]], els.y1[idx["b_I"]])
+    quiver(els.x1[idx["b_I"]], els.y1[idx["b_I"]], Ueffb1[1:2:end], Ueffb1[2:2:end])
+    title("region I Ueff")
+
+    figure()
+    plot(els.x1[idx["b_II"]], els.y1[idx["b_II"]])
+    quiver(els.x1[idx["b_II"]], els.y1[idx["b_II"]], Ueffb2[1:2:end], Ueffb2[2:2:end])
+    title("region II Ueff")
 
     # Effective displacements
     figure()
@@ -133,12 +193,16 @@ function discmaterial()
     yprof = zeros(size(xprof))
     # aidx = findall(x -> x <= b, xprof)
     # bidx = findall(x -> x > b, xprof)
-    Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b"],
+    Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b_II"],
                                Ueffb2[1:2:end], Ueffb2[2:2:end], mu2, nu2)
-    Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b"],
+    Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b_I"],
                                Ueffb1[1:2:end], Ueffb1[2:2:end], mu1, nu1)
     Ua1, Sa1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["a"],
                                Ueffa1[1:2:end], Ueffa1[2:2:end], mu1, nu1)
+    U2 = Ub2
+    S2 = Sb2
+    U1 = Ub1 .+ Ua1
+    S1 = Sb1 .+ Sa1
 
     # Analytic solution
     nprofanalytic = 10000
@@ -163,9 +227,8 @@ function discmaterial()
     figure(figsize=(8, 8))
     subplot(2, 1, 1)
     plot(r, Stt ./ p, "-k", linewidth=linewidth, label="analytic")
-    plot(xprof, Sb2[:, 1] ./ p, ".g", label=L"\sigma_{yy}, b^{II}")
-    plot(xprof, Sb1[:, 1] ./ p, ".r", label=L"\sigma_{yy}, b^{I}")
-    plot(xprof, Sa1[:, 1] ./ p, ".c", label=L"\sigma_{yy}, a^{I}")
+    plot(xprof, S2[:, 2] ./ p, ".g", label=L"\sigma_{yy}, II")
+    plot(xprof, S1[:, 2] ./ p, ".c", label=L"\sigma_{yy}, I")
     xlabel(L"x \; / \; b")
     ylabel(L"\sigma_{yy} \; / \; p")
     xlim([0.5, 1.5])
@@ -174,9 +237,8 @@ function discmaterial()
 
     subplot(2, 1, 2)
     plot(r, Srr ./ p, "-k", linewidth=linewidth, label="analytic")
-    plot(xprof, Sb2[:, 1] ./ p, ".g", label=L"\sigma_{xx}, b^{II}")
-    plot(xprof, Sb1[:, 1] ./ p, ".r", label=L"\sigma_{xx}, b^{I}")
-    plot(xprof, Sa1[:, 1] ./ p, ".c", label=L"\sigma_{xx}, a^{I}")
+    plot(xprof, S2[:, 1] ./ p, ".g", label=L"\sigma_{xx}, II")
+    plot(xprof, S1[:, 1] ./ p, ".c", label=L"\sigma_{xx}, I")
     xlabel(L"x \; / \; b")
     ylabel(L"\sigma_{xx} \; / \; p")
     xlim([0.5, 1.5])
