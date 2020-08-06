@@ -20,11 +20,11 @@ end
 
 
 """
-    dislocationinabox()
+    dislocationlayers()
 
 Comparing half-space and dislocaiton in a box solutions
 """
-function dislocationinabox()
+function dislocationlayers()
     close("all")
     mu = 30e9
     nu = 0.25
@@ -299,4 +299,4 @@ function dislocationinabox()
     matshow(uxmat)
 
 end
-dislocationinabox()
+dislocationlayers()
