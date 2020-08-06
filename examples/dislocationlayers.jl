@@ -45,6 +45,15 @@ function dislocationinabox()
     addelsez!(elshalfspace, x1, y1, x2, y2, "surf")
     idxhalfspace = getidxdict(elshalfspace)
 
+    figure()
+    for n in ["fault", "surf"]
+        plot(elshalfspace.x1[idx[n]], elshalfspace.y1[idx[n]])
+        quiver(elshalfspace.x1[idx[n]], elshalfspace.y1[idx[n]],
+               elshalfspace.xnormal[idx[n]], elshalfspace.ynormal[idx[n]])
+    end
+    title("half space boundaries and normals")
+
+    
     #
     # Element geometries and data structures for the box case
     #
