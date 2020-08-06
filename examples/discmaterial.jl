@@ -60,14 +60,14 @@ function discmaterial()
     mu2 = 0.5 * mu1
     nu2 = 0.25
     p = mu1 / 1e3 # CS example
-    nels = 72
+    nels = 600
     a = 0.5
     b = 1.0
     npts = 50
     x, y = obsgrid(-3, -3, 3, 3, npts)
     r = @. sqrt(x^2 + y^2)
 
-    start_angle = -180
+    start_angle = 180
     end_angle = -start_angle
 
     # Define BEM geometry
@@ -76,8 +76,9 @@ function discmaterial()
     addelsez!(els, x1, y1, x2, y2, "a")
     x1, y1, x2, y2 = discretized_arc(deg2rad(end_angle), deg2rad(start_angle), b, nels)
     addelsez!(els, x1, y1, x2, y2, "b_I")
-    x1, y1, x2, y2 = discretized_arc(deg2rad(start_angle), deg2rad(end_angle), b, nels)
-    addelsez!(els, x1, y1, x2, y2, "b_II")
+    # We want element K in b_I to match exactly with element K in b_II, so we
+    # simply flip x1,y1 with x2,y2
+    addelsez!(els, x2, y2, x1, y1, "b_II")
     idx = getidxdict(els)
 
     figure()
@@ -119,7 +120,7 @@ function discmaterial()
     # This row of equations enforces displacement equality at the boundary between regions.
     TH[1:(nels*2), 1:(nels*2)] = -T_b2_b2
     TH[1:(nels*2), (nels*2+1):(nels*4)] = T_b1_b1
-    TH[1:(nels*2), (nels*4+1):(nels*6)] = -T_b1_a1
+    TH[1:(nels*2), (nels*4+1):(nels*6)] = T_b1_a1
 
     # This row of equations enforces traction continuity at the boundary between regions.
     TH[(nels*2+1):(nels*4), 1:(nels*2)] = H_b2_b2
@@ -245,5 +246,6 @@ function discmaterial()
     xlim([0.5, 1.5])
     # ylim([-1.2, 1.2])
     legend()
+    savefig("yes.pdf")
 end
 discmaterial()
