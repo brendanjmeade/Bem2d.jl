@@ -151,7 +151,6 @@ function discmaterial()
     @show cond(TH)
     @show rank(TH)
     @show size(TH)
-    @show size(TH)
     
     figure()
     matshow(log10.(abs.(TH)))
@@ -190,21 +189,28 @@ function discmaterial()
     title("Ueff - whole vector")
     
     # Forward line evaluation
-    nprof = 70
+    nprof = 30
     xprof = LinRange(0.51, 1.49, nprof)
     yprof = zeros(size(xprof))
-    # aidx = findall(x -> x <= b, xprof)
-    # bidx = findall(x -> x > b, xprof)
+    Uddm = zeros(nprof, 2)
+    Sddm = zeros(nprof, 3)
+    aidx = findall(x -> x <= b, xprof)
+    bidx = findall(x -> x > b, xprof)
     Ub2, Sb2 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b_II"],
                                Ueffb2[1:2:end], Ueffb2[2:2:end], mu2, nu2)
     Ub1, Sb1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["b_I"],
                                Ueffb1[1:2:end], Ueffb1[2:2:end], mu1, nu1)
     Ua1, Sa1 = constdispstress(slip2dispstress, xprof, yprof, els, idx["a"],
                                Ueffa1[1:2:end], Ueffa1[2:2:end], mu1, nu1)
-    U2 = Ub2
-    S2 = Sb2
     U1 = Ub1 .+ Ua1
     S1 = Sb1 .+ Sa1
+    U2 = Ub2
+    S2 = Sb2
+    Uddm[aidx, :] = U1[aidx, :]
+    Uddm[bidx, :] = U2[bidx, :]
+    Sddm[aidx, :] = S1[aidx, :]
+    Sddm[bidx, :] = S2[bidx, :]
+    
 
     # Analytic solution
     nprofanalytic = 10000
@@ -225,27 +231,25 @@ function discmaterial()
     Stt[bidx] = Stt2[bidx]
     
     # Graphically compare analytic and BEM solutions
-    linewidth = 1.0
-    figure(figsize=(8, 8))
+    linewidth = 2.0
+    figure(figsize=(7, 7))
     subplot(2, 1, 1)
-    plot(r, Stt ./ p, "-k", linewidth=linewidth, label="analytic")
-    plot(xprof, S2[:, 2] ./ p, ".g", label=L"\sigma_{yy}, II")
-    plot(xprof, S1[:, 2] ./ p, ".c", label=L"\sigma_{yy}, I")
+    axvline(x=1, linewidth=1, linestyle=":", color="k")
+    plot(r, Stt ./ p, "-b", linewidth=linewidth, label="analytic")
+    plot(xprof, Sddm[:, 2] ./ p, "ro", markersize=6, label="DDM")    
     xlabel(L"x \; / \; b")
     ylabel(L"\sigma_{yy} \; / \; p")
     xlim([0.5, 1.5])
-    # ylim([-1.2, 1.2])
     legend()
 
     subplot(2, 1, 2)
-    plot(r, Srr ./ p, "-k", linewidth=linewidth, label="analytic")
-    plot(xprof, S2[:, 1] ./ p, ".g", label=L"\sigma_{xx}, II")
-    plot(xprof, S1[:, 1] ./ p, ".c", label=L"\sigma_{xx}, I")
+    axvline(x=1, linewidth=1, linestyle=":", color="k")
+    plot(r, Srr ./ p, "-b", linewidth=linewidth, label="analytic")
+    plot(xprof, Sddm[:, 1] ./ p, "ro", markersize=6, label="DDM")    
     xlabel(L"x \; / \; b")
     ylabel(L"\sigma_{xx} \; / \; p")
     xlim([0.5, 1.5])
-    # ylim([-1.2, 1.2])
     legend()
-    savefig("yes.pdf")
+    # savefig("yes.pdf")
 end
 discmaterial()
