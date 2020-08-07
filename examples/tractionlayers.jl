@@ -95,8 +95,7 @@ function dislocationlayers()
     boxB = -30e3
     boxR = 30e3
     boxT = 0
-    boxL = -30e3
-    
+    boxL = -30e3    
     nside = 20
     x1, y1, x2, y2 = discretizedline(boxL, boxB, boxR, boxB, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
@@ -107,52 +106,57 @@ function dislocationlayers()
     x1, y1, x2, y2 = discretizedline(boxL, boxT, boxL, boxB, nside) # Left hand side
     addelsez!(elsbox, x1, y1, x2, y2, "L")
     idxbox = getidxdict(elsbox)
-    PLOTGEOMETRY && plotgeometry(elsbox, "Box boundaries and normals")
+    # PLOTGEOMETRY && plotgeometry(elsbox, "Box boundaries and normals")
 
-    # Box BEM problem
-    T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"], 1:elsbox.endidx, mu, nu)
-    _, H_RTL_BRTL = PUTC(slip2dispstress, elsbox, [idxbox["R"]; idxbox["T"]; idxbox["L"]],
-                         1:elsbox.endidx, mu, nu)
-    bcsbox = zeros(2*elsbox.endidx)
-    bcsbox[2*51] = 1.0
-    bcsbox[2*50] = 1.0    
-    Ueffbox = [T_B_BRTL ; H_RTL_BRTL] \ bcsbox
+    # # Box BEM problem
+    # T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"], 1:elsbox.endidx, mu, nu)
+    # _, H_RTL_BRTL = PUTC(slip2dispstress, elsbox, [idxbox["R"]; idxbox["T"]; idxbox["L"]],
+    #                      1:elsbox.endidx, mu, nu)
+    # bcsbox = zeros(2*elsbox.endidx)
+    # bcsbox[2*51] = 1.0
+    # bcsbox[2*50] = 1.0    
+    # Ueffbox = [T_B_BRTL ; H_RTL_BRTL] \ bcsbox
 
-    plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
-    xgrid, ygrid = obsgrid(boxL+offset, boxB+offset, boxR-offset, boxT-offset, npts)
-    Ubox, Sbox = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, 1:elsbox.endidx,
-                                 Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
-    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ubox, Sbox, "Box")
-    return
-
+    # plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
+    # xgrid, ygrid = obsgrid(boxL+offset, boxB+offset, boxR-offset, boxT-offset, npts)
+    # Ubox, Sbox = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, 1:elsbox.endidx,
+    #                              Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
+    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+    #            Ubox, Sbox, "Box")
     
     # Element geometries and data structures for the layered box case
     elslayer = Elements(Int(1e5))
-    nside = 40
-    x1, y1, x2, y2 = discretizedline(-30e3, -15e3, 30e3, -15e3, nside) # Bottom
+    l1B = -15e3
+    l1R = 30e3
+    l1T = 0
+    l1L = -30e3
+    l2B = -30e3
+    l2R = 30e3
+    l2T = -15e3
+    l2L = -30e3
+    nside = 20
+    x1, y1, x2, y2 = discretizedline(l1L, l1B, l1R, l1B, nside) # Layer 1 bottom
     addelsez!(elslayer, x1, y1, x2, y2, "B1")
-    x1, y1, x2, y2 = discretizedline(30e3, -15e3, 30e3, 0, nside) # Right hand side
+    x1, y1, x2, y2 = discretizedline(l1R, l1B, l1R, l1T, nside) # Layer 1 right
     addelsez!(elslayer, x1, y1, x2, y2, "R1")
-    x1, y1, x2, y2 = discretizedline(30e3, 0, -30e3, 0, nside) # Top
+    x1, y1, x2, y2 = discretizedline(l1R, l1T, l1L, l1T, nside) # Layer 1 top
     addelsez!(elslayer, x1, y1, x2, y2, "T1")
-    x1, y1, x2, y2 = discretizedline(-30e3, 0, -30e3, -15e3, nside) # Left hand side
-    addelsez!(elslayer, x1, y1, x2, y2, "L1")    
-    x1, y1, x2, y2 = discretizedline(-30e3, -30e3, 30e3, -30e3, nside) # Bottom
+    x1, y1, x2, y2 = discretizedline(l1L, l1T, l1L, l1B, nside) # Layer 1 left
+    addelsez!(elslayer, x1, y1, x2, y2, "L1")
+    x1, y1, x2, y2 = discretizedline(l2L, l2B, l2R, l2B, nside) # Layer 2 bottom
     addelsez!(elslayer, x1, y1, x2, y2, "B2")
-    x1, y1, x2, y2 = discretizedline(30e3, -30e3, 30e3, -15e3, nside) # Right hand side
+    x1, y1, x2, y2 = discretizedline(l2R, l2B, l2R, l2T, nside) # Layer 2 right
     addelsez!(elslayer, x1, y1, x2, y2, "R2")
-    x1, y1, x2, y2 = discretizedline(30e3, -15e3, -30e3, -15e3, nside) # Top
+    x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
     addelsez!(elslayer, x1, y1, x2, y2, "T2")
-    x1, y1, x2, y2 = discretizedline(-30e3, -15e3, -30e3, -30e3, nside) # Left hand side
+    x1, y1, x2, y2 = discretizedline(l2L, l2T, l2L, l2B, nside) # Layer 2 left
     addelsez!(elslayer, x1, y1, x2, y2, "L2")
     idxlayer = getidxdict(elslayer)
-    PLOTGEOMETRY &&  plotgeometry(elslayer, "Layer boundaries and normals")
-    
-    
-    # Two layer box solutions
+    PLOTGEOMETRY && plotgeometry(elslayer, "Layer boundaries and normals")
+
+    # Build design matrix
     TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
-    C1idx = [idxlayer["F1"] ; idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
+    C1idx = [idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
     C2idx = [idxlayer["B2"] ; idxlayer["R2"] ; idxlayer["T2"] ; idxlayer["L2"]]
     
     # Boundaries shared by C1 and C2
@@ -160,7 +164,6 @@ function dislocationlayers()
     T_T2_C2, H_T2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["T2"], C2idx, mu, nu)
 
     # C1 only boundaries
-    T_F1_C1, T_H1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["F1"], C1idx, mu, nu)
     T_R1_C1, H_R1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["R1"], C1idx, mu, nu)
     T_T1_C1, H_T1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["T1"], C1idx, mu, nu)
     T_L1_C1, H_L1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L1"], C1idx, mu, nu)
@@ -171,59 +174,53 @@ function dislocationlayers()
     T_L2_C2, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
 
     # Place submatrices into larger matrix
-    TH[1:80, 1:322] = T_B1_C1 # Displacements at B1 due to C1 (including F1)
-    TH[1:80, 323:642] = -T_T2_C2 # Displacements at T2 due to C2
-    TH[81:160, 1:322] = H_B1_C1 # Tractions at B1 due to C1 (including F1)
-    TH[81:160, 323:642] = H_T2_C2 # Tractions at T2 due to C2
-    TH[161:162, 1:322] = T_F1_C1 # Displacments at F1 due in C1 (including F1)
-    TH[163:242, 1:322] = H_R1_C1 # Tractions at R1 due in C1 (including F1)
-    TH[243:322, 1:322] = H_T1_C1 # Tractions at T1 due in C1 (including F1)
-    TH[323:402, 1:322] = H_L1_C1 # Tractions at L1 due in C1 (including F1)
-    TH[403:482, 323:642] = T_B2_C2 # Displacments at B2 due in C2
-    TH[483:562, 323:642] = H_R2_C2 # Tractions at R2 due in C2
-    TH[563:642, 323:642] = H_L2_C2 # Tractions at L2 due in C2
+    # TH[1:80, 1:320] = T_B1_C1 # Displacements at B1 due to C1
+    # TH[1:80, 321:640] = -T_T2_C2 # Displacements at T2 due to C2
+    # TH[81:160, 1:320] = H_B1_C1 # Tractions at B1 due to C1
+    # TH[81:160, 321:640] = H_T2_C2 # Tractions at T2 due to C2
+    # TH[161:240, 1:320] = H_R1_C1 # Tractions at R1 due to C1
+    # TH[241:320, 1:320] = H_T1_C1 # Tractions at T1 due to C1
+    # TH[321:400, 1:320] = H_L1_C1 # Tractions at L1 due to C1
+    # TH[401:480, 321:640] = T_B2_C2 # Displacments at B2 due to C2
+    # TH[481:560, 321:640] = H_R2_C2 # Tractions at R2 due to C2
+    # TH[561:640, 321:640] = H_L2_C2 # Tractions at L2 due to C2
+    
+    TH[1:2*nside, 1:8*nside] = T_B1_C1 # Displacements at B1 due to C1
+    TH[1:2*nside, 8*nside+1:16*nside] = -T_T2_C2 # Displacements at T2 due to C2
+    TH[2*nside+1:4*nside, 1:8*nside] = H_B1_C1 # Tractions at B1 due to C1
+    TH[2*nside+1:4*nside, 8*nside+1:16*nside] = H_T2_C2 # Tractions at T2 due to C2
+    TH[4*nside+1:6*nside, 1:8*nside] = H_R1_C1 # Tractions at R1 due to C1
+    TH[6*nside+1:8*nside, 1:8*nside] = H_T1_C1 # Tractions at T1 due to C1
+    TH[8*nside+1:10*nside, 1:8*nside] = H_L1_C1 # Tractions at L1 due to C1
+    TH[10*nside+1:12*nside, 8*nside+1:16*nside] = T_B2_C2 # Displacments at B2 due to C2
+    TH[12*nside+1:14*nside, 8*nside+1:16*nside] = H_R2_C2 # Tractions at R2 due to C2
+    TH[14*nside+1:16*nside, 8*nside+1:16*nside] = H_L2_C2 # Tractions at L2 due to C2
+
     bcslayer = zeros(2*elslayer.endidx)
-    # bcslayer[161:162] .= 0.5
-    bcslayer[1:2] .= 0.5
-
-    @show cond(TH)
-
-    matshow(log10.(abs.(TH)))
+    bcslayer[2*51] = 1.0
+    bcslayer[2*50] = 1.0    
+    Uefflayer = TH \ bcslayer
+    plotbcsUeff(elslayer, bcslayer, Uefflayer, "Layer")
     
-    figure()
-    quiver(elslayer.xcenter[1:elslayer.endidx],
-           elslayer.ycenter[1:elslayer.endidx],
-           bcslayer[1:2:end], bcslayer[2:2:end])
-    title("boundary conditions, WtF")
     
-    # Solve BEM for effective displacements
-    Uefflayer = inv(TH) \ bcslayer
-
-    figure()
-    quiver(elslayer.xcenter[1:elslayer.endidx],
-           elslayer.ycenter[1:elslayer.endidx],
-           Uefflayer[1:2:end], Uefflayer[2:2:end])
-    
+    # xgridl1, ygridl1 = obsgrid(-30e3+offset, -15e3+offset, 30e3-offset, -1-offset, npts)
+    # xgridl2, ygridl2 = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -15e3-offset, npts)
     return
     
-    # xgrid, ygrid = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -1-offset, npts)
-    # xgrid1, ygrid1 = obsgrid(-30e3+offset, -15e3+offset, 30e3-offset, -1-offset, npts)
-    # xgrid2, ygrid2 = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -15e3-offset, npts)
 
-    # Ulayer1, Slayer1 = constdispstress(slip2dispstress, xgrid1, ygrid1,
+    # Ul1, Sl1 = constdispstress(slip2dispstress, xgrid1, ygrid1,
     #                                    elslayer, C1idx,
     #                                    Uefflayer[1:2:end], Uefflayer[2:2:end],
     #                                    mu, nu)
-    # plotfields(elslayer, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
-    #            Ulayer1, Slayer1, "Layer 1 - no fault")
+    # plotfields(elslayer, reshape(xgridl1, npts, npts), reshape(ygridl1, npts, npts),
+    #            Ul1, Sl1, "Layer 1")
 
-    # # Layer 2
-    # Ulayer2, Slayer2 = constdispstress(slip2dispstress, xgrid2, ygrid2,
+    # Ul2, Sl2 = constdispstress(slip2dispstress, xgridl2, ygridl2,
     #                                    elslayer, C2idx,
     #                                    Uefflayer[1:2:end], Uefflayer[2:2:end],
     #                                    mu, nu)
-    # plotfields(elslayer, reshape(xgrid2, npts, npts), reshape(ygrid2, npts, npts),
-    #            Ulayer2, Slayer2, "Layer 2 - no fault")
+    # plotfields(elslayer, reshape(xgridl2, npts, npts), reshape(ygridl2, npts, npts),
+    #            Ul2, Sl2, "Layer 2")
 
 end
 dislocationlayers()
