@@ -92,15 +92,19 @@ function dislocationlayers()
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
-    boxbottom = -30000
+    boxB = -30e3
+    boxR = 30e3
+    boxT = 0
+    boxL = -30e3
+    
     nside = 20
-    x1, y1, x2, y2 = discretizedline(-30000, boxbottom, 30000, boxbottom, nside) # Bottom
+    x1, y1, x2, y2 = discretizedline(boxL, boxB, boxR, boxB, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
-    x1, y1, x2, y2 = discretizedline(30000, boxbottom, 30000, 0, nside) # Right hand side
+    x1, y1, x2, y2 = discretizedline(boxR, boxB, boxR, boxT, nside) # Right hand side
     addelsez!(elsbox, x1, y1, x2, y2, "R")
-    x1, y1, x2, y2 = discretizedline(30000, 0, -30000, 0, nside) # Top
+    x1, y1, x2, y2 = discretizedline(boxR, boxT, boxL, boxT, nside) # Top
     addelsez!(elsbox, x1, y1, x2, y2, "T")
-    x1, y1, x2, y2 = discretizedline(-30000, 0, -30000, boxbottom, nside) # Left hand side
+    x1, y1, x2, y2 = discretizedline(boxL, boxT, boxL, boxB, nside) # Left hand side
     addelsez!(elsbox, x1, y1, x2, y2, "L")
     idxbox = getidxdict(elsbox)
     PLOTGEOMETRY && plotgeometry(elsbox, "Box boundaries and normals")
@@ -115,7 +119,7 @@ function dislocationlayers()
     Ueffbox = [T_B_BRTL ; H_RTL_BRTL] \ bcsbox
 
     plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
-    xgrid, ygrid = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -1-offset, npts)
+    xgrid, ygrid = obsgrid(boxL+offset, boxB+offset, boxR-offset, boxT-offset, npts)
     Ubox, Sbox = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, 1:elsbox.endidx,
                                  Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
