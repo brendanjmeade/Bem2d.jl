@@ -27,22 +27,23 @@ Comparing half-space and dislocaiton in a box solutions
 function dislocationlayers()
     close("all")
     PLOTGEOMETRY = false
-    mu = 30e9
+    mu = 3e10
     nu = 0.25
     
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
+    boxbottom = -30000
     x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # 45 degree dipping fault
-    addelsez!(elsbox, x1, y1, x2, y2, "fault")
+    addelsez!(elsbox, x1, y1, x2, y2, "F")
     nside = 40
-    x1, y1, x2, y2 = discretizedline(-30000, -30000, 30000, -30000, nside) # Bottom
+    x1, y1, x2, y2 = discretizedline(-30000, boxbottom, 30000, boxbottom, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
-    x1, y1, x2, y2 = discretizedline(30000, -30000, 30000, 0, nside) # Right hand side
+    x1, y1, x2, y2 = discretizedline(30000, boxbottom, 30000, 0, nside) # Right hand side
     addelsez!(elsbox, x1, y1, x2, y2, "R")
     x1, y1, x2, y2 = discretizedline(30000, 0, -30000, 0, nside) # Top
     addelsez!(elsbox, x1, y1, x2, y2, "T")
-    x1, y1, x2, y2 = discretizedline(-30000, 0, -30000, -30000, nside) # Left hand side
+    x1, y1, x2, y2 = discretizedline(-30000, 0, -30000, boxbottom, nside) # Left hand side
     addelsez!(elsbox, x1, y1, x2, y2, "L")
     idxbox = getidxdict(elsbox)
 
@@ -107,18 +108,18 @@ function dislocationlayers()
     end
         
     # Box BEM problem
-    T_B_FBRTL, H_B_FBRTL = PUTC(slip2dispstress, elsbox,
-                                [idxbox["fault"]; idxbox["B"]],
-                                1:elsbox.endidx, mu, nu)
+    T_FB_FBRTL, H_FB_FBRTL = PUTC(slip2dispstress, elsbox,
+                                  [idxbox["F"]; idxbox["B"]],
+                                  1:elsbox.endidx, mu, nu)
     T_RTL_FBRTL, H_RTL_FBRTL = PUTC(slip2dispstress, elsbox,
                                     [idxbox["R"]; idxbox["T"]; idxbox["L"]],
                                     1:elsbox.endidx, mu, nu)
-    T_strangebox, H_strangebox = PUTC(slip2dispstress, elsbox, idxbox["B"],
+    T_B_FBRTL, H_B_FBRTL = PUTC(slip2dispstress, elsbox, idxbox["B"],
                                       1:elsbox.endidx, mu, nu)
-
     bcsbox = zeros(2*elsbox.endidx)
     bcsbox[1:2] .= 0.5
-    Ueffbox = inv([T_B_FBRTL ; H_RTL_FBRTL]) * bcsbox
+    TH = [T_FB_FBRTL ; H_RTL_FBRTL]
+    Ueffbox = TH \ bcsbox
     figure()
     quiver(elsbox.xcenter[1:elsbox.endidx],
            elsbox.ycenter[1:elsbox.endidx],
@@ -158,32 +159,36 @@ function dislocationlayers()
     TH[483:562, 323:642] = H_R2_C2 # Tractions at R2 due in C2
     TH[563:642, 323:642] = H_L2_C2 # Tractions at L2 due in C2
     bcslayer = zeros(2*elslayer.endidx)
-    bcslayer[1] = 0.5
-    bcslayer[2] = 0.5
+    bcslayer[161] = 0.5
+    bcslayer[162] = 0.5
     @show cond(TH)
 
-    bcstemp = zeros(2*length(C1idx))
-    bcstemp[1] = 0.5
-    bcstemp[2] = 0.5
+    # # Let's do the upper layer only. Should be able to compare with the box solution
+    # TH = zeros(2 * length(C1idx), 2 * length(C1idx))
 
-    Uefftemp = T_B1_C1 * bcstemp
-    figure()
-    quiver(elslayer.xcenter[C1idx], elslayer.ycenter[C1idx],
-           Uefftemp[1:2:end], Uefftemp[2:2:end])
-    gca().set_aspect("equal")
-    title("Ueff for the upper layer")
+    # @show size(TH)
+    # TH = [T_FB_FBRTL ; H_RTL_FBRTL] # This is a good reference set of partials from the box problem
+    # TH[1:2, :] = T_F1_C1
+    # TH[3:82, :] = T_B1_C1 # Displacments at B1 due in C1 (including F1)
+    # TH[83:162, :] = H_R1_C1 # Tractions at R1 due in C1 (including F1)
+    # TH[163:242, :] = H_T1_C1 # Tractions at T1 due in C1 (including F1)
+    # TH[243:322, :] = H_L1_C1 # Tractions at L1 due in C1 (including F1)
+    # bcsul = zeros(2*length(C1idx))
+    # bcsul[1] = 0.5
+    # bcsul[2] = 0.5
+    # Uefful = TH \ bcsul
 
-    Uefftemp = T_strangebox * bcstemp
-    figure()
-    quiver(elsbox.xcenter[1:elsbox.endidx], elsbox.ycenter[1:elsbox.endidx],
-           Uefftemp[1:2:end], Uefftemp[2:2:end])
-    gca().set_aspect("equal")
-    title("Ueff for the box")
+    # figure()
+    # quiver(elslayer.xcenter[C1idx], elslayer.ycenter[C1idx],
+    #        Uefful[1:2:end], Uefful[2:2:end])
+    # title("Ueff for upper layer only")
+
+    # return
+
     
-    return
-
-
-
+    bcstemp = zeros(2*length(C1idx))
+    bcstemp[161] = 0.5
+    bcstemp[162] = 0.5
     
     figure()
     quiver(elslayer.xcenter[1:elslayer.endidx],
