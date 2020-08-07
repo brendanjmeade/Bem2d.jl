@@ -8,9 +8,44 @@ using Bem2d
 
 
 """
+    plotbcsUeff(els, titlestring)
+
+Plot boundary conditions and Ueff
+"""
+function plotbcsUeff(els, bcs, Ueff, suptitlestring)
+    figure(figsize=(20, 20))
+    subplot(2, 2, 1)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx],
+           bcs[1:2:end], bcs[2:2:end])
+    gca().set_aspect("equal")
+    title("bcs")
+    
+    subplot(2, 2, 2)
+    plot(bcs[1:2:end], "rx", label="x")
+    plot(bcs[2:2:end], "b+", label="y")
+    legend()
+    title("bcs")
+
+    subplot(2, 2, 3)
+    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx],
+           Ueff[1:2:end], Ueff[2:2:end])
+    gca().set_aspect("equal")
+    title("Ueff")
+
+    subplot(2, 2, 4)
+    plot(Ueff[1:2:end], "rx", label="x")
+    plot(Ueff[2:2:end], "b+", label="y")
+    legend()
+    title("Ueff")
+
+    suptitle(suptitlestring)
+end        
+
+
+"""
     plotgeometry(els, titlestring)
 
-els structur geometry plotting for diagnostics
+els structure geometry plotting for diagnostics
 """
 function plotgeometry(els, titlestring)
     scale = 500
@@ -51,12 +86,14 @@ function dislocationlayers()
     PLOTGEOMETRY = true
     mu = 3e10
     nu = 0.25
+    npts = 50
+    offset = 100 # meters
     
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
     boxbottom = -30000
-    nside = 40
+    nside = 20
     x1, y1, x2, y2 = discretizedline(-30000, boxbottom, 30000, boxbottom, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
     x1, y1, x2, y2 = discretizedline(30000, boxbottom, 30000, 0, nside) # Right hand side
@@ -66,10 +103,25 @@ function dislocationlayers()
     x1, y1, x2, y2 = discretizedline(-30000, 0, -30000, boxbottom, nside) # Left hand side
     addelsez!(elsbox, x1, y1, x2, y2, "L")
     idxbox = getidxdict(elsbox)
+    PLOTGEOMETRY && plotgeometry(elsbox, "Box boundaries and normals")
 
-    if PLOTGEOMETRY
-        plotgeometry(elsbox, "Box boundaries and normals")
-    end
+    # Box BEM problem
+    T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"], 1:elsbox.endidx, mu, nu)
+    _, H_RTL_BRTL = PUTC(slip2dispstress, elsbox, [idxbox["R"]; idxbox["T"]; idxbox["L"]],
+                         1:elsbox.endidx, mu, nu)
+    bcsbox = zeros(2*elsbox.endidx)
+    bcsbox[2*51] = 1.0
+    bcsbox[2*50] = 1.0    
+    Ueffbox = [T_B_BRTL ; H_RTL_BRTL] \ bcsbox
+
+    plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
+    xgrid, ygrid = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -1-offset, npts)
+    Ubox, Sbox = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, 1:elsbox.endidx,
+                                 Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
+    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               Ubox, Sbox, "Box")
+    return
+
     
     # Element geometries and data structures for the layered box case
     elslayer = Elements(Int(1e5))
@@ -91,32 +143,8 @@ function dislocationlayers()
     x1, y1, x2, y2 = discretizedline(-30e3, -15e3, -30e3, -30e3, nside) # Left hand side
     addelsez!(elslayer, x1, y1, x2, y2, "L2")
     idxlayer = getidxdict(elslayer)
-
-    if PLOTGEOMETRY
-        plotgeometry(elslayer, "Layer boundaries and normals")
-    end
-
-        
-    # Box BEM problem
-    T_B_BRTL, H_B_BRTL = PUTC(slip2dispstress, elsbox,
-                                  idxbox["B"],
-                                  1:elsbox.endidx, mu, nu)
-    T_RTL_BRTL, H_RTL_BRTL = PUTC(slip2dispstress, elsbox,
-                                    [idxbox["R"]; idxbox["T"]; idxbox["L"]],
-                                    1:elsbox.endidx, mu, nu)
-    T_B_BRTL, H_B_BRTL = PUTC(slip2dispstress, elsbox, idxbox["B"],
-                                      1:elsbox.endidx, mu, nu)
-    bcsbox = zeros(2*elsbox.endidx)
-    bcsbox[1:2] .= 0.5
-    TH = [T_B_BRTL ; H_RTL_BRTL]
-    Ueffbox = TH \ bcsbox
-    figure()
-    quiver(elsbox.xcenter[1:elsbox.endidx],
-           elsbox.ycenter[1:elsbox.endidx],
-           Ueffbox[1:2:end], Ueffbox[2:2:end])
-    title("Ueff for the total box")
-
-    return
+    PLOTGEOMETRY &&  plotgeometry(elslayer, "Layer boundaries and normals")
+    
     
     # Two layer box solutions
     TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
