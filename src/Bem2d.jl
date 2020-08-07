@@ -59,6 +59,26 @@ mutable struct Elements
                            0) # endidx
 end
 
+
+export discretizedarc
+"""
+    discretized_arc(thetastart, thetaend, radius, n_pts)
+
+Generate regularly spaced eleemnts along an curved arc.
+"""
+function discretizedarc(thetastart, thetaend, radius, n_pts)
+    # Create geometry of discretized arc
+    thetarange = collect(LinRange(thetastart, thetaend, n_pts + 1))
+    x = @. radius * cos(thetarange)
+    y = @. radius * sin(thetarange)
+    x1 = x[1:1:end-1]
+    x2 = x[2:1:end]
+    y1 = y[1:1:end-1]
+    y2 = y[2:1:end]
+    return x1, y1, x2, y2
+end
+
+
 export addelsez!
 """
     addelsez!()
