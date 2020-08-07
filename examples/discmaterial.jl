@@ -8,15 +8,15 @@ using Bem2d
 
 
 """
-    discretized_arc(θstart, θend, radius, n_pts)
+    discretized_arc(thetastart, thetaend, radius, n_pts)
 
 Generate regularly spaced eleemnts along an curved arc.
 """
-function discretized_arc(θstart, θend, radius, n_pts)
+function discretized_arc(thetastart, thetaend, radius, n_pts)
     # Create geometry of discretized arc
-    θrange = collect(LinRange(θstart, θend, n_pts + 1))
-    x = @. radius * cos(θrange)
-    y = @. radius * sin(θrange)
+    thetarange = collect(LinRange(thetastart, thetaend, n_pts + 1))
+    x = @. radius * cos(thetarange)
+    y = @. radius * sin(thetarange)
     x1 = x[1:1:end-1]
     x2 = x[2:1:end]
     y1 = y[1:1:end-1]
