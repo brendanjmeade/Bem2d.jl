@@ -8,6 +8,28 @@ using Bem2d
 
 
 """
+    plotgeometry(els, titlestring)
+
+els structur geometry plotting for diagnostics
+"""
+function plotgeometry(els, titlestring)
+    scale = 500
+    figure(figsize=(15,10))
+    for i in 1:els.endidx
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-g")
+        quiver(els.xcenter[i], els.ycenter[i],
+               els.xnormal[i], els.ynormal[i],
+               width=1e-3, scale=1e2)
+        text(els.xcenter[i] + scale * els.xnormal[i],
+             els.ycenter[i] + scale * els.ynormal[i],
+             string(i), fontsize=5)
+    end
+    title(titlestring)
+    gca().set_aspect("equal")
+end        
+
+
+"""
     flipud()
 
 Just an alias to the 1-linear that replicates matlab's matrix flipud
@@ -26,7 +48,7 @@ Comparing half-space and dislocaiton in a box solutions
 """
 function dislocationlayers()
     close("all")
-    PLOTGEOMETRY = false
+    PLOTGEOMETRY = true
     mu = 3e10
     nu = 0.25
     
@@ -34,8 +56,6 @@ function dislocationlayers()
     elsbox = Elements(Int(1e5))
     nfault = 1
     boxbottom = -30000
-    x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # 45 degree dipping fault
-    addelsez!(elsbox, x1, y1, x2, y2, "F")
     nside = 40
     x1, y1, x2, y2 = discretizedline(-30000, boxbottom, 30000, boxbottom, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
@@ -48,27 +68,12 @@ function dislocationlayers()
     idxbox = getidxdict(elsbox)
 
     if PLOTGEOMETRY
-        figure()
-        for n in ["fault", "B", "R", "T", "L"]
-            plot([elsbox.x1[idxbox[n]], elsbox.x2[idxbox[n]]  ],
-                 [elsbox.y1[idxbox[n]], elsbox.y2[idxbox[n]]],
-                 "-r")
-            quiver(elsbox.xcenter[idxbox[n]],
-                   elsbox.ycenter[idxbox[n]],
-                   elsbox.xnormal[idxbox[n]],
-                   elsbox.ynormal[idxbox[n]],
-                   width=1e-3, scale = 1e2)
-        end
-        title("Box boundaries and normals")
-        gca().set_aspect("equal")
+        plotgeometry(elsbox, "Box boundaries and normals")
     end
     
     # Element geometries and data structures for the layered box case
     elslayer = Elements(Int(1e5))
-    nfault = 1
     nside = 40
-    x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # 45 degree dipping fault
-    addelsez!(elslayer, x1, y1, x2, y2, "F1")
     x1, y1, x2, y2 = discretizedline(-30e3, -15e3, 30e3, -15e3, nside) # Bottom
     addelsez!(elslayer, x1, y1, x2, y2, "B1")
     x1, y1, x2, y2 = discretizedline(30e3, -15e3, 30e3, 0, nside) # Right hand side
@@ -88,43 +93,30 @@ function dislocationlayers()
     idxlayer = getidxdict(elslayer)
 
     if PLOTGEOMETRY
-        scale = 500
-        figure(figsize=(15,10))
-        for i in 1:elslayer.endidx
-            plot([elslayer.x1[i], elslayer.x2[i]],
-                 [elslayer.y1[i], elslayer.y2[i]],
-                 "-g")
-            quiver(elslayer.xcenter[i],
-                   elslayer.ycenter[i],
-                   elslayer.xnormal[i],
-                   elslayer.ynormal[i],
-                   width=1e-3, scale=1e2)
-            text(elslayer.xcenter[i] + scale * elslayer.xnormal[i],
-                 elslayer.ycenter[i] + scale * elslayer.ynormal[i],
-                 string(i), fontsize=5)
-        end
-        title("Layered")
-        gca().set_aspect("equal")
+        plotgeometry(elslayer, "Layer boundaries and normals")
     end
+
         
     # Box BEM problem
-    T_FB_FBRTL, H_FB_FBRTL = PUTC(slip2dispstress, elsbox,
-                                  [idxbox["F"]; idxbox["B"]],
+    T_B_BRTL, H_B_BRTL = PUTC(slip2dispstress, elsbox,
+                                  idxbox["B"],
                                   1:elsbox.endidx, mu, nu)
-    T_RTL_FBRTL, H_RTL_FBRTL = PUTC(slip2dispstress, elsbox,
+    T_RTL_BRTL, H_RTL_BRTL = PUTC(slip2dispstress, elsbox,
                                     [idxbox["R"]; idxbox["T"]; idxbox["L"]],
                                     1:elsbox.endidx, mu, nu)
-    T_B_FBRTL, H_B_FBRTL = PUTC(slip2dispstress, elsbox, idxbox["B"],
+    T_B_BRTL, H_B_BRTL = PUTC(slip2dispstress, elsbox, idxbox["B"],
                                       1:elsbox.endidx, mu, nu)
     bcsbox = zeros(2*elsbox.endidx)
     bcsbox[1:2] .= 0.5
-    TH = [T_FB_FBRTL ; H_RTL_FBRTL]
+    TH = [T_B_BRTL ; H_RTL_BRTL]
     Ueffbox = TH \ bcsbox
-    # figure()
-    # quiver(elsbox.xcenter[1:elsbox.endidx],
-    #        elsbox.ycenter[1:elsbox.endidx],
-    #        Ueffbox[1:2:end], Ueffbox[2:2:end])
-    # title("Ueff for the total box")
+    figure()
+    quiver(elsbox.xcenter[1:elsbox.endidx],
+           elsbox.ycenter[1:elsbox.endidx],
+           Ueffbox[1:2:end], Ueffbox[2:2:end])
+    title("Ueff for the total box")
+
+    return
     
     # Two layer box solutions
     TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
