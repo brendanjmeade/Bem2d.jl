@@ -120,11 +120,11 @@ function dislocationlayers()
     bcsbox[1:2] .= 0.5
     TH = [T_FB_FBRTL ; H_RTL_FBRTL]
     Ueffbox = TH \ bcsbox
-    figure()
-    quiver(elsbox.xcenter[1:elsbox.endidx],
-           elsbox.ycenter[1:elsbox.endidx],
-           Ueffbox[1:2:end], Ueffbox[2:2:end])
-    title("Ueff for the total box")
+    # figure()
+    # quiver(elsbox.xcenter[1:elsbox.endidx],
+    #        elsbox.ycenter[1:elsbox.endidx],
+    #        Ueffbox[1:2:end], Ueffbox[2:2:end])
+    # title("Ueff for the total box")
     
     # Two layer box solutions
     TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
@@ -149,8 +149,8 @@ function dislocationlayers()
     # Place submatrices into larger matrix
     TH[1:80, 1:322] = T_B1_C1 # Displacements at B1 due to C1 (including F1)
     TH[1:80, 323:642] = -T_T2_C2 # Displacements at T2 due to C2
-    TH[81:160, 323:642] = H_T2_C2 # Tractions at T2 due to C2
     TH[81:160, 1:322] = H_B1_C1 # Tractions at B1 due to C1 (including F1)
+    TH[81:160, 323:642] = H_T2_C2 # Tractions at T2 due to C2
     TH[161:162, 1:322] = T_F1_C1 # Displacments at F1 due in C1 (including F1)
     TH[163:242, 1:322] = H_R1_C1 # Tractions at R1 due in C1 (including F1)
     TH[243:322, 1:322] = H_T1_C1 # Tractions at T1 due in C1 (including F1)
@@ -159,53 +159,26 @@ function dislocationlayers()
     TH[483:562, 323:642] = H_R2_C2 # Tractions at R2 due in C2
     TH[563:642, 323:642] = H_L2_C2 # Tractions at L2 due in C2
     bcslayer = zeros(2*elslayer.endidx)
-    bcslayer[161] = 0.5
-    bcslayer[162] = 0.5
+    # bcslayer[161:162] .= 0.5
+    bcslayer[1:2] .= 0.5
+
     @show cond(TH)
 
-    # # Let's do the upper layer only. Should be able to compare with the box solution
-    # TH = zeros(2 * length(C1idx), 2 * length(C1idx))
-
-    # @show size(TH)
-    # TH = [T_FB_FBRTL ; H_RTL_FBRTL] # This is a good reference set of partials from the box problem
-    # TH[1:2, :] = T_F1_C1
-    # TH[3:82, :] = T_B1_C1 # Displacments at B1 due in C1 (including F1)
-    # TH[83:162, :] = H_R1_C1 # Tractions at R1 due in C1 (including F1)
-    # TH[163:242, :] = H_T1_C1 # Tractions at T1 due in C1 (including F1)
-    # TH[243:322, :] = H_L1_C1 # Tractions at L1 due in C1 (including F1)
-    # bcsul = zeros(2*length(C1idx))
-    # bcsul[1] = 0.5
-    # bcsul[2] = 0.5
-    # Uefful = TH \ bcsul
-
-    # figure()
-    # quiver(elslayer.xcenter[C1idx], elslayer.ycenter[C1idx],
-    #        Uefful[1:2:end], Uefful[2:2:end])
-    # title("Ueff for upper layer only")
-
-    # return
-
-    
-    bcstemp = zeros(2*length(C1idx))
-    bcstemp[161] = 0.5
-    bcstemp[162] = 0.5
+    matshow(log10.(abs.(TH)))
     
     figure()
     quiver(elslayer.xcenter[1:elslayer.endidx],
            elslayer.ycenter[1:elslayer.endidx],
            bcslayer[1:2:end], bcslayer[2:2:end])
+    title("boundary conditions, WtF")
     
     # Solve BEM for effective displacements
     Uefflayer = inv(TH) \ bcslayer
-    matshow(log10.(abs.(TH))); colorbar()
 
     figure()
     quiver(elslayer.xcenter[1:elslayer.endidx],
            elslayer.ycenter[1:elslayer.endidx],
            Uefflayer[1:2:end], Uefflayer[2:2:end])
-
-
-    # Try a little demo proble in the uper layer only
     
     return
     
