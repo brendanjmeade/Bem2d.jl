@@ -65,18 +65,6 @@ end
 
 
 """
-    flipud()
-
-Just an alias to the 1-linear that replicates matlab's matrix flipud
-Taken from:
-https://cheatsheets.quantecon.org/#manipulating-vectors-and-matrices
-"""
-function flipud(mat)
-    mat = reverse(mat, dims = 1)
-end
-
-
-"""
     discmaterialother()
 
 Comparing homogeneous and welded circle BEM solutions
@@ -98,7 +86,7 @@ function discmaterialother()
     x1, y1, x2, y2 = discretizedarc(deg2rad(180), deg2rad(360), r, nels)
     addelsez!(els1, x1, y1, x2, y2, "B")
     idx1 = getidxdict(els1)
-    PLOTGEOMETRY && plotgeometry(els1, "Circle boundaries and normals")
+    # PLOTGEOMETRY && plotgeometry(els1, "Circle boundaries and normals")
 
     T_B_BT, _ = PUTC(slip2dispstress, els1, idx1["B"], 1:els1.endidx, mu, nu)
     _, H_T_BT = PUTC(slip2dispstress, els1, idx1["T"], 1:els1.endidx, mu, nu)
@@ -106,12 +94,12 @@ function discmaterialother()
     bcs1[2*10] = 1.0
     bcs1[2*11] = 1.0    
     Ueff1 = [H_T_BT ; T_B_BT] \ bcs1
-    plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
-    xgrid1, ygrid1 = obsgrid(-r, -r, r, r, npts)
-    U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
-                             Ueff1[1:2:end], Ueff1[2:2:end], mu, nu)
-    plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
-               U1, S1, "homogeneous circle")
+    # plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
+    # xgrid1, ygrid1 = obsgrid(-r, -r, r, r, npts)
+    # U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
+    #                          Ueff1[1:2:end], Ueff1[2:2:end], mu, nu)
+    # plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+    #            U1, S1, "homogeneous circle")
   
 
     # Element geometries and data structures for the welded circle case
@@ -137,9 +125,9 @@ function discmaterialother()
     T_B_BmidB, _ = PUTC(slip2dispstress, els2, idx2["B"], [idx2["B"]; idx2["midB"]], mu, nu)
 
     TH[1:40, 1:80] = T_midT_TmidT
-    TH[1:40, 81:160] = -T_midB_BmidB
+    TH[1:40, 81:160] = -flipud(T_midB_BmidB)
     TH[41:80, 1:80] = H_midT_TmidT
-    TH[41:80, 81:160] = H_midB_BmidB
+    TH[41:80, 81:160] = flipud(H_midB_BmidB)
     TH[81:120, 1:80] = H_T_TmidT
     TH[121:160, 81:160] = T_B_BmidB
     

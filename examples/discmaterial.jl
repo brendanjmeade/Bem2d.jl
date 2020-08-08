@@ -7,6 +7,29 @@ using Infiltrator
 using Bem2d
 
 
+
+"""
+    plotgeometry(els, titlestring)
+
+els structure geometry plotting for diagnostics
+"""
+function plotgeometry(els, titlestring)
+    scale = 500
+    figure(figsize=(15,10))
+    for i in 1:els.endidx
+        plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-g")
+        quiver(els.xcenter[i], els.ycenter[i],
+               els.xnormal[i], els.ynormal[i],
+               width=1e-3, scale=1e2)
+        text(els.xcenter[i] + scale * els.xnormal[i],
+             els.ycenter[i] + scale * els.ynormal[i],
+             string(i), fontsize=5)
+    end
+    title(titlestring)
+    gca().set_aspect("equal")
+end        
+
+
 """
     discretized_arc(thetastart, thetaend, radius, n_pts)
 
@@ -77,7 +100,8 @@ function discmaterial()
     # simply flip x1,y1 with x2,y2
     addelsez!(els, x2, y2, x1, y1, "bII")
     idx = getidxdict(els)
-
+    plotgeometry(els, "BEM geometry")
+    
     if DEBUG
         figure()
         for n in ["aI", "bI"]
