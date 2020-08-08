@@ -14,7 +14,7 @@ using Bem2d
 els structure geometry plotting for diagnostics
 """
 function plotgeometry(els, titlestring)
-    scale = 500
+    scale = 5e-2
     figure(figsize=(15,10))
     for i in 1:els.endidx
         plot([els.x1[i], els.x2[i]], [els.y1[i], els.y2[i]], "-g")
@@ -84,7 +84,7 @@ function discmaterial()
     muII = 0.5 * muI
     nuII = 0.25
     p = muI / 1e3 # CS example
-    nels = 600
+    nels = 60
     a = 0.5
     b = 1.0
     startangle = 180
@@ -155,6 +155,9 @@ function discmaterial()
     TH[(nels*4+1):(nels*6), (nels*2+1):(nels*4)] = H_aI_bI
     TH[(nels*4+1):(nels*6), (nels*4+1):(nels*6)] = H_aI_aI
 
+    matshow(TH); title(cond(TH)); colorbar()
+
+    
     # Boundary conditions
     bcs = zeros(6*nels)
     bcs[(nels*4+1):(nels*6)] = interleave(xtracaI, ytracaI)
