@@ -95,7 +95,7 @@ function discmaterialother()
     bcs1[2*11] = 1.0    
     Ueff1 = [H_T_BT ; T_B_BT] \ bcs1
     # plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
-    # xgrid1, ygrid1 = obsgrid(-r, -r, r, r, npts)
+    xgrid1, ygrid1 = obsgrid(-r, -r, r, r, npts)
     # U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
     #                          Ueff1[1:2:end], Ueff1[2:2:end], mu, nu)
     # plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
@@ -112,8 +112,7 @@ function discmaterialother()
     addelsez!(els2, x1, y1, x2, y2, "midT")
     x1, y1, x2, y2 = discretizedarc(deg2rad(180), deg2rad(360), r, nels)
     addelsez!(els2, x1, y1, x2, y2, "B")
-    x1, y1, x2, y2 = discretizedline(r, 0, -r, 0, nels)
-    # addelsez!(els2, x1, y1, x2, y2, "midB")
+    x1, y1, x2, y2 = discretizedline(-r, 0, r, 0, nels) # Peculiar
     addelsez!(els2, x2, y2, x1, y1, "midB")
     idx2 = getidxdict(els2)
     PLOTGEOMETRY && plotgeometry(els2, "Welded circle boundaries and normals")
@@ -142,7 +141,7 @@ function discmaterialother()
     UeffT2 = Ueff2[1:80]
     UeffB2 = Ueff2[81:160]
 
-    # xgridT2, ygridT2 = obsgrid(-r, 1000, r, r, npts)
+    xgridT2, ygridT2 = obsgrid(-r, 1000, r, r, npts)
     # U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
     #                          Ueff1[1:2:end], Ueff1[2:2:end], mu, nu)
 
@@ -152,15 +151,13 @@ function discmaterialother()
     #                            UeffT2[2:2:end], mu, nu)
     # plotfields(els1, reshape(xgridT2, npts, npts), reshape(ygridT2, npts, npts),
     #            UT2, ST2, "homogeneous circle (top)")
-
-    UT2, ST2 = constdispstress(slip2dispstress, xgrid1, ygrid1, els2,
-                               1:els2.endidx,
-                               Ueff2[1:2:end],
-                               Ueff2[2:2:end], mu, nu)
-    plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
-               UT2, ST2, "homogeneous circle (top)")
-
     
+    # UT2, ST2 = constdispstress(slip2dispstress, xgrid1, ygrid1, els2,
+    #                            1:els2.endidx,
+    #                            Ueff2[1:2:end],
+    #                            Ueff2[2:2:end], mu, nu)
+    # plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+    #            UT2, ST2, "homogeneous circle (top)")
     return
 end
 discmaterialother()
