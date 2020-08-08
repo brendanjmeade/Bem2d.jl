@@ -97,6 +97,20 @@ function addelsez!(els, x1, y1, x2, y2, namestring)
 end
 
 
+export flipud
+"""
+    flipud()
+
+Just an alias to the 1-linear that replicates matlab's matrix flipud
+Taken from:
+https://cheatsheets.quantecon.org/#manipulating-vectors-and-matrices
+"""
+function flipud(mat)
+    mat = reverse(mat, dims = 1)
+    return(mat)
+end
+
+
 export interleave
 """
     interleave(vec1, vec2)
