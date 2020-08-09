@@ -65,15 +65,20 @@ end
 
 
 """
-    discmaterialother()
+    weldedcircle()
 
 Comparing homogeneous and welded circle BEM solutions
 """
-function discmaterialother()
+function weldedcircle()
     close("all")
     PLOTGEOMETRY = true
-    mu = 3e10
-    nu = 0.25
+    # mu = 3e10
+    # nu = 0.25
+    mu1 = 3e10
+    nu1 = 0.25
+    mu2 = 1.0 * mu1
+    nu2 = nu1
+
     npts = 30
     offset = 100 # meters
     
@@ -88,8 +93,8 @@ function discmaterialother()
     idx1 = getidxdict(els1)
     # PLOTGEOMETRY && plotgeometry(els1, "Circle boundaries and normals")
 
-    T_B_BT, _ = PUTC(slip2dispstress, els1, idx1["B"], 1:els1.endidx, mu, nu)
-    _, H_T_BT = PUTC(slip2dispstress, els1, idx1["T"], 1:els1.endidx, mu, nu)
+    T_B_BT, _ = PUTC(slip2dispstress, els1, idx1["B"], 1:els1.endidx, mu1, nu1)
+    _, H_T_BT = PUTC(slip2dispstress, els1, idx1["T"], 1:els1.endidx, mu1, nu1)
     bcs1 = zeros(2*els1.endidx)
     bcs1[2*10] = 1.0
     bcs1[2*11] = 1.0    
@@ -97,7 +102,7 @@ function discmaterialother()
     # plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
     xgrid1, ygrid1 = obsgrid(-r, -r, r, r, npts)
     U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
-                             Ueff1[1:2:end], Ueff1[2:2:end], mu, nu)
+                             Ueff1[1:2:end], Ueff1[2:2:end], mu1, nu1)
     # plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
     #            U1, S1, "homogeneous circle")
   
@@ -117,10 +122,16 @@ function discmaterialother()
     # PLOTGEOMETRY && plotgeometry(els2, "Welded circle boundaries and normals")
     
     TH = zeros(2 * els2.endidx, 2 * els2.endidx)
-    T_midT_TmidT, H_midT_TmidT = PUTC(slip2dispstress, els2, idx2["midT"], [idx2["T"]; idx2["midT"]], mu, nu)
-    T_midB_BmidB, H_midB_BmidB = PUTC(slip2dispstress, els2, idx2["midB"], [idx2["B"]; idx2["midB"]], mu, nu)
-    _, H_T_TmidT = PUTC(slip2dispstress, els2, idx2["T"], [idx2["T"]; idx2["midT"]], mu, nu)
-    T_B_BmidB, _ = PUTC(slip2dispstress, els2, idx2["B"], [idx2["B"]; idx2["midB"]], mu, nu)
+    T_midT_TmidT, H_midT_TmidT = PUTC(slip2dispstress, els2, idx2["midT"],
+                                      [idx2["T"]; idx2["midT"]],
+                                      mu1, nu1)
+    T_midB_BmidB, H_midB_BmidB = PUTC(slip2dispstress, els2,
+                                      idx2["midB"], [idx2["B"]; idx2["midB"]],
+                                      mu2, nu2)
+    _, H_T_TmidT = PUTC(slip2dispstress, els2, idx2["T"],
+                        [idx2["T"]; idx2["midT"]], mu1, nu1)
+    T_B_BmidB, _ = PUTC(slip2dispstress, els2, idx2["B"],
+                        [idx2["B"]; idx2["midB"]], mu2, nu2)
 
     TH[1:40, 1:80] = T_midT_TmidT
     TH[1:40, 81:160] = -T_midB_BmidB
@@ -149,11 +160,10 @@ function discmaterialother()
     By = ygrid1[Bidx]
     UT2, ST2 = constdispstress(slip2dispstress, Tx, Ty, els2,
                                [idx2["T"]; idx2["midT"]],
-                               UeffT2[1:2:end], UeffT2[2:2:end], mu, nu)
+                               UeffT2[1:2:end], UeffT2[2:2:end], mu1, nu1)
     UB2, SB2 = constdispstress(slip2dispstress, Bx, By, els2,
                                [idx2["B"]; idx2["midB"]],
-                               UeffB2[1:2:end], UeffB2[2:2:end], mu, nu)
-
+                               UeffB2[1:2:end], UeffB2[2:2:end], mu2, nu2)
     
     # xgridT2, ygridT2 = obsgrid(-r, 344.827, r, r, npts)
     # UT2, ST2 = constdispstress(slip2dispstress, xgridT2, ygridT2, els2,
@@ -183,7 +193,5 @@ function discmaterialother()
            width=1e-3, scale=1e-6)    
     gca().set_aspect("equal")
 
-    @infiltrate
-    
 end
-discmaterialother()
+weldedcircle()
