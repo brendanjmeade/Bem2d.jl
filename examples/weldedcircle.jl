@@ -96,10 +96,10 @@ function discmaterialother()
     Ueff1 = [H_T_BT ; T_B_BT] \ bcs1
     # plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
     xgrid1, ygrid1 = obsgrid(-r, -r, r, r, npts)
-    # U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
-    #                          Ueff1[1:2:end], Ueff1[2:2:end], mu, nu)
-    # plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
-    #            U1, S1, "homogeneous circle")
+    U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
+                             Ueff1[1:2:end], Ueff1[2:2:end], mu, nu)
+    plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+               U1, S1, "homogeneous circle")
   
 
     # Element geometries and data structures for the welded circle case
@@ -132,9 +132,11 @@ function discmaterialother()
     TH[121:160, 81:160] = T_B_BmidB
     
     bcs2 = zeros(2*els2.endidx)
-    bcs2[2*10] = 1.0
-    bcs2[2*11] = 1.0
-    matshow(log10.(abs.(TH))); title(cond(TH)); colorbar();
+    # bcs2[2*10] = 1.0 # These are the initial indices
+    # bcs2[2*11] = 1.0
+    bcs2[2*50] = 1.0 # These are the indices after welding
+    bcs2[2*51] = 1.0
+    
     Ueff2 = TH \ bcs2
     plotbcsUeff(els2, bcs2, Ueff2, "welded circle")
 
@@ -145,12 +147,12 @@ function discmaterialother()
     # U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
     #                          Ueff1[1:2:end], Ueff1[2:2:end], mu, nu)
 
-    # UT2, ST2 = constdispstress(slip2dispstress, xgridT2, ygridT2, els2,
-    #                            [idx2["T"]; idx2["midT"]],
-    #                            UeffT2[1:2:end],
-    #                            UeffT2[2:2:end], mu, nu)
-    # plotfields(els1, reshape(xgridT2, npts, npts), reshape(ygridT2, npts, npts),
-    #            UT2, ST2, "homogeneous circle (top)")
+    UT2, ST2 = constdispstress(slip2dispstress, xgridT2, ygridT2, els2,
+                               [idx2["T"]; idx2["midT"]],
+                               UeffT2[1:2:end],
+                               UeffT2[2:2:end], mu, nu)
+    plotfields(els1, reshape(xgridT2, npts, npts), reshape(ygridT2, npts, npts),
+               UT2, ST2, "homogeneous circle (top)")
     
     # UT2, ST2 = constdispstress(slip2dispstress, xgrid1, ygrid1, els2,
     #                            1:els2.endidx,
