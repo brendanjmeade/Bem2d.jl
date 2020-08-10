@@ -140,6 +140,10 @@ function weldedcircle()
     TH[41:80, 81:160] = H_midB_BmidB
     TH[81:120, 1:80] = H_T_TmidT
     TH[121:160, 81:160] = T_B_BmidB
+
+    matshow(log10.(abs.(TH)))
+    title("condition number = " * string(cond(TH)))
+    colorbar()
     
     bcs2 = zeros(2*els2.endidx)
     # bcs2[2*10] = 1.0 # These are the initial indices
