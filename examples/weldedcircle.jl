@@ -4,6 +4,7 @@ using PyCall
 using Statistics
 using LinearAlgebra
 using Infiltrator
+using IterativeSolvers
 using Bem2d
 
 
@@ -145,12 +146,22 @@ function weldedcircle()
     # bcs2[2*11] = 1.0
     bcs2[2*50] = 1.0 # These are the indices after welding
     bcs2[2*51] = 1.0
-    
+
+    # Direct solve
     Ueff2 = TH \ bcs2
+    
+    # Try iterative solver
+    # Ueff2gmres, history = gmres(TH, bcs2, log=true, verbose=true)
+    # Ueff2idrs, history = idrs(TH, bcs2; s = 8, log=true, verbose=true)
+    # Ueff2 = Ueff2idrs
+    # figure()
+    # plot(Ueff2, "xb")
+    # plot(Ueff2gmres, "+r")
     UeffT2 = Ueff2[1:80]
     UeffB2 = Ueff2[81:160]
     # plotbcsUeff(els2, bcs2, Ueff2, "welded circle")
-
+    
+    
     # Internal evaluation
     Tidx = findall(x -> x > 0, ygrid1)
     Bidx = findall(x -> x < 0, ygrid1)
