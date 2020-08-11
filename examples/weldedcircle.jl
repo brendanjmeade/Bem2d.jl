@@ -73,11 +73,9 @@ Comparing homogeneous and welded circle BEM solutions
 function weldedcircle()
     close("all")
     PLOTGEOMETRY = true
-    # mu = 3e10
-    # nu = 0.25
     mu1 = 3e10
     nu1 = 0.25
-    mu2 = 1.0 * mu1
+    mu2 = 3.0 * mu1
     nu2 = nu1
 
     npts = 30
@@ -194,19 +192,39 @@ function weldedcircle()
     # plotfields(els2, reshape(xgridB2, npts, npts), reshape(ygridB2, npts, npts),
     #            UB2, SB2, "homogeneous circle (bottom)")
 
-    # Quick and dirty reshaping
-    figure(figsize=(20, 10))
+    # Isolate the values inside the circle
+    rnan = @. sqrt(xgrid1^2 + ygrid1^2)
+    nanidx = findall(x -> x > r, rnan)
+    U1[nanidx, :] .= NaN
+    rnan = @. sqrt(Tx^2 + Ty^2)
+    nanidx = findall(x -> x > r, rnan)
+    UT2[nanidx, :] .= NaN
+    rnan = @. sqrt(Bx^2 + By^2)
+    nanidx = findall(x -> x > r, rnan)
+    UB2[nanidx, :] .= NaN
+    
+    # Quick and dirty plotting of the homogenous
+    figure(figsize=(14, 7))
+    quiverwidth = 2e-3
     subplot(1, 2, 1)
+    plotelements(els2)
     quiver(xgrid1[:], ygrid1[:], U1[:, 1], U1[:, 2],
-           width=1e-3, scale=1e-6)
+           width=quiverwidth, scale=1e-6, color="r")
     gca().set_aspect("equal")
+    xlabel("x (m)")
+    ylabel("y (m)")
+    title("single material")
 
     subplot(1, 2, 2)
+    plotelements(els2)
     quiver(Tx[:], Ty[:], UT2[:, 1], UT2[:, 2],
-           width=1e-3, scale=1e-6)
+           width=quiverwidth, scale=1e-6, color="r")
     quiver(Bx[:], By[:], UB2[:, 1], UB2[:, 2],
-           width=1e-3, scale=1e-6)    
+           width=quiverwidth, scale=1e-6, color="r")    
     gca().set_aspect("equal")
+    xlabel("x (m)")
+    ylabel("y (m)")   
+    title("two materials, lower layer 3x stiffer")
 
 end
 weldedcircle()
