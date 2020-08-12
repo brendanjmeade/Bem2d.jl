@@ -66,45 +66,49 @@ end
 
 
 """
-    weldedcircle()
+    weldedcirclefault()
 
 Comparing homogeneous and welded circle BEM solutions
 """
-function weldedcircle()
+function weldedcirclefault()
     close("all")
     PLOTGEOMETRY = true
     mu1 = 3e10
     nu1 = 0.25
     mu2 = 3.0 * mu1
     nu2 = nu1
-
-    npts = 30
+    npts = 100
     offset = 100 # meters
     
     # Element geometries and data structures for the homogeneous circle case
     els1 = Elements(Int(1e5))
     nels = 20
+    nfault = 10
     r = 10e3
     x1, y1, x2, y2 = discretizedarc(deg2rad(0), deg2rad(180), r, nels)
     addelsez!(els1, x1, y1, x2, y2, "T")
     x1, y1, x2, y2 = discretizedarc(deg2rad(180), deg2rad(360), r, nels)
     addelsez!(els1, x1, y1, x2, y2, "B")
+    x1, y1, x2, y2 = discretizedline(0, -2.5e3, 0, 2.5e3, nfault)
+    addelsez!(els1, x1, y1, x2, y2, "F")
     idx1 = getidxdict(els1)
     # PLOTGEOMETRY && plotgeometry(els1, "Circle boundaries and normals")
 
-    T_B_BT, _ = PUTC(slip2dispstress, els1, idx1["B"], 1:els1.endidx, mu1, nu1)
-    _, H_T_BT = PUTC(slip2dispstress, els1, idx1["T"], 1:els1.endidx, mu1, nu1)
+    T_T_BT, H_T_BT = PUTC(slip2dispstress, els1, idx1["T"], 1:els1.endidx, mu1, nu1)
+    T_FB_BT, _ = PUTC(slip2dispstress, els1, [idx1["B"] ; idx1["F"]], 1:els1.endidx, mu1, nu1)
     bcs1 = zeros(2*els1.endidx)
-    bcs1[2*10] = 1.0
-    bcs1[2*11] = 1.0    
-    Ueff1 = [H_T_BT ; T_B_BT] \ bcs1
-    # plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
+    bcs1[4*nels+2:2:end] .= 1 # Unit y-direction slip on the fault
+
+    TH = [T_T_BT ; T_FB_BT]
+    Ueff1 = TH \ bcs1
+    plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
     xgrid1, ygrid1 = obsgrid(-r, -r, r, r, npts)
     U1, S1 = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, 1:els1.endidx,
                              Ueff1[1:2:end], Ueff1[2:2:end], mu1, nu1)
-    # plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
-    #            U1, S1, "homogeneous circle")
-  
+    plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+               U1, S1, "homogeneous circle")
+    return
+    
     # Element geometries and data structures for the welded circle case
     els2 = Elements(Int(1e5))
     nels = 20
@@ -227,4 +231,4 @@ function weldedcircle()
     title("two materials, lower layer 3x stiffer")
 
 end
-weldedcircle()
+weldedcirclefault()
