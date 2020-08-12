@@ -72,15 +72,17 @@ Comparing homogeneous and welded circle BEM solutions
 """
 function weldedcirclefault()
     close("all")
-    PLOTGEOMETRY = true
+    DEBUGPLOT = false
     mu1 = 3e10
     nu1 = 0.25
-    mu2 = 3.0 * mu1
+    mu2 = 1.0 * mu1
     nu2 = nu1
-    npts = 100
+    npts = 30
     offset = 100 # meters
-    
-    # Element geometries and data structures for the homogeneous circle case
+
+    ###
+    ### Single domain homogeneous circle case
+    ###
     els1 = Elements(Int(1e5))
     nels = 20
     nfault = 1
@@ -89,12 +91,12 @@ function weldedcirclefault()
     addelsez!(els1, x1, y1, x2, y2, "T")
     x1, y1, x2, y2 = discretizedarc(deg2rad(180), deg2rad(360), r, nels)
     addelsez!(els1, x1, y1, x2, y2, "B")
-    x1, y1, x2, y2 = discretizedline(0, 5e3, 0, 10e3, nfault)
+    x1, y1, x2, y2 = discretizedline(0, 1e3, 0, 9e3, nfault)
     addelsez!(els1, x1, y1, x2, y2, "F")
     idx1 = getidxdict(els1)
-    # PLOTGEOMETRY && plotgeometry(els1, "Circle boundaries and normals")
+    DEBUGPLOT && plotgeometry(els1, "Circle boundaries and normals")
 
-    # Calculate displacements and tractions at boundaries from fault
+    # Calculate displacements and tractions at boundaries 
     T_TB_F, H_TB_F = PUTC(slip2dispstress, els1, [idx1["T"] ; idx1["B"]],
                           idx1["F"], mu1, nu1)
     Fslip = [0; 1]; # y-direction slip only
@@ -109,19 +111,25 @@ function weldedcirclefault()
     bcs1[41:end] = 0 .- Uslip[41:end]
     TH = [H_T_BT ; T_B_BT]
     Ueff1 = TH \ bcs1
-    # plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
+    DEBUGPLOT && plotbcsUeff(els1, bcs1, Ueff1, "homogeneous circle")
+
+    # Volume visualization
     xgrid1, ygrid1 = obsgrid(-r, -r, r, r, npts)
     UTB, STB = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, [idx1["T"] ; idx1["B"]],
                              Ueff1[1:2:end], Ueff1[2:2:end], mu1, nu1)
     UF, SF = constdispstress(slip2dispstress, xgrid1, ygrid1, els1, idx1["F"],
                              Fslip[1:2:end], Fslip[2:2:end], mu1, nu1)
+    U1 = UTB .+ UF
+    S1 = STB .+ SF
     plotfields(els1, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
-               UTB.+UF, STB.+SF, "homogeneous circle")
-    return
-    
-    # Element geometries and data structures for the welded circle case
+               U1, S1, "homogeneous circle")
+
+    ###
+    ### Element geometries and data structures for the welded circle case
+    ###
     els2 = Elements(Int(1e5))
     nels = 20
+    nfault = 1
     r = 10e3
     x1, y1, x2, y2 = discretizedarc(deg2rad(0), deg2rad(180), r, nels)
     addelsez!(els2, x1, y1, x2, y2, "T")
@@ -131,10 +139,21 @@ function weldedcirclefault()
     addelsez!(els2, x1, y1, x2, y2, "B")
     x1, y1, x2, y2 = discretizedline(-r, 0, r, 0, nels) # Peculiar
     addelsez!(els2, x2, y2, x1, y1, "midB")
+    x1, y1, x2, y2 = discretizedline(0, 1e3, 0, 9e3, nfault)
+    addelsez!(els2, x1, y1, x2, y2, "F")
     idx2 = getidxdict(els2)
-    # PLOTGEOMETRY && plotgeometry(els2, "Welded circle boundaries and normals")
+    DEBUGPLOT && plotgeometry(els2, "Welded circle boundaries and normals")
+
+    # Calculate displacements and tractions at boundaries from fault
+    T_T_F, H_T_F = PUTC(slip2dispstress, els2, idx2["T"], idx2["F"], mu1, nu1)
+    T_midT_F, H_midT_F = PUTC(slip2dispstress, els2, idx2["midT"], idx2["F"], mu1, nu1)
+    T_midB_F, H_midB_F = PUTC(slip2dispstress, els2, idx2["midB"], idx2["F"], mu2, nu2)    
+    Fslip = [0; 1]; # y-direction slip only
+    displacmentsfromslip = T_TB_F * Fslip
+    tractionsfromslip = H_TB_F * Fslip
     
-    TH = zeros(2 * els2.endidx, 2 * els2.endidx)
+    # Kernels and design matrix
+    TH = zeros(8 * nels, 8 * nels)
     T_midT_TmidT, H_midT_TmidT = PUTC(slip2dispstress, els2, idx2["midT"],
                                       [idx2["T"]; idx2["midT"]],
                                       mu1, nu1)
@@ -153,31 +172,18 @@ function weldedcirclefault()
     TH[81:120, 1:80] = H_T_TmidT
     TH[121:160, 81:160] = T_B_BmidB
 
-    matshow(log10.(abs.(TH)))
-    title("condition number = " * string(cond(TH)))
-    colorbar()
+    bcs2 = zeros(8 * nels)
+    bcs2[1:40] .= 0 # What should this be?  0?
+    bcs2[41:80] .= 0 # What should this be?  0?
+    bcs2[81:120] = 0 .- tractionsfromslip[1:40]
+    bcs2[121:end] .= 0 # Is this really 0?
     
-    bcs2 = zeros(2*els2.endidx)
-    # bcs2[2*10] = 1.0 # These are the initial indices
-    # bcs2[2*11] = 1.0
-    bcs2[2*50] = 1.0 # These are the indices after welding
-    bcs2[2*51] = 1.0
-
-    # Direct solve
+    # Solve welded circle BEM problem
     Ueff2 = TH \ bcs2
-    
-    # Try iterative solver
-    # Ueff2gmres, history = gmres(TH, bcs2, log=true, verbose=true)
-    # Ueff2idrs, history = idrs(TH, bcs2; s = 8, log=true, verbose=true)
-    # Ueff2 = Ueff2idrs
-    # figure()
-    # plot(Ueff2, "xb")
-    # plot(Ueff2gmres, "+r")
+    plotbcsUeff(els2, bcs2, Ueff2, "welded circle")
     UeffT2 = Ueff2[1:80]
     UeffB2 = Ueff2[81:160]
-    # plotbcsUeff(els2, bcs2, Ueff2, "welded circle")
-    
-    
+
     # Internal evaluation
     Tidx = findall(x -> x > 0, ygrid1)
     Bidx = findall(x -> x < 0, ygrid1)
@@ -191,54 +197,34 @@ function weldedcirclefault()
     UB2, SB2 = constdispstress(slip2dispstress, Bx, By, els2,
                                [idx2["B"]; idx2["midB"]],
                                UeffB2[1:2:end], UeffB2[2:2:end], mu2, nu2)
+    # UT2 = UT2 .+ UF[Tidx]
     
-    # xgridT2, ygridT2 = obsgrid(-r, 344.827, r, r, npts)
-    # UT2, ST2 = constdispstress(slip2dispstress, xgridT2, ygridT2, els2,
-    #                            [idx2["T"]; idx2["midT"]],
-    #                            UeffT2[1:2:end], UeffT2[2:2:end], mu, nu)
-    # # plotfields(els2, reshape(xgridT2, npts, npts), reshape(ygridT2, npts, npts),
-    # #            UT2, ST2, "homogeneous circle (top)")
-
-    # xgridB2, ygridB2 = obsgrid(-r, -r, r, -344.827, npts)
-    # UB2, SB2 = constdispstress(slip2dispstress, xgridB2, ygridB2, els2,
-    #                            [idx2["B"]; idx2["midB"]],
-    #                            UeffB2[1:2:end], UeffB2[2:2:end], mu, nu)
-    # plotfields(els2, reshape(xgridB2, npts, npts), reshape(ygridB2, npts, npts),
-    #            UB2, SB2, "homogeneous circle (bottom)")
-
-    # Isolate the values inside the circle
-    rnan = @. sqrt(xgrid1^2 + ygrid1^2)
-    nanidx = findall(x -> x > r, rnan)
-    U1[nanidx, :] .= NaN
-    rnan = @. sqrt(Tx^2 + Ty^2)
-    nanidx = findall(x -> x > r, rnan)
-    UT2[nanidx, :] .= NaN
-    rnan = @. sqrt(Bx^2 + By^2)
-    nanidx = findall(x -> x > r, rnan)
-    UB2[nanidx, :] .= NaN
-    
-    # Quick and dirty plotting of the homogenous
+    ###
+    ### Quiver plot to compare displacements
+    ### 
     figure(figsize=(14, 7))
     quiverwidth = 2e-3
+    quiverscale = 1e1
+    
     subplot(1, 2, 1)
-    plotelements(els2)
+    plotelements(els1)
     quiver(xgrid1[:], ygrid1[:], U1[:, 1], U1[:, 2],
-           width=quiverwidth, scale=1e-6, color="r")
+           width=quiverwidth, scale=quiverscale, color="r")
     gca().set_aspect("equal")
     xlabel("x (m)")
     ylabel("y (m)")
-    title("single material")
+    title("single domain")
 
     subplot(1, 2, 2)
     plotelements(els2)
     quiver(Tx[:], Ty[:], UT2[:, 1], UT2[:, 2],
-           width=quiverwidth, scale=1e-6, color="r")
+           width=quiverwidth, scale=quiverscale, color="r")
     quiver(Bx[:], By[:], UB2[:, 1], UB2[:, 2],
-           width=quiverwidth, scale=1e-6, color="r")    
+           width=quiverwidth, scale=quiverscale, color="r")    
     gca().set_aspect("equal")
     xlabel("x (m)")
     ylabel("y (m)")   
-    title("two materials, lower layer 3x stiffer")
-
+    title("two domains, same material")
+    @infiltrate
 end
 weldedcirclefault()
