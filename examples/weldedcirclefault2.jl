@@ -75,9 +75,9 @@ function weldedcirclefault()
     DEBUGPLOT = false
     mu1 = 3e10
     nu1 = 0.25
-    mu2 = 1.0 * mu1
+    mu2 = 10.0 * mu1
     nu2 = 0.25
-    npts = 30
+    npts = 100
     offset = 100 # meters
 
     ###
@@ -91,7 +91,7 @@ function weldedcirclefault()
     addelsez!(els1, x1, y1, x2, y2, "T")
     x1, y1, x2, y2 = discretizedarc(deg2rad(180), deg2rad(360), r, nels)
     addelsez!(els1, x1, y1, x2, y2, "B")
-    x1, y1, x2, y2 = discretizedline(0, 1e3, 0, 9e3, nfault)
+    x1, y1, x2, y2 = discretizedline(0, 1e3, 0, 5e3, nfault)
     addelsez!(els1, x1, y1, x2, y2, "F")
     idx1 = getidxdict(els1)
     DEBUGPLOT && plotgeometry(els1, "Circle boundaries and normals")
@@ -125,7 +125,7 @@ function weldedcirclefault()
                U1, S1, "homogeneous circle")
 
     ###
-    ### Element geometries and data structures for the welded circle case
+    ### Two domain welded circle case
     ###
     els2 = Elements(Int(1e5))
     nels = 20
@@ -139,7 +139,7 @@ function weldedcirclefault()
     addelsez!(els2, x1, y1, x2, y2, "B")
     x1, y1, x2, y2 = discretizedline(-r, 0, r, 0, nels) # Peculiar
     addelsez!(els2, x2, y2, x1, y1, "midB")
-    x1, y1, x2, y2 = discretizedline(0, 1e3, 0, 9e3, nfault)
+    x1, y1, x2, y2 = discretizedline(0, 1e3, 0, 5e3, nfault)
     addelsez!(els2, x1, y1, x2, y2, "F")
     idx2 = getidxdict(els2)
     DEBUGPLOT && plotgeometry(els2, "Welded circle boundaries and normals")
@@ -176,11 +176,11 @@ function weldedcirclefault()
     
     # Solve welded circle BEM problem
     Ueff2 = TH \ bcs2
-    plotbcsUeff(els2, bcs2, Ueff2, "welded circle")
+    DEBUGPLOT && plotbcsUeff(els2, bcs2, Ueff2, "welded circle")
     UeffT2 = Ueff2[1:80]
     UeffB2 = Ueff2[81:160]
 
-    # Internal evaluation
+    # Volume visualization for two domain case
     Tidx = findall(x -> x > 0, ygrid1)
     Bidx = findall(x -> x < 0, ygrid1)
     Tx = xgrid1[Tidx]
@@ -199,9 +199,19 @@ function weldedcirclefault()
                                  Fslip[1:2:end], Fslip[2:2:end], mu2, nu2)    
     UT2 = UT2 .+ UT2F
     UB2 = UB2 .+ UB2F
+    ST2 = ST2 .+ ST2F
+    SB2 = SB2 .+ SB2F
+    U2 = [UB2 ; UT2] # Note B, T ordering
+    S2 = [SB2 ; ST2] # Note B, T ordering
+    plotfields(els2, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+               U2, S2, "welded circle")
+
+    plotfields(els2, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+               U2 .- U1, S2 .- S1, "residuals")
+
     
     ###
-    ### Quiver plot to compare displacements
+    ### Visualize the homogeneous and two-domain cases
     ### 
     figure(figsize=(14, 7))
     quiverwidth = 2e-3
@@ -218,10 +228,8 @@ function weldedcirclefault()
 
     subplot(1, 2, 2)
     plotelements(els2)
-    quiver(Tx[:], Ty[:], UT2[:, 1], UT2[:, 2],
+    quiver(xgrid1[:], ygrid1[:], U2[:, 1], U2[:, 2],
            width=quiverwidth, scale=quiverscale, color="r")
-    quiver(Bx[:], By[:], UB2[:, 1], UB2[:, 2],
-           width=quiverwidth, scale=quiverscale, color="r")    
     gca().set_aspect("equal")
     xlabel("x (m)")
     ylabel("y (m)")   
