@@ -77,7 +77,7 @@ function weldedcirclefault()
     nu1 = 0.25
     mu2 = 10.0 * mu1
     nu2 = 0.25
-    npts = 100
+    npts = 200
     offset = 100 # meters
 
     ###
@@ -205,35 +205,7 @@ function weldedcirclefault()
     S2 = [SB2 ; ST2] # Note B, T ordering
     plotfields(els2, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
                U2, S2, "welded circle")
-
     plotfields(els2, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
-               U2 .- U1, S2 .- S1, "residuals")
-
-    
-    ###
-    ### Visualize the homogeneous and two-domain cases
-    ### 
-    figure(figsize=(14, 7))
-    quiverwidth = 2e-3
-    quiverscale = 1e1
-    
-    subplot(1, 2, 1)
-    plotelements(els1)
-    quiver(xgrid1[:], ygrid1[:], U1[:, 1], U1[:, 2],
-           width=quiverwidth, scale=quiverscale, color="r")
-    gca().set_aspect("equal")
-    xlabel("x (m)")
-    ylabel("y (m)")
-    title("single domain")
-
-    subplot(1, 2, 2)
-    plotelements(els2)
-    quiver(xgrid1[:], ygrid1[:], U2[:, 1], U2[:, 2],
-           width=quiverwidth, scale=quiverscale, color="r")
-    gca().set_aspect("equal")
-    xlabel("x (m)")
-    ylabel("y (m)")   
-    title("two domains, same material")
-    @infiltrate
+               U2 .- U1, S2 .- S1, "residuals")    
 end
 weldedcirclefault()
