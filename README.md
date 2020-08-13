@@ -30,13 +30,13 @@ Comparision between fundamental fullspace 2D elastic disloation soluitons and Ok
 
 `discmaterial.jl` - [working] - A simple two domain problem.  An inner annulus surrounded by a an unbounded region with different material properties.  Crouch and Starfield solve this for using fictious force vs. the DDM approach here.
 
-`dislocationinabox.jl` - [not working] - Single fault inside of a box with traction free boundary conditions on the sides and top with a no slip boundary at the bottom.
+`faultbox.jl` - [not working] - Single fault inside of a box with traction free boundary conditions on the sides and top with a no slip boundary at the bottom.
 
-`dislocationinaboxgravity.jl` - [not working] - Single fault inside of a box with gravity. Traction free boundary conditions on the sides and top with a no slip boundary at the bottom.
+`faultboxgravity.jl` - [not working] - Single fault inside of a box with gravity. Traction free boundary conditions on the sides and top with a no slip boundary at the bottom.
 
-`gravitydislocation.jl` - [not working] - A box with gravity and fault with a known slip.
+`gravityboxfault.jl` - [not working] - A box with gravity and fault with a known slip.
 
-`gravitysquare.jl` - [working] - Homogenous square compressing under the force of gravity with a no slip bottom boundary condition.
+`gravitybox.jl` - [working] - Homogenous square compressing under the force of gravity with a no slip bottom boundary condition.
 
 `kelvin.jl` - [working] - Comparison of point source kelvin solution with finite source DDM approximation.
 
