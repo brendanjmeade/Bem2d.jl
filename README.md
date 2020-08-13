@@ -34,9 +34,7 @@ Comparision between fundamental fullspace 2D elastic disloation soluitons and Ok
 
 `dislocationinaboxgravity.jl` - [not working] - Single fault inside of a box with gravity. Traction free boundary conditions on the sides and top with a no slip boundary at the bottom.
 
-`fullspaceindirect.jl` - [not working] - Not sure.
-
-`gravitydislocation.jl` - [not working] - Not sure.
+`gravitydislocation.jl` - [not working] - A box with gravity and fault with a known slip.
 
 `gravitysquare.jl` - [working] - Homogenous square compressing under the force of gravity with a no slip bottom boundary condition.
 
@@ -52,9 +50,7 @@ Comparision between fundamental fullspace 2D elastic disloation soluitons and Ok
 
 `qdtopography.jl` - [not working] - Quasi-dynamic rupture example with topography.
 
-`thrustfaultfreesurface.jl` - [not working] - Not sure what this one is.
-
-`thrustfaultfreesurfacelayered.jl` - [not working] - I don't think this has ever really been developed.
+`thrustfaultfreesurface.jl` - [working] - Older version of Okada comparision at free surface.  Needs to updated.
 
 `thrustfaulttopography.jl` - [working] - A thrust fault with a traction free topographic surface
 
