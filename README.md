@@ -18,7 +18,7 @@ should produce this figure:
 
 ![thrusttopo](/docs/src/assets/ex_thrusttopo.png)
 
-## Examples in /examples
+## Examples
 Many of these serve as benchmarks (and effectively as tests) with the intent of making clear how to build simple to complex BEM models
 
 bemvsdeepokada.jl [works on Linux, because of okada_wrapper dependency]
@@ -77,9 +77,7 @@ A thrust fault with a traction free topographic surface
 weldedcircle.jl [working]
 A basic two domain example consisting of a circle cut into upper and lower halves with differing material properties.  Traction boundary conditions apply on the top of the circle and no-slip boundary conditions on the bottom half.
 
-**weldedcirclefault.jl** - *working*
-A basic two domain example consisting of a circle cut into upper and lower halves with differing material properties and fault in the upper domain.
-The upper half of the circle boundary is traction and no-slip boundary conditions on the bottom half.
+**weldedcirclefault.jl** - [*working*] A basic two domain example consisting of a circle cut into upper and lower halves with differing material properties and fault in the upper domain. The upper half of the circle boundary is traction and no-slip boundary conditions on the bottom half.
 
 
 ## Running inside Docker
