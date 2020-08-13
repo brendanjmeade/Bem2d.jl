@@ -21,17 +21,15 @@ should produce this figure:
 ## Examples
 These serve as reference examples (and some as effectively tests) with the intent of making clear how to build simple to complex BEM models
 
-`**bemvsdeepokada.jl**` - [*works on Linux, because of okada_wrapper dependency*] - 
+`bemvsdeepokada.jl` - [*works on Linux, because of okada_wrapper dependency*] - 
 Comparision between fundamental fullspace 2D elastic disloation soluitons and Okada's half space 3D solutions. 
 
-`braziltest.jl` [working]
+`braziltest.jl` - [working] - 
 Traction only compression of a homogeneous disc (Brazil test)
 
-**constvsquadelements.jl** [working]
-Basic comparision of constant slip vs. 3 node quadratic elements.
+`constvsquadelements.jl` [working] Basic comparision of constant slip vs. 3 node quadratic elements.
 
-**discmaterial.jl** [working]
-A simple two domain problem.  An inner annulus surrounded by a an unbounded region with different material properties.  Crouch and Starfield solve this for using fictious force vs. the DDM approach here.
+`discmaterial.jl` [working] - A simple two domain problem.  An inner annulus surrounded by a an unbounded region with different material properties.  Crouch and Starfield solve this for using fictious force vs. the DDM approach here.
 
 **dislocationinabox.jl** [not working]
 Single fault inside of a box
