@@ -76,7 +76,7 @@ function weldedcirclefault()
     mu1 = 3e10
     nu1 = 0.25
     mu2 = 1.0 * mu1
-    nu2 = nu1
+    nu2 = 0.25
     npts = 30
     offset = 100 # meters
 
@@ -96,7 +96,7 @@ function weldedcirclefault()
     idx1 = getidxdict(els1)
     DEBUGPLOT && plotgeometry(els1, "Circle boundaries and normals")
 
-    # Calculate displacements and tractions at boundaries 
+    # Kernels, BCs, and solve 
     T_TB_F, H_TB_F = PUTC(slip2dispstress, els1, [idx1["T"] ; idx1["B"]],
                           idx1["F"], mu1, nu1)
     Fslip = [0; 1]; # y-direction slip only
@@ -144,15 +144,11 @@ function weldedcirclefault()
     idx2 = getidxdict(els2)
     DEBUGPLOT && plotgeometry(els2, "Welded circle boundaries and normals")
 
-    # Calculate displacements and tractions at boundaries from fault
+    # Kernels, BCs, and solve
     T_T_F, H_T_F = PUTC(slip2dispstress, els2, idx2["T"], idx2["F"], mu1, nu1)
-    T_midT_F, H_midT_F = PUTC(slip2dispstress, els2, idx2["midT"], idx2["F"], mu1, nu1)
-    T_midB_F, H_midB_F = PUTC(slip2dispstress, els2, idx2["midB"], idx2["F"], mu2, nu2)    
+    T_B_F, H_B_F = PUTC(slip2dispstress, els2, idx2["B"], idx2["F"], mu2, nu2)
     Fslip = [0; 1]; # y-direction slip only
-    displacmentsfromslip = T_TB_F * Fslip
-    tractionsfromslip = H_TB_F * Fslip
     
-    # Kernels and design matrix
     TH = zeros(8 * nels, 8 * nels)
     T_midT_TmidT, H_midT_TmidT = PUTC(slip2dispstress, els2, idx2["midT"],
                                       [idx2["T"]; idx2["midT"]],
@@ -173,10 +169,10 @@ function weldedcirclefault()
     TH[121:160, 81:160] = T_B_BmidB
 
     bcs2 = zeros(8 * nels)
-    bcs2[1:40] .= 0 # What should this be?  0?
-    bcs2[41:80] .= 0 # What should this be?  0?
-    bcs2[81:120] = 0 .- tractionsfromslip[1:40]
-    bcs2[121:end] .= 0 # Is this really 0?
+    bcs2[1:40] .= 0
+    bcs2[41:80] .= 0
+    bcs2[81:120] = -H_T_F * Fslip
+    bcs2[121:end] .= -T_B_F * Fslip
     
     # Solve welded circle BEM problem
     Ueff2 = TH \ bcs2
@@ -197,7 +193,12 @@ function weldedcirclefault()
     UB2, SB2 = constdispstress(slip2dispstress, Bx, By, els2,
                                [idx2["B"]; idx2["midB"]],
                                UeffB2[1:2:end], UeffB2[2:2:end], mu2, nu2)
-    # UT2 = UT2 .+ UF[Tidx]
+    UT2F, ST2F = constdispstress(slip2dispstress, Tx, Ty, els2, idx2["F"],
+                                 Fslip[1:2:end], Fslip[2:2:end], mu1, nu1)
+    UB2F, SB2F = constdispstress(slip2dispstress, Bx, By, els2, idx2["F"],
+                                 Fslip[1:2:end], Fslip[2:2:end], mu2, nu2)    
+    UT2 = UT2 .+ UT2F
+    UB2 = UB2 .+ UB2F
     
     ###
     ### Quiver plot to compare displacements
