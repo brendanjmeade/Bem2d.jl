@@ -19,65 +19,65 @@ should produce this figure:
 ![thrusttopo](/docs/src/assets/ex_thrusttopo.png)
 
 ## Examples
-Many of these serve as benchmarks (and effectively as tests) with the intent of making clear how to build simple to complex BEM models
+These serve as reference examples (and some as effectively tests) with the intent of making clear how to build simple to complex BEM models
 
-bemvsdeepokada.jl [works on Linux, because of okada_wrapper dependency]
+`**bemvsdeepokada.jl**` - [*works on Linux, because of okada_wrapper dependency*] - 
 Comparision between fundamental fullspace 2D elastic disloation soluitons and Okada's half space 3D solutions. 
 
-braziltest.jl [working]
+`braziltest.jl` [working]
 Traction only compression of a homogeneous disc (Brazil test)
 
-constvsquadelements.jl [working]
+**constvsquadelements.jl** [working]
 Basic comparision of constant slip vs. 3 node quadratic elements.
 
-discmaterial.jl [working]
+**discmaterial.jl** [working]
 A simple two domain problem.  An inner annulus surrounded by a an unbounded region with different material properties.  Crouch and Starfield solve this for using fictious force vs. the DDM approach here.
 
-dislocationinabox.jl [not working]
+**dislocationinabox.jl** [not working]
 Single fault inside of a box
 
-dislocationinaboxgravity.jl [not working] 
+**dislocationinaboxgravity.jl** [not working] 
 Single fault inside of a box with gravity
 
-fullspaceindirect.jl [not working]
+**fullspaceindirect.jl** [not working]
 Not sure.
 
-gravitydislocation.jl [not working]
+**gravitydislocation.jl** [not working]
 Not sure.
 
 gravitysquare.jl [working]
 Homogenous square compressing under the force of gravity with a no slip bottom boundary condition.
 
-kelvin.jl [working]
+**kelvin.jl** [working]
 Comparison of point source kelvin solution with finite source DDM approximation.
 
-layeredboxfault.jl [not working]
+**layeredboxfault.jl** [not working]
 Box with a fault and two domains with differing material properties.
 
-nearsurfaceerror.jl [works on Linux, because of okada_wrapper dependency]
+**nearsurfaceerror.jl** [works on Linux, because of okada_wrapper dependency]
 Comparision of constant element vs. 3 node quadratic element errors when compared with Okada.
 
-okadaindirect.jl [works on Linux, because of okada_wrapper dependency]
+**okadaindirect.jl** [works on Linux, because of okada_wrapper dependency]
 Comparision of Okada's half space solution with a BEM implmentation.
 
-qdplanar.jl [not sure]
+**qdplanar.jl** [not sure]
 Planar quasi-dynamic rupture example.
 
-qdtopography.jl [not working]
+**qdtopography.jl** [not working]
 Quasi-dynamic rupture example with topography.
 
-thrustfaultfreesurface.jl [working]
+**thrustfaultfreesurface.jl** [working]
 Not sure what this one is.
 
-thrustfaultfreesurfacelayered.jl [not working]
+**thrustfaultfreesurfacelayered.jl** [not working]
 
-thrustfaulttopography.jl [working]
+**thrustfaulttopography.jl** [working]
 A thrust fault with a traction free topographic surface
 
-weldedcircle.jl [working]
+**weldedcircle.jl** [working]
 A basic two domain example consisting of a circle cut into upper and lower halves with differing material properties.  Traction boundary conditions apply on the top of the circle and no-slip boundary conditions on the bottom half.
 
-**weldedcirclefault.jl** - [*working*] A basic two domain example consisting of a circle cut into upper and lower halves with differing material properties and fault in the upper domain. The upper half of the circle boundary is traction and no-slip boundary conditions on the bottom half.
+**weldedcirclefault.jl** - [*working*] - A basic two domain example consisting of a circle cut into upper and lower halves with differing material properties and fault in the upper domain. The upper half of the circle boundary is traction and no-slip boundary conditions on the bottom half.
 
 
 ## Running inside Docker
