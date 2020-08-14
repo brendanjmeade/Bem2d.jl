@@ -83,9 +83,13 @@ Comparing half-space and dislocation in a box solutions
 """
 function layeredboxfault()
     close("all")
-    PLOTGEOMETRY = true
+    PLOTGEOMETRY = false
     mu = 3e10
     nu = 0.25
+    mu1 = 3e10
+    nu1 = 0.25
+    mu2 = 3e10
+    nu2 = 0.25
     npts = 50
     offset = 100 # meters
     
@@ -106,7 +110,7 @@ function layeredboxfault()
     x1, y1, x2, y2 = discretizedline(boxL, boxT, boxL, boxB, nside) # Left hand side
     addelsez!(elsbox, x1, y1, x2, y2, "L")
     idxbox = getidxdict(elsbox)
-    # PLOTGEOMETRY && plotgeometry(elsbox, "Box boundaries and normals")
+    PLOTGEOMETRY && plotgeometry(elsbox, "Box boundaries and normals")
 
     # Box BEM problem
     T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"], 1:elsbox.endidx, mu, nu)
@@ -155,7 +159,6 @@ function layeredboxfault()
     PLOTGEOMETRY && plotgeometry(elslayer, "Layer boundaries and normals")
 
     # Build design matrix
-    TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
     C1idx = [idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
     C2idx = [idxlayer["B2"] ; idxlayer["R2"] ; idxlayer["T2"] ; idxlayer["L2"]]
     
@@ -173,7 +176,8 @@ function layeredboxfault()
     T_R2_C2, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
     T_L2_C2, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
 
-    # Place submatrices into larger matrix    
+    # Place submatrices into larger matrix
+    TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
     TH[1:2*nside, 1:8*nside] = T_B1_C1 # Displacements at B1 due to C1
     TH[1:2*nside, 8*nside+1:16*nside] = -T_T2_C2 # Displacements at T2 due to C2
     TH[2*nside+1:4*nside, 1:8*nside] = H_B1_C1 # Tractions at B1 due to C1
@@ -188,28 +192,39 @@ function layeredboxfault()
     bcslayer = zeros(2*elslayer.endidx)
     bcslayer[140] = 1.0
     bcslayer[142] = 1.0
-
     Uefflayer = TH \ bcslayer
-    # plotbcsUeff(elslayer, bcslayer, Uefflayer, "Layer")
-    
-    
-    # xgridl1, ygridl1 = obsgrid(-30e3+offset, -15e3+offset, 30e3-offset, -1-offset, npts)
-    # xgridl2, ygridl2 = obsgrid(-30e3+offset, -30e3+offset, 30e3-offset, -15e3-offset, npts)
-    return
-    
+    plotbcsUeff(elslayer, bcslayer, Uefflayer, "Two-layer")
+    UeffT2 = Uefflayer[1:elslayer.endidx]
+    UeffB2 = Uefflayer[elslayer.endidx+1:end]
+            
+    # Volume visualization for two domain case
+    Tidx = findall(x -> x > -15e3, ygrid)
+    Bidx = findall(x -> x < -15e3, ygrid)
+    Tx = xgrid[Tidx]
+    Ty = ygrid[Tidx]
+    Bx = xgrid[Bidx]
+    By = ygrid[Bidx]
 
-    # Ul1, Sl1 = constdispstress(slip2dispstress, xgrid1, ygrid1,
-    #                                    elslayer, C1idx,
-    #                                    Uefflayer[1:2:end], Uefflayer[2:2:end],
-    #                                    mu, nu)
-    # plotfields(elslayer, reshape(xgridl1, npts, npts), reshape(ygridl1, npts, npts),
-    #            Ul1, Sl1, "Layer 1")
+    UT2, ST2 = constdispstress(slip2dispstress, Tx, Ty, elslayer,
+                               C1idx,
+                               UeffT2[1:2:end], UeffT2[2:2:end], mu1, nu1)
+    UB2, SB2 = constdispstress(slip2dispstress, Bx, By, elslayer,
+                               C2idx,
+                               UeffB2[1:2:end], UeffB2[2:2:end], mu2, nu2)
+    # UT2F, ST2F = constdispstress(slip2dispstress, Tx, Ty, els2, idx2["F"],
+    #                              Fslip[1:2:end], Fslip[2:2:end], mu1, nu1)
+    # UB2F, SB2F = constdispstress(slip2dispstress, Bx, By, els2, idx2["F"],
+    #                              Fslip[1:2:end], Fslip[2:2:end], mu2, nu2)    
+    # UT2 = UT2 .+ UT2F
+    # UB2 = UB2 .+ UB2F
+    # ST2 = ST2 .+ ST2F
+    # SB2 = SB2 .+ SB2F
+    U2 = [UB2 ; UT2] # Note B, T ordering
+    S2 = [SB2 ; ST2] # Note B, T ordering
+    plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               U2, S2, "two-layer")
+    # plotfields(els2, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+    #            U2 .- U1, S2 .- S1, "residuals")    
 
-    # Ul2, Sl2 = constdispstress(slip2dispstress, xgridl2, ygridl2,
-    #                                    elslayer, C2idx,
-    #                                    Uefflayer[1:2:end], Uefflayer[2:2:end],
-    #                                    mu, nu)
-    # plotfields(elslayer, reshape(xgridl2, npts, npts), reshape(ygridl2, npts, npts),
-    #            Ul2, Sl2, "Layer 2")
 end
 layeredboxfault()
