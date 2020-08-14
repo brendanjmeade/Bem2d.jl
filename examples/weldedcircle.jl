@@ -72,13 +72,13 @@ Comparing homogeneous and welded circle BEM solutions
 """
 function weldedcircle()
     close("all")
-    PLOTGEOMETRY = true
+    PLOTGEOMETRY = false
     mu1 = 3e10
     nu1 = 0.25
-    mu2 = 3.0 * mu1
+    mu2 = 1.0 * mu1
     nu2 = nu1
 
-    npts = 30
+    npts = 100
     offset = 100 # meters
     
     # Element geometries and data structures for the homogeneous circle case
@@ -137,34 +137,17 @@ function weldedcircle()
     TH[41:80, 1:80] = H_midT_TmidT
     TH[41:80, 81:160] = H_midB_BmidB
     TH[81:120, 1:80] = H_T_TmidT
-    TH[121:160, 81:160] = T_B_BmidB
-
-    matshow(log10.(abs.(TH)))
-    title("condition number = " * string(cond(TH)))
-    colorbar()
-    
+    TH[121:160, 81:160] = T_B_BmidB   
     bcs2 = zeros(2*els2.endidx)
-    # bcs2[2*10] = 1.0 # These are the initial indices
-    # bcs2[2*11] = 1.0
     bcs2[2*50] = 1.0 # These are the indices after welding
     bcs2[2*51] = 1.0
 
     # Direct solve
-    Ueff2 = TH \ bcs2
-    
-    # Try iterative solver
-    # Ueff2gmres, history = gmres(TH, bcs2, log=true, verbose=true)
-    # Ueff2idrs, history = idrs(TH, bcs2; s = 8, log=true, verbose=true)
-    # Ueff2 = Ueff2idrs
-    # figure()
-    # plot(Ueff2, "xb")
-    # plot(Ueff2gmres, "+r")
+    Ueff2 = TH \ bcs2    
     UeffT2 = Ueff2[1:80]
     UeffB2 = Ueff2[81:160]
-    # plotbcsUeff(els2, bcs2, Ueff2, "welded circle")
     
-    
-    # Internal evaluation
+    # Volume visualization for two domain case
     Tidx = findall(x -> x > 0, ygrid1)
     Bidx = findall(x -> x < 0, ygrid1)
     Tx = xgrid1[Tidx]
@@ -176,55 +159,12 @@ function weldedcircle()
                                UeffT2[1:2:end], UeffT2[2:2:end], mu1, nu1)
     UB2, SB2 = constdispstress(slip2dispstress, Bx, By, els2,
                                [idx2["B"]; idx2["midB"]],
-                               UeffB2[1:2:end], UeffB2[2:2:end], mu2, nu2)
-    
-    # xgridT2, ygridT2 = obsgrid(-r, 344.827, r, r, npts)
-    # UT2, ST2 = constdispstress(slip2dispstress, xgridT2, ygridT2, els2,
-    #                            [idx2["T"]; idx2["midT"]],
-    #                            UeffT2[1:2:end], UeffT2[2:2:end], mu, nu)
-    # # plotfields(els2, reshape(xgridT2, npts, npts), reshape(ygridT2, npts, npts),
-    # #            UT2, ST2, "homogeneous circle (top)")
-
-    # xgridB2, ygridB2 = obsgrid(-r, -r, r, -344.827, npts)
-    # UB2, SB2 = constdispstress(slip2dispstress, xgridB2, ygridB2, els2,
-    #                            [idx2["B"]; idx2["midB"]],
-    #                            UeffB2[1:2:end], UeffB2[2:2:end], mu, nu)
-    # plotfields(els2, reshape(xgridB2, npts, npts), reshape(ygridB2, npts, npts),
-    #            UB2, SB2, "homogeneous circle (bottom)")
-
-    # Isolate the values inside the circle
-    rnan = @. sqrt(xgrid1^2 + ygrid1^2)
-    nanidx = findall(x -> x > r, rnan)
-    U1[nanidx, :] .= NaN
-    rnan = @. sqrt(Tx^2 + Ty^2)
-    nanidx = findall(x -> x > r, rnan)
-    UT2[nanidx, :] .= NaN
-    rnan = @. sqrt(Bx^2 + By^2)
-    nanidx = findall(x -> x > r, rnan)
-    UB2[nanidx, :] .= NaN
-    
-    # Quick and dirty plotting of the homogenous
-    figure(figsize=(14, 7))
-    quiverwidth = 2e-3
-    subplot(1, 2, 1)
-    plotelements(els2)
-    quiver(xgrid1[:], ygrid1[:], U1[:, 1], U1[:, 2],
-           width=quiverwidth, scale=1e-6, color="r")
-    gca().set_aspect("equal")
-    xlabel("x (m)")
-    ylabel("y (m)")
-    title("single material")
-
-    subplot(1, 2, 2)
-    plotelements(els2)
-    quiver(Tx[:], Ty[:], UT2[:, 1], UT2[:, 2],
-           width=quiverwidth, scale=1e-6, color="r")
-    quiver(Bx[:], By[:], UB2[:, 1], UB2[:, 2],
-           width=quiverwidth, scale=1e-6, color="r")    
-    gca().set_aspect("equal")
-    xlabel("x (m)")
-    ylabel("y (m)")   
-    title("two materials, lower layer 3x stiffer")
-
+                               UeffB2[1:2:end], UeffB2[2:2:end], mu2, nu2)    
+    U2 = [UB2 ; UT2] # Note B, T ordering
+    S2 = [SB2 ; ST2] # Note B, T ordering
+    plotfields(els2, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+               U2, S2, "welded circle")
+    # plotfields(els2, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
+    #            U2 .- U1, S2 .- S1, "residuals")
 end
 weldedcircle()
