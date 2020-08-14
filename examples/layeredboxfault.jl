@@ -90,7 +90,7 @@ function layeredboxfault()
     nu1 = 0.25
     mu2 = 3e10
     nu2 = 0.25
-    npts = 200
+    npts = 50
     offset = 100 # meters
     
     # Element geometries and data structures for the box case
@@ -154,16 +154,9 @@ function layeredboxfault()
     # Clockwise ordering
     # x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
     # addelsez!(elslayer, x1, y1, x2, y2, "T2")
-
     # Counter clockwise ordering
     x1, y1, x2, y2 = discretizedline(l2L, l2T, l2R, l2T, nside) # Layer 2 top
     addelsez!(elslayer, x2, y2, x1, y1, "T2")
-    # addelsez!(elslayer, x1, y1, x2, y2, "T2")
-
-    
-    # Ben's reording trick
-    # x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
-    # addelsez!(elslayer, x2, y2, x1, y1, "T2")
 
     x1, y1, x2, y2 = discretizedline(l2L, l2T, l2L, l2B, nside) # Layer 2 left
     addelsez!(elslayer, x1, y1, x2, y2, "L2")
@@ -202,8 +195,9 @@ function layeredboxfault()
     TH[14*nside+1:16*nside, 8*nside+1:16*nside] = H_L2_C2 # Tractions at L2 due to C2
 
     bcslayer = zeros(2*elslayer.endidx)
-    bcslayer[140] = 1.0
-    bcslayer[142] = 1.0
+    bcslayer[6*nside + nside] = 1.0
+    bcslayer[6*nside + nside + 2] = 1.0
+    @show cond(TH)
     Uefflayer = TH \ bcslayer
     plotbcsUeff(elslayer, bcslayer, Uefflayer, "Two-layer")
     UeffT2 = Uefflayer[1:elslayer.endidx]
@@ -235,8 +229,7 @@ function layeredboxfault()
     S2 = [SB2 ; ST2] # Note B, T ordering
     plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                U2, S2, "two-layer")
-    # plotfields(els2, reshape(xgrid1, npts, npts), reshape(ygrid1, npts, npts),
-    #            U2 .- U1, S2 .- S1, "residuals")    
-
+    plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               U2 .- U1, S2 .- S1, "residuals")
 end
 layeredboxfault()
