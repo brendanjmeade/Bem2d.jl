@@ -77,11 +77,11 @@ end
 
 
 """
-    dislocationlayers()
+    layeredboxfault()
 
-Comparing half-space and dislocaiton in a box solutions
+Comparing half-space and dislocation in a box solutions
 """
-function dislocationlayers()
+function layeredboxfault()
     close("all")
     PLOTGEOMETRY = true
     mu = 3e10
@@ -108,21 +108,21 @@ function dislocationlayers()
     idxbox = getidxdict(elsbox)
     # PLOTGEOMETRY && plotgeometry(elsbox, "Box boundaries and normals")
 
-    # # Box BEM problem
-    # T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"], 1:elsbox.endidx, mu, nu)
-    # _, H_RTL_BRTL = PUTC(slip2dispstress, elsbox, [idxbox["R"]; idxbox["T"]; idxbox["L"]],
-    #                      1:elsbox.endidx, mu, nu)
-    # bcsbox = zeros(2*elsbox.endidx)
-    # bcsbox[2*51] = 1.0
-    # bcsbox[2*50] = 1.0    
-    # Ueffbox = [T_B_BRTL ; H_RTL_BRTL] \ bcsbox
+    # Box BEM problem
+    T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"], 1:elsbox.endidx, mu, nu)
+    _, H_RTL_BRTL = PUTC(slip2dispstress, elsbox, [idxbox["R"]; idxbox["T"]; idxbox["L"]],
+                         1:elsbox.endidx, mu, nu)
+    bcsbox = zeros(2*elsbox.endidx)
+    bcsbox[2*51] = 1.0
+    bcsbox[2*50] = 1.0    
+    Ueffbox = [T_B_BRTL ; H_RTL_BRTL] \ bcsbox
 
     # plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
-    # xgrid, ygrid = obsgrid(boxL+offset, boxB+offset, boxR-offset, boxT-offset, npts)
-    # Ubox, Sbox = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, 1:elsbox.endidx,
-    #                              Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
-    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-    #            Ubox, Sbox, "Box")
+    xgrid, ygrid = obsgrid(boxL+offset, boxB+offset, boxR-offset, boxT-offset, npts)
+    U1, S1 = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, 1:elsbox.endidx,
+                                 Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
+    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               U1, S1, "Homogenous box")
     
     # Element geometries and data structures for the layered box case
     elslayer = Elements(Int(1e5))
@@ -173,18 +173,7 @@ function dislocationlayers()
     T_R2_C2, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
     T_L2_C2, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
 
-    # Place submatrices into larger matrix
-    # TH[1:80, 1:320] = T_B1_C1 # Displacements at B1 due to C1
-    # TH[1:80, 321:640] = -T_T2_C2 # Displacements at T2 due to C2
-    # TH[81:160, 1:320] = H_B1_C1 # Tractions at B1 due to C1
-    # TH[81:160, 321:640] = H_T2_C2 # Tractions at T2 due to C2
-    # TH[161:240, 1:320] = H_R1_C1 # Tractions at R1 due to C1
-    # TH[241:320, 1:320] = H_T1_C1 # Tractions at T1 due to C1
-    # TH[321:400, 1:320] = H_L1_C1 # Tractions at L1 due to C1
-    # TH[401:480, 321:640] = T_B2_C2 # Displacments at B2 due to C2
-    # TH[481:560, 321:640] = H_R2_C2 # Tractions at R2 due to C2
-    # TH[561:640, 321:640] = H_L2_C2 # Tractions at L2 due to C2
-    
+    # Place submatrices into larger matrix    
     TH[1:2*nside, 1:8*nside] = T_B1_C1 # Displacements at B1 due to C1
     TH[1:2*nside, 8*nside+1:16*nside] = -T_T2_C2 # Displacements at T2 due to C2
     TH[2*nside+1:4*nside, 1:8*nside] = H_B1_C1 # Tractions at B1 due to C1
@@ -197,10 +186,11 @@ function dislocationlayers()
     TH[14*nside+1:16*nside, 8*nside+1:16*nside] = H_L2_C2 # Tractions at L2 due to C2
 
     bcslayer = zeros(2*elslayer.endidx)
-    bcslayer[2*51] = 1.0
-    bcslayer[2*50] = 1.0    
+    bcslayer[140] = 1.0
+    bcslayer[142] = 1.0
+
     Uefflayer = TH \ bcslayer
-    plotbcsUeff(elslayer, bcslayer, Uefflayer, "Layer")
+    # plotbcsUeff(elslayer, bcslayer, Uefflayer, "Layer")
     
     
     # xgridl1, ygridl1 = obsgrid(-30e3+offset, -15e3+offset, 30e3-offset, -1-offset, npts)
@@ -221,6 +211,5 @@ function dislocationlayers()
     #                                    mu, nu)
     # plotfields(elslayer, reshape(xgridl2, npts, npts), reshape(ygridl2, npts, npts),
     #            Ul2, Sl2, "Layer 2")
-
 end
-dislocationlayers()
+layeredboxfault()
