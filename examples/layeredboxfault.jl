@@ -90,7 +90,7 @@ function layeredboxfault()
     nu1 = 0.25
     mu2 = 3e10
     nu2 = 0.25
-    npts = 50
+    npts = 200
     offset = 100 # meters
     
     # Element geometries and data structures for the box case
@@ -121,7 +121,7 @@ function layeredboxfault()
     bcsbox[2*50] = 1.0    
     Ueffbox = [T_B_BRTL ; H_RTL_BRTL] \ bcsbox
     # plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
-    xgrid, ygrid = obsgrid(boxL+offset, boxB+offset, boxR-offset, boxT-offset, npts)
+    xgrid, ygrid = obsgrid(boxL+offset, boxB+offset, boxR-offset, boxT-offset, npts)    
     U1, S1 = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, 1:elsbox.endidx,
                              Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
@@ -152,9 +152,15 @@ function layeredboxfault()
     addelsez!(elslayer, x1, y1, x2, y2, "R2")
 
     # Clockwise ordering
-    x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
-    addelsez!(elslayer, x1, y1, x2, y2, "T2")
+    # x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
+    # addelsez!(elslayer, x1, y1, x2, y2, "T2")
 
+    # Counter clockwise ordering
+    x1, y1, x2, y2 = discretizedline(l2L, l2T, l2R, l2T, nside) # Layer 2 top
+    addelsez!(elslayer, x2, y2, x1, y1, "T2")
+    # addelsez!(elslayer, x1, y1, x2, y2, "T2")
+
+    
     # Ben's reording trick
     # x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
     # addelsez!(elslayer, x2, y2, x1, y1, "T2")
