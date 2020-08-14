@@ -115,17 +115,10 @@ function layeredboxfault()
     PLOTGEOMETRY && plotgeometry(elsbox, "Box boundaries and normals")
 
     # Kernels and solve
-    T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"], 1:elsbox.endidx, mu, nu)
-    _, H_RTL_BRTL = PUTC(slip2dispstress, elsbox, [idxbox["R"]; idxbox["T"]; idxbox["L"]],
-                         1:elsbox.endidx, mu, nu)
-
-    # Box BEM problem
     T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"], 1:elsbox.endidx, mu1, nu1)
     T_R_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["R"], 1:elsbox.endidx, mu1, nu1)
     T_L_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["L"], 1:elsbox.endidx, mu1, nu1)
     _, H_T_BRTL = PUTC(slip2dispstress, elsbox, idxbox["T"], 1:elsbox.endidx, mu1, nu1)
-
-
     bcsbox = zeros(2*elsbox.endidx)
     bcsbox[2*51] = 1.0
     bcsbox[2*50] = 1.0
@@ -137,8 +130,6 @@ function layeredboxfault()
                              Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                U1, S1, "Homogenous box")
-    return
-
 
     ###
     ### Layered box
@@ -196,19 +187,33 @@ function layeredboxfault()
     T_R2_C2, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
     T_L2_C2, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
 
-    # Place submatrices into larger matrix
+    # Place submatrices into larger matrix (traction free sides)
+    # TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
+    # TH[1:2*nside, 1:8*nside] = T_B1_C1 # Displacements at B1 due to C1
+    # TH[1:2*nside, 8*nside+1:16*nside] = -T_T2_C2 # Displacements at T2 due to C2
+    # TH[2*nside+1:4*nside, 1:8*nside] = H_B1_C1 # Tractions at B1 due to C1
+    # TH[2*nside+1:4*nside, 8*nside+1:16*nside] = H_T2_C2 # Tractions at T2 due to C2
+    # TH[4*nside+1:6*nside, 1:8*nside] = H_R1_C1 # Tractions at R1 due to C1
+    # TH[6*nside+1:8*nside, 1:8*nside] = H_T1_C1 # Tractions at T1 due to C1
+    # TH[8*nside+1:10*nside, 1:8*nside] = H_L1_C1 # Tractions at L1 due to C1
+    # TH[10*nside+1:12*nside, 8*nside+1:16*nside] = T_B2_C2 # Displacments at B2 due to C2
+    # TH[12*nside+1:14*nside, 8*nside+1:16*nside] = H_R2_C2 # Tractions at R2 due to C2
+    # TH[14*nside+1:16*nside, 8*nside+1:16*nside] = H_L2_C2 # Tractions at L2 due to C2
+
+    # Place submatrices into larger matrix (zero slip sides)
     TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
     TH[1:2*nside, 1:8*nside] = T_B1_C1 # Displacements at B1 due to C1
     TH[1:2*nside, 8*nside+1:16*nside] = -T_T2_C2 # Displacements at T2 due to C2
     TH[2*nside+1:4*nside, 1:8*nside] = H_B1_C1 # Tractions at B1 due to C1
     TH[2*nside+1:4*nside, 8*nside+1:16*nside] = H_T2_C2 # Tractions at T2 due to C2
-    TH[4*nside+1:6*nside, 1:8*nside] = H_R1_C1 # Tractions at R1 due to C1
+    TH[4*nside+1:6*nside, 1:8*nside] = T_R1_C1 # Tractions at R1 due to C1
     TH[6*nside+1:8*nside, 1:8*nside] = H_T1_C1 # Tractions at T1 due to C1
-    TH[8*nside+1:10*nside, 1:8*nside] = H_L1_C1 # Tractions at L1 due to C1
+    TH[8*nside+1:10*nside, 1:8*nside] = T_L1_C1 # Tractions at L1 due to C1
     TH[10*nside+1:12*nside, 8*nside+1:16*nside] = T_B2_C2 # Displacments at B2 due to C2
-    TH[12*nside+1:14*nside, 8*nside+1:16*nside] = H_R2_C2 # Tractions at R2 due to C2
-    TH[14*nside+1:16*nside, 8*nside+1:16*nside] = H_L2_C2 # Tractions at L2 due to C2
+    TH[12*nside+1:14*nside, 8*nside+1:16*nside] = T_R2_C2 # Tractions at R2 due to C2
+    TH[14*nside+1:16*nside, 8*nside+1:16*nside] = T_L2_C2 # Tractions at L2 due to C2
 
+    
     bcslayer = zeros(2*elslayer.endidx)
     bcslayer[6*nside + nside] = 1.0
     bcslayer[6*nside + nside + 2] = 1.0
