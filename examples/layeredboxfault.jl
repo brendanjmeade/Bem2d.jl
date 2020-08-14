@@ -14,13 +14,13 @@ Plot boundary conditions and Ueff
 """
 function plotbcsUeff(els, bcs, Ueff, suptitlestring)
     figure(figsize=(20, 20))
-    subplot(2, 2, 1)
-    quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx],
-           bcs[1:2:end], bcs[2:2:end])
-    gca().set_aspect("equal")
-    title("bcs")
+    # subplot(2, 2, 1)
+    # quiver(els.xcenter[1:els.endidx], els.ycenter[1:els.endidx],
+    #        bcs[1:2:end], bcs[2:2:end])
+    # gca().set_aspect("equal")
+    # title("bcs")
     
-    subplot(2, 2, 2)
+    subplot(2, 2, 1)
     plot(bcs[1:2:end], "rx", label="x")
     plot(bcs[2:2:end], "b+", label="y")
     legend()
@@ -57,7 +57,7 @@ function plotgeometry(els, titlestring)
                width=1e-3, scale=1e2)
         text(els.xcenter[i] + scale * els.xnormal[i],
              els.ycenter[i] + scale * els.ynormal[i],
-             string(i), fontsize=5)
+             string(i), fontsize=10)
     end
     title(titlestring)
     gca().set_aspect("equal")
@@ -120,11 +120,10 @@ function layeredboxfault()
     bcsbox[2*51] = 1.0
     bcsbox[2*50] = 1.0    
     Ueffbox = [T_B_BRTL ; H_RTL_BRTL] \ bcsbox
-
     # plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
     xgrid, ygrid = obsgrid(boxL+offset, boxB+offset, boxR-offset, boxT-offset, npts)
     U1, S1 = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, 1:elsbox.endidx,
-                                 Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
+                             Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                U1, S1, "Homogenous box")
     
@@ -151,12 +150,19 @@ function layeredboxfault()
     addelsez!(elslayer, x1, y1, x2, y2, "B2")
     x1, y1, x2, y2 = discretizedline(l2R, l2B, l2R, l2T, nside) # Layer 2 right
     addelsez!(elslayer, x1, y1, x2, y2, "R2")
+
+    # Clockwise ordering
     x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
     addelsez!(elslayer, x1, y1, x2, y2, "T2")
+
+    # Ben's reording trick
+    # x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
+    # addelsez!(elslayer, x2, y2, x1, y1, "T2")
+
     x1, y1, x2, y2 = discretizedline(l2L, l2T, l2L, l2B, nside) # Layer 2 left
     addelsez!(elslayer, x1, y1, x2, y2, "L2")
     idxlayer = getidxdict(elslayer)
-    PLOTGEOMETRY && plotgeometry(elslayer, "Layer boundaries and normals")
+    plotgeometry(elslayer, "Layer boundaries and normals")
 
     # Build design matrix
     C1idx = [idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
