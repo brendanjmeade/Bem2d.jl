@@ -58,7 +58,7 @@ function plotgeometry(els, titlestring)
                width=1e-3, scale=1e2)
         text(els.xcenter[i] + scale * els.xnormal[i],
              els.ycenter[i] + scale * els.ynormal[i],
-             string(i), fontsize=5)
+             string(i), fontsize=10)
     end
     title(titlestring)
     gca().set_aspect("equal")
@@ -118,7 +118,7 @@ function weldedcircle()
     x1, y1, x2, y2 = discretizedline(-r, 0, r, 0, nels) # Peculiar
     addelsez!(els2, x2, y2, x1, y1, "midB")
     idx2 = getidxdict(els2)
-    # PLOTGEOMETRY && plotgeometry(els2, "Welded circle boundaries and normals")
+    PLOTGEOMETRY && plotgeometry(els2, "Welded circle boundaries and normals")
     
     TH = zeros(2 * els2.endidx, 2 * els2.endidx)
     T_midT_TmidT, H_midT_TmidT = PUTC(slip2dispstress, els2, idx2["midT"],
