@@ -90,7 +90,7 @@ function layeredboxfault()
     nu1 = 0.25
     mu2 = 3e10
     nu2 = 0.25
-    npts = 50
+    npts = 100
     offset = 100 # meters
 
     ###
@@ -111,7 +111,7 @@ function layeredboxfault()
     addelsez!(elsbox, x1, y1, x2, y2, "T")
     x1, y1, x2, y2 = discretizedline(boxL, boxT, boxL, boxB, nside) # Left hand side
     addelsez!(elsbox, x1, y1, x2, y2, "L")
-    x1, y1, x2, y2 = discretizedline(0, -10e3, 0, -5e3, nfault)
+    x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault)
     addelsez!(elsbox, x1, y1, x2, y2, "F")
 
     idxbox = getidxdict(elsbox)
@@ -121,7 +121,7 @@ function layeredboxfault()
     T_TB_F, H_TB_F = PUTC(slip2dispstress, elsbox,
                           [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                           idxbox["F"], mu1, nu1)
-    Fslip = [0; 1]; # y-direction slip only
+    Fslip = [1; 1]; # y-direction slip only
     Uslip = T_TB_F * Fslip
     Tslip = H_TB_F * Fslip
     
@@ -134,12 +134,8 @@ function layeredboxfault()
     bcsbox = zeros(8 * nside)
     bcsbox[1:40] = -Uslip[1:40] # Bottom
     bcsbox[41:80] = -Uslip[41:80] # Right
-    bcsbox[81:120] = - Tslip[81:120] # Top
+    bcsbox[81:120] = -Tslip[81:120] # Top
     bcsbox[121:160] = -Uslip[121:160] # Left
-
-    # bcsbox = zeros(2*elsbox.endidx)
-    # bcsbox[2*51] = 1.0
-    # bcsbox[2*50] = 1.0
     TH = [T_B_BRTL ; T_R_BRTL; H_T_BRTL ; T_L_BRTL]
     Ueffbox =TH \ bcsbox
     # plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
@@ -153,7 +149,6 @@ function layeredboxfault()
     S1 = STB .+ SF
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                U1, S1, "Homogeneous box")
-    return
 
     ###
     ### Layered box
@@ -180,22 +175,27 @@ function layeredboxfault()
     addelsez!(elslayer, x1, y1, x2, y2, "B2")
     x1, y1, x2, y2 = discretizedline(l2R, l2B, l2R, l2T, nside) # Layer 2 right
     addelsez!(elslayer, x1, y1, x2, y2, "R2")
-
-    # Clockwise ordering
-    # x1, y1, x2, y2 = discretizedline(l2R, l2T, l2L, l2T, nside) # Layer 2 top
-    # addelsez!(elslayer, x1, y1, x2, y2, "T2")
-    # Counter clockwise ordering
     x1, y1, x2, y2 = discretizedline(l2L, l2T, l2R, l2T, nside) # Layer 2 top
-    addelsez!(elslayer, x2, y2, x1, y1, "T2")
-
+    addelsez!(elslayer, x2, y2, x1, y1, "T2") # Note ordering!!!
     x1, y1, x2, y2 = discretizedline(l2L, l2T, l2L, l2B, nside) # Layer 2 left
     addelsez!(elslayer, x1, y1, x2, y2, "L2")
+    x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # Fault
+    addelsez!(elslayer, x1, y1, x2, y2, "F")
     idxlayer = getidxdict(elslayer)
     plotgeometry(elslayer, "Layer boundaries and normals")
-
+    
     # Build design matrix
     C1idx = [idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
     C2idx = [idxlayer["B2"] ; idxlayer["R2"] ; idxlayer["T2"] ; idxlayer["L2"]]
+
+    # Fault contribution
+    T_C1_F, H_C1_F = PUTC(slip2dispstress, elslayer, C1idx, idxlayer["F"], mu1, nu1)
+    T_C2_F, H_C2_F = PUTC(slip2dispstress, elslayer, C2idx, idxlayer["F"], mu2, nu2)
+    Fslip = [1; 1]; # y-direction slip only
+    UC1slip = T_C1_F * Fslip
+    TC1slip = H_C1_F * Fslip
+    UC2slip = T_C2_F * Fslip
+    TC2slip = H_C2_F * Fslip
     
     # Boundaries shared by C1 and C2
     T_B1_C1, H_B1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["B1"], C1idx, mu, nu)
@@ -211,21 +211,8 @@ function layeredboxfault()
     T_R2_C2, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
     T_L2_C2, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
 
-    # Place submatrices into larger matrix (traction free sides)
-    # TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
-    # TH[1:2*nside, 1:8*nside] = T_B1_C1 # Displacements at B1 due to C1
-    # TH[1:2*nside, 8*nside+1:16*nside] = -T_T2_C2 # Displacements at T2 due to C2
-    # TH[2*nside+1:4*nside, 1:8*nside] = H_B1_C1 # Tractions at B1 due to C1
-    # TH[2*nside+1:4*nside, 8*nside+1:16*nside] = H_T2_C2 # Tractions at T2 due to C2
-    # TH[4*nside+1:6*nside, 1:8*nside] = H_R1_C1 # Tractions at R1 due to C1
-    # TH[6*nside+1:8*nside, 1:8*nside] = H_T1_C1 # Tractions at T1 due to C1
-    # TH[8*nside+1:10*nside, 1:8*nside] = H_L1_C1 # Tractions at L1 due to C1
-    # TH[10*nside+1:12*nside, 8*nside+1:16*nside] = T_B2_C2 # Displacments at B2 due to C2
-    # TH[12*nside+1:14*nside, 8*nside+1:16*nside] = H_R2_C2 # Tractions at R2 due to C2
-    # TH[14*nside+1:16*nside, 8*nside+1:16*nside] = H_L2_C2 # Tractions at L2 due to C2
-
     # Place submatrices into larger matrix (zero slip sides)
-    TH = zeros(2*elslayer.endidx, 2*elslayer.endidx)
+    TH = zeros(16 * nside, 16 * nside)    
     TH[1:2*nside, 1:8*nside] = T_B1_C1 # Displacements at B1 due to C1
     TH[1:2*nside, 8*nside+1:16*nside] = -T_T2_C2 # Displacements at T2 due to C2
     TH[2*nside+1:4*nside, 1:8*nside] = H_B1_C1 # Tractions at B1 due to C1
@@ -236,16 +223,20 @@ function layeredboxfault()
     TH[10*nside+1:12*nside, 8*nside+1:16*nside] = T_B2_C2 # Displacments at B2 due to C2
     TH[12*nside+1:14*nside, 8*nside+1:16*nside] = T_R2_C2 # Tractions at R2 due to C2
     TH[14*nside+1:16*nside, 8*nside+1:16*nside] = T_L2_C2 # Tractions at L2 due to C2
-
     
-    bcslayer = zeros(2*elslayer.endidx)
-    bcslayer[6*nside + nside] = 1.0
-    bcslayer[6*nside + nside + 2] = 1.0
-    @show cond(TH)
+    # BCS from fault
+    bcslayer = zeros(16 * nside)
+    bcslayer[4*nside+1:6*nside] = -UC1slip[2*nside+1:4*nside] # Displacments at R1 due to F
+    bcslayer[6*nside+1:8*nside] = -TC1slip[4*nside+1:6*nside] # Tractions at T1 due to F
+    bcslayer[8*nside+1:10*nside] = -UC1slip[6*nside+1:8*nside] # Displacements at L1 due to F
+    bcslayer[10*nside+1:12*nside] = -UC2slip[1:2*nside] # Displacments at B2 due to F
+    bcslayer[12*nside+1:14*nside] = -UC2slip[2*nside+1:4*nside] # Displacments at R2 due to F
+    bcslayer[14*nside+1:16*nside] = -UC2slip[6*nside+1:8*nside] # Displacments at L2 due to F
+    
     Uefflayer = TH \ bcslayer
     plotbcsUeff(elslayer, bcslayer, Uefflayer, "Two-layer")
-    UeffT2 = Uefflayer[1:elslayer.endidx]
-    UeffB2 = Uefflayer[elslayer.endidx+1:end]
+    UeffT2 = Uefflayer[1:160]
+    UeffB2 = Uefflayer[161:320]
             
     # Volume visualization for two domain case
     Tidx = findall(x -> x > -15e3, ygrid)
@@ -254,21 +245,18 @@ function layeredboxfault()
     Ty = ygrid[Tidx]
     Bx = xgrid[Bidx]
     By = ygrid[Bidx]
-
-    UT2, ST2 = constdispstress(slip2dispstress, Tx, Ty, elslayer,
-                               C1idx,
+    UT2, ST2 = constdispstress(slip2dispstress, Tx, Ty, elslayer, C1idx,
                                UeffT2[1:2:end], UeffT2[2:2:end], mu1, nu1)
-    UB2, SB2 = constdispstress(slip2dispstress, Bx, By, elslayer,
-                               C2idx,
+    UB2, SB2 = constdispstress(slip2dispstress, Bx, By, elslayer, C2idx,
                                UeffB2[1:2:end], UeffB2[2:2:end], mu2, nu2)
-    # UT2F, ST2F = constdispstress(slip2dispstress, Tx, Ty, els2, idx2["F"],
-    #                              Fslip[1:2:end], Fslip[2:2:end], mu1, nu1)
-    # UB2F, SB2F = constdispstress(slip2dispstress, Bx, By, els2, idx2["F"],
-    #                              Fslip[1:2:end], Fslip[2:2:end], mu2, nu2)    
-    # UT2 = UT2 .+ UT2F
-    # UB2 = UB2 .+ UB2F
-    # ST2 = ST2 .+ ST2F
-    # SB2 = SB2 .+ SB2F
+    UT2F, ST2F = constdispstress(slip2dispstress, Tx, Ty, elslayer, idxlayer["F"],
+                                 Fslip[1:2:end], Fslip[2:2:end], mu1, nu1)
+    UB2F, SB2F = constdispstress(slip2dispstress, Bx, By, elslayer, idxlayer["F"],
+                                 Fslip[1:2:end], Fslip[2:2:end], mu2, nu2)    
+    UT2 = UT2 .+ UT2F
+    UB2 = UB2 .+ UB2F
+    ST2 = ST2 .+ ST2F
+    SB2 = SB2 .+ SB2F
     U2 = [UB2 ; UT2] # Note B, T ordering
     S2 = [SB2 ; ST2] # Note B, T ordering
     plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
