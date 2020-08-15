@@ -94,7 +94,7 @@ function layeredboxfault()
     offset = 100 # meters
 
     ###
-    ### Box BEM problem
+    ### Single domain box BEM problem
     ###
     elsbox = Elements(Int(1e5))
     boxB = -30e3
@@ -148,7 +148,7 @@ function layeredboxfault()
     U1 = UTB .+ UF
     S1 = STB .+ SF
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               U1, S1, "Homogeneous box")
+               U1, S1, "Single homogeneous layer")
 
     ###
     ### Layered box
@@ -191,25 +191,30 @@ function layeredboxfault()
     # Fault contribution
     T_C1_F, H_C1_F = PUTC(slip2dispstress, elslayer, C1idx, idxlayer["F"], mu1, nu1)
     T_C2_F, H_C2_F = PUTC(slip2dispstress, elslayer, C2idx, idxlayer["F"], mu2, nu2)
-    Fslip = [1; 1]; # y-direction slip only
+    # Fslip = [1; 1]; # y-direction slip only
     UC1slip = T_C1_F * Fslip
     TC1slip = H_C1_F * Fslip
     UC2slip = T_C2_F * Fslip
     TC2slip = H_C2_F * Fslip
+
+    # figure(figsize=(20, 10))
+    # plot(-Tslip[81:120], "bx")
+    # plot(-TC1slip[4*nside+1:6*nside], "r+")    
+    # return
     
     # Boundaries shared by C1 and C2
-    T_B1_C1, H_B1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["B1"], C1idx, mu, nu)
-    T_T2_C2, H_T2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["T2"], C2idx, mu, nu)
+    T_B1_C1, H_B1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["B1"], C1idx, mu1, nu1)
+    T_T2_C2, H_T2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["T2"], C2idx, mu1, nu2)
 
     # C1 only boundaries
-    T_R1_C1, H_R1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["R1"], C1idx, mu, nu)
-    T_T1_C1, H_T1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["T1"], C1idx, mu, nu)
-    T_L1_C1, H_L1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L1"], C1idx, mu, nu)
+    T_R1_C1, H_R1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["R1"], C1idx, mu1, nu1)
+    T_T1_C1, H_T1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["T1"], C1idx, mu1, nu1)
+    T_L1_C1, H_L1_C1 = PUTC(slip2dispstress, elslayer, idxlayer["L1"], C1idx, mu1, nu1)
 
     # C2 only boundaries
-    T_B2_C2, H_B2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["B2"], C2idx, mu, nu)
-    T_R2_C2, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu, nu)
-    T_L2_C2, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu, nu)
+    T_B2_C2, H_B2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["B2"], C2idx, mu2, nu2)
+    T_R2_C2, H_R2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["R2"], C2idx, mu2, nu2)
+    T_L2_C2, H_L2_C2 = PUTC(slip2dispstress, elslayer, idxlayer["L2"], C2idx, mu2, nu2)
 
     # Place submatrices into larger matrix (zero slip sides)
     TH = zeros(16 * nside, 16 * nside)    
@@ -217,9 +222,9 @@ function layeredboxfault()
     TH[1:2*nside, 8*nside+1:16*nside] = -T_T2_C2 # Displacements at T2 due to C2
     TH[2*nside+1:4*nside, 1:8*nside] = H_B1_C1 # Tractions at B1 due to C1
     TH[2*nside+1:4*nside, 8*nside+1:16*nside] = H_T2_C2 # Tractions at T2 due to C2
-    TH[4*nside+1:6*nside, 1:8*nside] = T_R1_C1 # Tractions at R1 due to C1
+    TH[4*nside+1:6*nside, 1:8*nside] = T_R1_C1 # Displacements at R1 due to C1
     TH[6*nside+1:8*nside, 1:8*nside] = H_T1_C1 # Tractions at T1 due to C1
-    TH[8*nside+1:10*nside, 1:8*nside] = T_L1_C1 # Tractions at L1 due to C1
+    TH[8*nside+1:10*nside, 1:8*nside] = T_L1_C1 # Displacements at L1 due to C1
     TH[10*nside+1:12*nside, 8*nside+1:16*nside] = T_B2_C2 # Displacments at B2 due to C2
     TH[12*nside+1:14*nside, 8*nside+1:16*nside] = T_R2_C2 # Tractions at R2 due to C2
     TH[14*nside+1:16*nside, 8*nside+1:16*nside] = T_L2_C2 # Tractions at L2 due to C2
@@ -235,8 +240,8 @@ function layeredboxfault()
     
     Uefflayer = TH \ bcslayer
     plotbcsUeff(elslayer, bcslayer, Uefflayer, "Two-layer")
-    UeffT2 = Uefflayer[1:160]
-    UeffB2 = Uefflayer[161:320]
+    UeffT2 = Uefflayer[1:8*nside]
+    UeffB2 = Uefflayer[8*nside+1:16*nside]
             
     # Volume visualization for two domain case
     Tidx = findall(x -> x > -15e3, ygrid)
@@ -260,7 +265,7 @@ function layeredboxfault()
     U2 = [UB2 ; UT2] # Note B, T ordering
     S2 = [SB2 ; ST2] # Note B, T ordering
     plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               U2, S2, "two-layer")
+               U2, S2, "two-layers (same properties)")
     plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                U2 .- U1, S2 .- S1, "residuals")
 end
