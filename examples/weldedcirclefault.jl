@@ -76,7 +76,7 @@ function weldedcirclefault()
     mu1 = 3e10
     nu1 = 0.25
     mu2 = 1.0 * mu1
-    nu2 = nu1
+    nu2 = 0.5
     npts = 200
     offset = 100 # meters
 
