@@ -87,7 +87,7 @@ function layeredboxfault()
     mu1 = 3e10
     nu1 = 0.25
     mu2 = 3e10
-    nu2 = 0.33
+    nu2 = 0.25
     npts = 100
     offset = 100 # meters
 
@@ -238,7 +238,7 @@ function layeredboxfault()
     bcslayer[12*nside+1:14*nside] = -UC2slip[2*nside+1:4*nside] # Displacments at R2 due to F
     bcslayer[14*nside+1:16*nside] = -UC2slip[6*nside+1:8*nside] # Displacments at L2 due to F
     Uefflayer = TH \ bcslayer
-    # plotbcsUeff(elslayer, log10.(abs.(bcslayer)), Uefflayer, "Two-layer")
+    plotbcsUeff(elslayer, log10.(abs.(bcslayer)), Uefflayer, "Two-layer")
     UeffT2 = Uefflayer[1:8*nside]
     UeffB2 = Uefflayer[8*nside+1:16*nside]
             
