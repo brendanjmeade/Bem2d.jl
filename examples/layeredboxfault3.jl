@@ -154,7 +154,7 @@ function layeredboxfault()
     U1 = UTB .+ UF
     S1 = STB .+ SF
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               U1, S1, "Single homogeneous layer")
+               U1, S1, "single layer")
 
     ###
     ### Layered box
@@ -264,7 +264,7 @@ function layeredboxfault()
     U2 = [UB2 ; UT2] # Note B, T ordering
     S2 = [SB2 ; ST2] # Note B, T ordering
     plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               U2, S2, "two-layers (same properties)")
+               U2, S2, "two-layer")
     plotfields(elslayer, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                U2 .- U1, S2 .- S1, "residuals")
 end
