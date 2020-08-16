@@ -89,15 +89,15 @@ function layeredboxfault()
     mu1 = 3e10
     nu1 = 0.25
     mu2 = 3e10
-    nu2 = 0.25
-    npts = 30
+    nu2 = 0.50
+    npts = 100
     offset = 100 # meters
 
     ###
     ### Single domain box BEM problem
     ###
     elsbox = Elements(Int(1e5))
-    boxB = -15e3
+    boxB = -30e3
     boxR = 30e3
     boxT = 0
     boxL = -30e3    
@@ -170,7 +170,7 @@ function layeredboxfault()
     l2R = 30e3
     l2T = -15e3
     l2L = -30e3
-    nside = 20
+    nside = 40
     x1, y1, x2, y2 = discretizedline(l1L, l1B, l1R, l1B, nside) # Layer 1 bottom
     addelsez!(elslayer, x1, y1, x2, y2, "B1")
     x1, y1, x2, y2 = discretizedline(l1R, l1B, l1R, l1T, nside) # Layer 1 right
@@ -190,7 +190,7 @@ function layeredboxfault()
     x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # Fault
     addelsez!(elslayer, x1, y1, x2, y2, "F")
     idxlayer = getidxdict(elslayer)
-    plotgeometry(elslayer, "Layer boundaries and normals")
+    # plotgeometry(elslayer, "Layer boundaries and normals")
     
     # Build design matrix
     C1idx = [idxlayer["B1"] ; idxlayer["R1"] ; idxlayer["T1"] ; idxlayer["L1"]]
@@ -231,7 +231,7 @@ function layeredboxfault()
     TH[12*nside+1:14*nside, 8*nside+1:16*nside] = T_R2_C2 # Tractions at R2 due to C2
     TH[14*nside+1:16*nside, 8*nside+1:16*nside] = T_L2_C2 # Tractions at L2 due to C2
     
-    # BCS from fault
+    # BCS (from fault) and solve
     bcslayer = zeros(16 * nside)
     bcslayer[4*nside+1:6*nside] = -UC1slip[2*nside+1:4*nside] # Displacments at R1 due to F
     bcslayer[6*nside+1:8*nside] = -TC1slip[4*nside+1:6*nside] # Tractions at T1 due to F
@@ -239,90 +239,8 @@ function layeredboxfault()
     bcslayer[10*nside+1:12*nside] = -UC2slip[1:2*nside] # Displacments at B2 due to F
     bcslayer[12*nside+1:14*nside] = -UC2slip[2*nside+1:4*nside] # Displacments at R2 due to F
     bcslayer[14*nside+1:16*nside] = -UC2slip[6*nside+1:8*nside] # Displacments at L2 due to F
-
-
-
-
-    
-    ###
-    ### Try BEM solution for upper layer only
-    ###
-    bcstest = zeros(8 * nside)
-    bcstest[1:40] = -UC1slip[1:40] # Bottom
-    bcstest[41:80] = -UC1slip[41:80] # Right
-    bcstest[81:120] = -TC1slip[81:120] # Top
-    bcstest[121:160] = -UC1slip[121:160] # Left
-    THtest = [T_B1_C1 ; T_R1_C1; H_T1_C1 ; T_L1_C1]
-    Uefftest = THtest \ bcstest
-
-    @show size(bcsbox)
-    @show size(bcstest)    
-    figure(figsize=(10, 10))
-    subplot(2, 1, 1)
-    plot(bcstest[1:2:end], "+r", label="Upper layer")
-    plot(bcsbox[1:2:end], "xb", label="Box")
-    subplot(2, 1, 2)
-    plot(bcstest[2:2:end], "+r", label="Upper layer")
-    plot(bcsbox[2:2:end], "xb", label="Box")
-    suptitle("BCs - agreement")
-
-    @show size(THbox)
-    @show size(THtest)
-    figure(figsize=(18, 6))
-    subplot(1, 3, 1)
-    imshow(THbox, interpolation="nearest")
-    subplot(1, 3, 2)
-    imshow(THtest, interpolation="nearest")
-    subplot(1, 3, 3)
-    imshow(THbox .- THtest, interpolation="nearest")
-    suptitle("TH matrices")
-        
-    figure(figsize=(10, 10))
-    subplot(2, 1, 1)
-    plot(Uefftest[1:2:end], "+r", label="Upper layer")
-    plot(Uefftest[1:2:end], "xb", label="Box")
-    xlabel("ux")
-    legend()
-    subplot(2, 1, 2)
-    plot(Uefftest[2:2:end], "+r", label="Upper layer")
-    plot(Ueffbox[2:2:end], "xb", label="Box")
-    xlabel("uy")
-    legend()
-    suptitle("ueff - disagreement")
-    
-    
-    return
-    
-    figure()
-    quiverscale = 3e0
-    quiver(elsbox.xcenter[1:80], elsbox.ycenter[1:80],
-           Uslip[1:2:end], Uslip[2:2:end],
-           width=1e-3, scale=quiverscale, color="g")
-    quiver(elslayer.xcenter[C1idx], elslayer.ycenter[C1idx],
-           UC1slip[1:2:end], UC1slip[2:2:end],
-           width=1e-3, scale=quiverscale, color="r")
-    quiver(elslayer.xcenter[C2idx], elslayer.ycenter[C2idx],
-           UC2slip[1:2:end], UC2slip[2:2:end],
-           width=1e-3, scale=quiverscale, color="b")
-    title("fault induced displacments (agreement)")
-
-    figure()
-    quiverscale = 3e7
-    quiver(elsbox.xcenter[1:80], elsbox.ycenter[1:80],
-           Tslip[1:2:end], Tslip[2:2:end],
-           width=1e-3, scale=quiverscale, color="g")
-    quiver(elslayer.xcenter[C1idx], elslayer.ycenter[C1idx],
-           TC1slip[1:2:end], TC1slip[2:2:end],
-           width=1e-3, scale=quiverscale, color="r")
-    quiver(elslayer.xcenter[C2idx], elslayer.ycenter[C2idx],
-           TC2slip[1:2:end], TC2slip[2:2:end],
-           width=1e-3, scale=quiverscale, color="b")
-    title("fault induced tractions (agreement)")
-
-    return
-    
     Uefflayer = TH \ bcslayer
-    plotbcsUeff(elslayer, log10.(abs.(bcslayer)), Uefflayer, "Two-layer")
+    # plotbcsUeff(elslayer, log10.(abs.(bcslayer)), Uefflayer, "Two-layer")
     UeffT2 = Uefflayer[1:8*nside]
     UeffB2 = Uefflayer[8*nside+1:16*nside]
             
