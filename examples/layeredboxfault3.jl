@@ -84,12 +84,10 @@ Comparing half-space and dislocation in a box solutions
 function layeredboxfault()
     close("all")
     PLOTGEOMETRY = false
-    mu = 3e10
-    nu = 0.25
     mu1 = 3e10
     nu1 = 0.25
     mu2 = 3e10
-    nu2 = 0.50
+    nu2 = 0.33
     npts = 100
     offset = 100 # meters
 
