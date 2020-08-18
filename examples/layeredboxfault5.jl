@@ -86,7 +86,7 @@ function layeredboxfault()
     PLOTGEOMETRY = false
     mu1 = 3e10
     nu1 = 0.25
-    mu2 = 3e10
+    mu2 = 0.1e10
     nu2 = 0.5
     npts = 100
     offset = 100 # meters
@@ -99,7 +99,7 @@ function layeredboxfault()
     boxR = 30e3
     boxT = 0
     boxL = -30e3    
-    nside = 20
+    nside = 100
     nfault = 1
     x1, y1, x2, y2 = discretizedline(boxL, boxB, boxR, boxB, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
@@ -138,10 +138,11 @@ function layeredboxfault()
                        mu1, nu1)
 
     bcsbox = zeros(8 * nside)
-    bcsbox[1:40] = -Uslip[1:40] # Bottom
-    bcsbox[41:80] = -Uslip[41:80] # Right
-    bcsbox[81:120] = -Tslip[81:120] # Top
-    bcsbox[121:160] = -Uslip[121:160] # Left
+    bcsbox[1:2*nside] = -Uslip[1:2*nside] # Bottom
+    bcsbox[2*nside+1:4*nside] = -Uslip[2*nside+1:4*nside] # Right
+    bcsbox[4*nside+1:6*nside] = -Tslip[4*nside+1:6*nside] # Top
+    bcsbox[6*nside+1:8*nside] = -Uslip[6*nside+1:8*nside] # Left
+
     THbox = [T_B_BRTL ; T_R_BRTL; H_T_BRTL ; T_L_BRTL]
     Ueffbox =THbox \ bcsbox
     # plotbcsUeff(elsbox, bcsbox, Ueffbox, "Box")
@@ -155,7 +156,8 @@ function layeredboxfault()
     S1 = STB .+ SF
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                U1, S1, "single layer")
-
+    return
+    
     ###
     ### Layered box
     ###
