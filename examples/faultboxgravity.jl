@@ -20,7 +20,7 @@ function faultboxgravity()
     g = 9.81
     rho = 2700
     alpha = 1e-7 # scalar preconditioner
-    npts = 100
+    npts = 50
     offset = 1
     xgrid, ygrid = obsgrid(-30e3+offset, -20e3+offset, 30e3-offset, -1-offset, npts)
 
@@ -49,13 +49,13 @@ function faultboxgravity()
     Tslip = H_TB_F * Fslip
 
     # Kernels and solve
-    T_B_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["B"],
+    T_B_BRTL, H_B_BRTL = PUTC(slip2dispstress, elsbox, idxbox["B"],
                        [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                        mu, nu)
-    T_R_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["R"],
+    T_R_BRTL, H_R_BRTL = PUTC(slip2dispstress, elsbox, idxbox["R"],
                        [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                        mu, nu)
-    T_L_BRTL, _ = PUTC(slip2dispstress, elsbox, idxbox["L"],
+    T_L_BRTL, H_L_BRTL = PUTC(slip2dispstress, elsbox, idxbox["L"],
                        [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                        mu, nu)
     _, H_T_BRTL = PUTC(slip2dispstress, elsbox, idxbox["T"],
@@ -64,13 +64,13 @@ function faultboxgravity()
 
     bcsbox = zeros(8 * nside)
     bcsbox[1:2*nside] = -Uslip[1:2*nside] # Bottom
-    bcsbox[2*nside+1:4*nside] = -Uslip[2*nside+1:4*nside] # Right
+    bcsbox[2*nside+1:4*nside] = -Tslip[2*nside+1:4*nside] # Right
     bcsbox[4*nside+1:6*nside] = -Tslip[4*nside+1:6*nside] # Top
-    bcsbox[6*nside+1:8*nside] = -Uslip[6*nside+1:8*nside] # Left
-
-    THbox = [T_B_BRTL ; T_R_BRTL; H_T_BRTL ; T_L_BRTL]
+    bcsbox[6*nside+1:8*nside] = -Tslip[6*nside+1:8*nside] # Left
+    THbox = [T_B_BRTL ; H_R_BRTL; H_T_BRTL ; H_L_BRTL]
     Ueffbox = THbox \ bcsbox
 
+    # Volume evaluation
     UTB, STB = constdispstress(slip2dispstress, xgrid, ygrid, elsbox,
                                [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                                Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
