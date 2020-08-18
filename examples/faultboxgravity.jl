@@ -27,7 +27,7 @@ function faultboxgravity()
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
-    nside = 20
+    nside = 100
     x1, y1, x2, y2 = discretizedline(-30000, -20000, 30000, -20000, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
     x1, y1, x2, y2 = discretizedline(30000, -20000, 30000, 0, nside) # Right hand side
@@ -80,7 +80,7 @@ function faultboxgravity()
     S1 = STB .+ SF
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                U1, S1, "(Fault only)")
-    
+    return
     ###
     ### Box BEM problem (no dislocation, gravity only)
     ###
