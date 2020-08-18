@@ -86,8 +86,8 @@ function layeredboxfault()
     PLOTGEOMETRY = false
     mu1 = 3e10
     nu1 = 0.25
-    mu2 = 0.1*mu1
-    nu2 = 2*nu1
+    mu2 = mu1
+    nu2 = nu1
     npts = 100
     offset = 100 # meters
 
@@ -99,7 +99,7 @@ function layeredboxfault()
     boxR = 30e3
     boxT = 0
     boxL = -30e3    
-    nside = 100
+    nside = 20
     nfault = 1
     x1, y1, x2, y2 = discretizedline(boxL, boxB, boxR, boxB, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
