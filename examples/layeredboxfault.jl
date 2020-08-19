@@ -65,14 +65,24 @@ end
 
 
 """
-    flipud()
+    flipnormals!(els, idx)
 
-Just an alias to the 1-linear that replicates matlab's matrix flipud
-Taken from:
-https://cheatsheets.quantecon.org/#manipulating-vectors-and-matrices
+Flip the normals of the elements idx in els
 """
-function flipud(mat)
-    mat = reverse(mat, dims = 1)
+function flipnormals!(els, idx)
+    els.xnormal[idx] *= -1
+    els.ynormal[idx] *= -1
+end
+
+
+"""
+    cloneels!(els, idx, label)
+
+Create a copy of the elements with indices idx adding them to the
+else structure and giving them the new name label.
+"""
+function cloneels!(els, idx, label)
+    addelsez!(els, els.x1[idx], els.y1[idx], els.x2[idx], els.y2[idx], label)
 end
 
 
