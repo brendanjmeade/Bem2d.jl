@@ -20,21 +20,25 @@ function faultboxgravity()
     g = 9.81
     rho = 2700
     alpha = 1e-7 # scalar preconditioner
-    npts = 50
+    npts = 100
     offset = 1
-    xgrid, ygrid = obsgrid(-30e3+offset, -20e3+offset, 30e3-offset, -1-offset, npts)
+    B = -15e3 # Bottom
+    R = 15e3 # Right
+    T = 0e3 # Top
+    L = -15e3 # Left
+    xgrid, ygrid = obsgrid(L+offset, B+offset, R-offset, T-offset, npts)
 
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
-    nside = 100
-    x1, y1, x2, y2 = discretizedline(-30000, -20000, 30000, -20000, nside) # Bottom
+    nside = 20
+    x1, y1, x2, y2 = discretizedline(L, B, R, B, nside) # Bottom
     addelsez!(elsbox, x1, y1, x2, y2, "B")
-    x1, y1, x2, y2 = discretizedline(30000, -20000, 30000, 0, nside) # Right hand side
+    x1, y1, x2, y2 = discretizedline(R, B, R, T, nside) # Right hand side
     addelsez!(elsbox, x1, y1, x2, y2, "R")
-    x1, y1, x2, y2 = discretizedline(30000, 0, -30000, 0, nside) # Top
+    x1, y1, x2, y2 = discretizedline(R, T, L, T, nside) # Top
     addelsez!(elsbox, x1, y1, x2, y2, "T")
-    x1, y1, x2, y2 = discretizedline(-30000, 0, -30000, -20000, nside) # Left hand side
+    x1, y1, x2, y2 = discretizedline(L, T, L, B, nside) # Left hand side
     addelsez!(elsbox, x1, y1, x2, y2, "L")
     x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault) # 45 degree dipping fault
     addelsez!(elsbox, x1, y1, x2, y2, "F")
@@ -76,11 +80,11 @@ function faultboxgravity()
                                Ueffbox[1:2:end], Ueffbox[2:2:end], mu, nu)
     UF, SF = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, idxbox["F"],
                              Fslip[1:2:end], Fslip[2:2:end], mu, nu)
-    U1 = UTB .+ UF
-    S1 = STB .+ SF
+    Ufaultonly = UTB .+ UF
+    Sfaultonly = STB .+ SF
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               U1, S1, "(Fault only)")
-    return
+               Ufaultonly, Sfaultonly, "(Fault only)")
+
     ###
     ### Box BEM problem (no dislocation, gravity only)
     ###
@@ -97,10 +101,10 @@ function faultboxgravity()
                                    [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                                    Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
     Uint, Sint = gravityparticularfunctions(xgrid, ygrid, g, rho, lambda, mu)
-    U = @. Ucomp + Uint
-    S = @. Scomp + Sint
+    Ugravityonly = @. Ucomp + Uint
+    Sgravityonly = @. Scomp + Sint
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               U, S, "(Gravity only)")
+               Ugravityonly, Sgravityonly, "(Gravity only)")
 
     ###
     ### Box BEM problem (dislocation and gravity)
@@ -111,56 +115,14 @@ function faultboxgravity()
                                    [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                                    Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
 
-    Ucombined = Ucomp .+ Uint .+ UF
-    Scombined = Scomp .+ Sint .+ SF
+    Ugravityandfault = Ucomp .+ Uint .+ UF
+    Sgravityandfault = Scomp .+ Sint .+ SF
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ucombined, Scombined, "(Gravity + fault)")
-
+               Ugravityandfault, Sgravityandfault, "(Gravity + fault)")
     # Difference between gravity alone and gravity + fault
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ucombined.-U, Scombined.-S, "(Gravity only) - (Gravity + fault)")
-
-    # Difference between gravity alone and gravity + fault and fault alone
+               Ugravityonly.-Ugravityandfault, Sgravityonly.-Sgravityandfault, "(Gravity only) - (Gravity + fault)")
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ucombined.-U.-U1, Scombined.-S.-S1, "(Gravity only) - (Gravity + fault) - (fault only)")
-
-    
-    ###
-    ### Box BEM problem (dislocation and gravity)
-    ###
-    # Ug, Sg = gravityparticularfunctions(elsbox.xcenter[1:1:elsbox.endidx],
-    #                                     elsbox.ycenter[1:1:elsbox.endidx], g, rho, lambda, mu)    
-    # bcsboxgravity = zeros(2 * elsbox.endidx)
-    # bcsboxgravity[1:2:2*idxbox["B"][end]] = Ug[1:1:idxbox["B"][end], 1]
-    # bcsboxgravity[2:2:2*idxbox["B"][end]] = Ug[1:1:idxbox["B"][end], 2]
-    # bcsboxgravity *= -1
-    # bcsboxgravity[1:2] .= 0.0 # Eliminate gravity here
-    # Ueffboxparticular = inv(THmat) * bcsboxgravity    
-    # Ucomp, Scomp = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, collect(1:1:elsbox.endidx),
-    #                                Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
-    # Uint, Sint = gravityparticularfunctions(xgrid, ygrid, g, rho, lambda, mu)
-    # Udg = @. Ucomp + Uint
-    # Sdg = @. Scomp + Sint
-    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-    #            Udg, Sdg, "Gravity on box edges and dislocation")
-    
-    # #
-    # # Box BEM gravity with a dislocation
-    # #
-    # bcsboxgravity = zeros(2 * elsbox.endidx)
-    # bcsboxgravity[1:2:2*idxbox["B"][end]] = Ug[1:1:idxbox["B"][end], 1]
-    # bcsboxgravity[2:2:2*idxbox["B"][end]] = Ug[1:1:idxbox["B"][end], 2]
-    # bcsboxgravity *= -1
-    # # bcsboxgravity[1:2] .+= 0.5
-    # bcsboxgravity[1:2] .= 0.5 # Add fault slip and eliminate gravity here
-    # @show cond(THmat)
-    # Ueffboxparticular = inv(THmat) * bcsboxgravity    
-    # Ucomp, Scomp = constdispstress(slip2dispstress, xgrid, ygrid, elsbox, collect(1:1:elsbox.endidx),
-    #                                Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
-    # Uint, Sint = gravityparticularfunctions(xgrid, ygrid, g, rho, lambda, mu)
-    # Udg2 = @. Ucomp + Uint
-    # Sdg2 = @. Scomp + Sint
-    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-    #            Udg2, Sdg2, "Gravity on box edges and dislocation")
+               UF, SF, "Fullspace fault")
 end
 faultboxgravity()
