@@ -48,7 +48,7 @@ function faultboxgravity()
     T_TB_F, H_TB_F = PUTC(slip2dispstress, elsbox,
                           [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                           idxbox["F"], mu, nu)
-    Fslip = [1; 1]; # y-direction slip only
+    Fslip = [10; 10]; # y-direction slip only
     Uslip = T_TB_F * Fslip
     Tslip = H_TB_F * Fslip
 
@@ -85,6 +85,9 @@ function faultboxgravity()
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                Ufaultonly, Sfaultonly, "(Fault only)")
 
+    
+
+    
     ###
     ### Box BEM problem (no dislocation, gravity only)
     ###
@@ -106,6 +109,9 @@ function faultboxgravity()
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                Ugravityonly, Sgravityonly, "(Gravity only)")
 
+
+
+    
     ###
     ### Box BEM problem (dislocation and gravity)
     ###
