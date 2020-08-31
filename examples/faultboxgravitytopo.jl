@@ -105,21 +105,20 @@ function faultboxgravity()
     bcsboxgravity[1:2:2*nside] = Ug[:, 1]
     bcsboxgravity[2:2:2*nside] = Ug[:, 2]
 
-    # # Traction BCs for top
-    # Ug, Sg = gravityparticularfunctions(elsbox.xcenter[idxbox["T"]],
-    #                                     elsbox.ycenter[idxbox["T"]],
-    #                                     g, rho, lambda, mu)  
-    # Ttx = zeros(nside)
-    # Tty = zeros(nside)
-    # for i in 1:length(Sg[:, 1])
-    #     nvec = [elsbox.xnormal[idxbox["T"][i]] ; elsbox.ynormal[idxbox["T"][1]]]
-    #     temp = [Sg[i, 1] Sg[i, 3] ; Sg[i, 3] Sg[i, 2]] * nvec
-    #     Ttx[i] = temp[1]
-    #     Tty[i] = temp[2]
-    # end
-    # bcsboxgravity[4*nside+1:2:6*nside] = Ttx
-    # bcsboxgravity[4*nside+2:2:6*nside] = Tty
-
+    # Traction BCs for top
+    Ug, Sg = gravityparticularfunctions(elsbox.xcenter[idxbox["T"]],
+                                        elsbox.ycenter[idxbox["T"]],
+                                        g, rho, lambda, mu)  
+    Ttx = zeros(nside)
+    Tty = zeros(nside)
+    for i in 1:length(Sg[:, 1])
+        nvec = [elsbox.xnormal[idxbox["T"][i]] ; elsbox.ynormal[idxbox["T"][1]]]
+        temp = [Sg[i, 1] Sg[i, 3] ; Sg[i, 3] Sg[i, 2]] * nvec
+        Ttx[i] = temp[1]
+        Tty[i] = temp[2]
+    end
+    bcsboxgravity[4*nside+1:2:6*nside] = Ttx
+    bcsboxgravity[4*nside+2:2:6*nside] = Tty
 
     bcsboxgravity *= -1
     Ueffboxparticular = THbox \ bcsboxgravity  
