@@ -51,11 +51,13 @@ function faultboxgravity()
 
     ###
     ### Fault only
+    ### R, T, L are traction free bcs
+    ### B is zero slip BC
     ### 
     T_TB_F, H_TB_F = PUTC(slip2dispstress, elsbox,
                           [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                           idxbox["F"], mu, nu)
-    Fslip = [10; 10]; # y-direction slip only
+    Fslip = [100; 100]; # y-direction slip only
     Uslip = T_TB_F * Fslip
     Tslip = H_TB_F * Fslip
 
@@ -95,14 +97,32 @@ function faultboxgravity()
     ###
     ### Box BEM problem (no dislocation, gravity only)
     ###
+    # Displacement BCs for bottom
     Ug, Sg = gravityparticularfunctions(elsbox.xcenter[idxbox["B"]],
                                         elsbox.ycenter[idxbox["B"]],
                                         g, rho, lambda, mu)    
     bcsboxgravity = zeros(2 * elsbox.endidx - 2)
     bcsboxgravity[1:2:2*nside] = Ug[:, 1]
     bcsboxgravity[2:2:2*nside] = Ug[:, 2]
+
+    # # Traction BCs for top
+    # Ug, Sg = gravityparticularfunctions(elsbox.xcenter[idxbox["T"]],
+    #                                     elsbox.ycenter[idxbox["T"]],
+    #                                     g, rho, lambda, mu)  
+    # Ttx = zeros(nside)
+    # Tty = zeros(nside)
+    # for i in 1:length(Sg[:, 1])
+    #     nvec = [elsbox.xnormal[idxbox["T"][i]] ; elsbox.ynormal[idxbox["T"][1]]]
+    #     temp = [Sg[i, 1] Sg[i, 3] ; Sg[i, 3] Sg[i, 2]] * nvec
+    #     Ttx[i] = temp[1]
+    #     Tty[i] = temp[2]
+    # end
+    # bcsboxgravity[4*nside+1:2:6*nside] = Ttx
+    # bcsboxgravity[4*nside+2:2:6*nside] = Tty
+
+
     bcsboxgravity *= -1
-    Ueffboxparticular = THbox \ bcsboxgravity # Clip off the fault part    
+    Ueffboxparticular = THbox \ bcsboxgravity  
 
     Ucomp, Scomp = constdispstress(slip2dispstress, xgrid, ygrid, elsbox,
                                    [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
@@ -118,7 +138,7 @@ function faultboxgravity()
     ### Box BEM problem (dislocation and gravity)
     ###
     bcscombined = bcsboxgravity .+ bcsbox    
-    Ueffcombined = THbox \ bcsboxgravity # Clip off the fault part    
+    Ueffcombined = THbox \ bcsboxgravity # FIXME: Equivalent to addind the solutions?   
     Ucomp, Scomp = constdispstress(slip2dispstress, xgrid, ygrid, elsbox,
                                    [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                                    Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
