@@ -30,7 +30,7 @@ function faultboxgravity()
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
-    nside = 50
+    nside = 20
 
     # From thrust fault example
     x1T, y1T, x2T, y2T = discretizedline(-20e3, 0, 20e3, 0, nside)
@@ -94,6 +94,36 @@ function faultboxgravity()
     plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
                Ufaultonly, Sfaultonly, "(Fault only)")
 
+
+    figure()
+    field = sqrt.(Ufaultonly[:, 1].^2 + Ufaultonly[:, 2].^2)
+    ncontours = 40
+    xlim = [-20000 20000]
+    ylim = [-20000 2000]
+    scale = 1.0
+    fieldmax = maximum(@.abs(field))
+    contourf(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+             reshape(field, npts, npts), ncontours,
+             vmin=-scale * fieldmax, vmax=scale * fieldmax,
+             cmap=rycroftcmap())
+    clim(-scale * fieldmax, scale * fieldmax)
+    colorbar(fraction=0.020, pad=0.05, extend="both")
+    contour(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+            reshape(field, npts, npts), ncontours,
+            vmin=-scale * fieldmax, vmax=scale * fieldmax,
+            linewidths=0.25, colors="k")
+    title(title)
+    plotelements(elsbox)
+
+    gca().set_aspect("equal")
+    gca().set_xlim([xlim[1], xlim[2]])
+    gca().set_ylim([ylim[1], ylim[2]])
+    # gca().set_xticks([xlim[1], xlim[2]])
+    # gca().set_yticks([ylim[1], ylim[2]])
+   
+    return
+
+    
     ###
     ### Box BEM problem (no dislocation, gravity only)
     ###
@@ -104,7 +134,7 @@ function faultboxgravity()
     bcsboxgravity = zeros(2 * elsbox.endidx - 2)
     bcsboxgravity[1:2:2*nside] = Ug[:, 1]
     bcsboxgravity[2:2:2*nside] = Ug[:, 2]
-
+    
     # Traction BCs for top
     Ug, Sg = gravityparticularfunctions(elsbox.xcenter[idxbox["T"]],
                                         elsbox.ycenter[idxbox["T"]],
@@ -120,6 +150,9 @@ function faultboxgravity()
     bcsboxgravity[4*nside+1:2:6*nside] = Ttx
     bcsboxgravity[4*nside+2:2:6*nside] = Tty
 
+    ###
+    ### Solve the BEM problem
+    ###
     bcsboxgravity *= -1
     Ueffboxparticular = THbox \ bcsboxgravity  
 
