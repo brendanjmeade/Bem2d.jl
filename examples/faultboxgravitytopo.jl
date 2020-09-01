@@ -3,6 +3,8 @@ using PyPlot
 using PyCall
 using Statistics
 using LinearAlgebra
+using PolygonOps
+using StaticArrays
 using Infiltrator
 using Bem2d
 
@@ -20,7 +22,7 @@ function faultboxgravity()
     g = 9.81
     rho = 2700
     alpha = 1e-7 # scalar preconditioner
-    npts = 100
+    npts = 200
     offset = 1
     B = -20e3 # Bottom
     R = 20e3 # Right
@@ -30,7 +32,7 @@ function faultboxgravity()
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
-    nside = 20
+    nside = 100
 
     # From thrust fault example
     x1T, y1T, x2T, y2T = discretizedline(-20e3, 0, 20e3, 0, nside)
@@ -91,13 +93,11 @@ function faultboxgravity()
                              Fslip[1:2:end], Fslip[2:2:end], mu, nu)
     Ufaultonly = UTB .+ UF
     Sfaultonly = STB .+ SF
-    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ufaultonly, Sfaultonly, "(Fault only)")
-
-
-    figure()
+    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               # Ufaultonly, Sfaultonly, "(Fault only)")
+    figure(figsize=(8,8))
     field = sqrt.(Ufaultonly[:, 1].^2 + Ufaultonly[:, 2].^2)
-    ncontours = 40
+    ncontours = 10
     xlim = [-20000 20000]
     ylim = [-20000 2000]
     scale = 1.0
@@ -105,23 +105,24 @@ function faultboxgravity()
     contourf(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
              reshape(field, npts, npts), ncontours,
              vmin=-scale * fieldmax, vmax=scale * fieldmax,
-             cmap=rycroftcmap())
+             cmap = get_cmap("magma"))
     clim(-scale * fieldmax, scale * fieldmax)
-    colorbar(fraction=0.020, pad=0.05, extend="both")
+    colorbar(fraction=0.020, pad=0.05, extend = "both", label = L"$||u||$ (m)")
     contour(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
             reshape(field, npts, npts), ncontours,
             vmin=-scale * fieldmax, vmax=scale * fieldmax,
-            linewidths=0.25, colors="k")
-    title(title)
+            linewidths=0.25, colors="w")
     plotelements(elsbox)
-
     gca().set_aspect("equal")
     gca().set_xlim([xlim[1], xlim[2]])
     gca().set_ylim([ylim[1], ylim[2]])
-    # gca().set_xticks([xlim[1], xlim[2]])
-    # gca().set_yticks([ylim[1], ylim[2]])
-   
-    return
+    gca().set_xticks([-20000, -10000, 0, 10000, 20000])
+    gca().set_yticks([-20000, -10000, 0])
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+    xv = [elsbox.x1[idxbox["T"]] ; elsbox.x2[idxbox["T"]][end] ; 20000 ; -20000]
+    yv = [elsbox.y1[idxbox["T"]] ; elsbox.y2[idxbox["T"]][end]; 2000 ; 2000]
+    fill(xv, yv, "lightgray")
 
     
     ###
