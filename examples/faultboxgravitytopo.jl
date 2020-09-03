@@ -124,6 +124,12 @@ function faultboxgravity()
     yv = [elsbox.y1[idxbox["T"]] ; elsbox.y2[idxbox["T"]][end]; 2000 ; 2000]
     fill(xv, yv, "lightgray")
 
+    # Find principle stress orientations
+    for i in 1:length(Ufaultonly[:,1])
+
+    end
+    
+    return
     
     ###
     ### Box BEM problem (no dislocation, gravity only)
