@@ -93,8 +93,10 @@ function faultboxgravity()
                              Fslip[1:2:end], Fslip[2:2:end], mu, nu)
     Ufaultonly = UTB .+ UF
     Sfaultonly = STB .+ SF
-    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               # Ufaultonly, Sfaultonly, "(Fault only)")
+    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+               Ufaultonly, Sfaultonly, "(Fault only)")
+
+    # Start of nice visualization
     figure(figsize=(8,8))
     field = sqrt.(Ufaultonly[:, 1].^2 + Ufaultonly[:, 2].^2)
     ncontours = 10
@@ -125,12 +127,10 @@ function faultboxgravity()
     fill(xv, yv, "lightgray")
 
     # Find principle stress orientations
-    for i in 1:length(Ufaultonly[:,1])
+    # for i in 1:length(Ufaultonly[:,1])
 
-    end
-    
-    return
-    
+    # end
+        
     ###
     ### Box BEM problem (no dislocation, gravity only)
     ###
