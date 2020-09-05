@@ -9,8 +9,80 @@ using Infiltrator
 using Bem2d
 
 
-function twopanel()
+function twopanel(xgrid, ygrid, npts, U, S, idx, els)
+    # Start of nice visualization
+    figure(figsize=(12,5))
+    subplot(1, 2, 1)
+    field = sqrt.(U[:, 1].^2 + U[:, 2].^2)
+    ncontours = 10
+    lowfield = 0
+    highfield = 100
+    ncontours = LinRange(lowfield, highfield, 11)    
 
+    xlim = [-20000 20000]
+    ylim = [-20000 2000]
+    scale = 1.0
+    fieldmax = maximum(@.abs(field))
+    contourf(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+             reshape(field, npts, npts), ncontours,
+             vmin=-scale * fieldmax, vmax=scale * fieldmax,
+             cmap = get_cmap("magma"))
+    clim(-scale * fieldmax, scale * fieldmax)
+    colorbar(fraction=0.020, pad=0.05, extend = "both", label = L"$||u||$ (m)")
+    contour(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+            reshape(field, npts, npts), ncontours,
+            vmin=-scale * fieldmax, vmax=scale * fieldmax,
+            linewidths=0.25, colors="w")
+    plotelements(els)
+    gca().set_aspect("equal")
+    gca().set_xlim([xlim[1], xlim[2]])
+    gca().set_ylim([ylim[1], ylim[2]])
+    gca().set_xticks([-20000, -10000, 0, 10000, 20000])
+    gca().set_yticks([-20000, -10000, 0])
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+    xv = [els.x1[idx["T"]] ; els.x2[idx["T"]][end] ; 20000 ; -20000]
+    yv = [els.y1[idx["T"]] ; els.y2[idx["T"]][end]; 2000 ; 2000]
+    fill(xv, yv, "lightgray")
+
+    # Find principle stress orientations
+    stressdiff = zeros(length(U[:, 1]))
+    for i in 1:length(U[:,1])
+        mat = [S[i, 1] S[i, 3]; S[i, 3] S[i, 2]]
+        ev = eigvals(mat)
+        stressdiff[i] = log10(abs(ev[2]-ev[1]))
+    end
+    
+    subplot(1, 2, 2)
+    field = stressdiff
+    xlim = [-20000 20000]
+    ylim = [-20000 2000]
+    lowfield = 5
+    highfield = 10
+    ncontours = LinRange(lowfield,highfield, 11)    
+    contourf(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+             reshape(field, npts, npts), ncontours,
+             vmin=lowfield, vmax=highfield,
+             cmap=get_cmap("viridis"))
+    clim(lowfield, highfield)
+    colorbar(fraction=0.020, pad=0.05, extend="both",
+             label=L"$\Delta \sigma$ (Pa)")
+    contour(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
+            reshape(field, npts, npts), ncontours,
+            vmin=lowfield, vmax=highfield,
+            linewidths=0.25, colors="w")
+    plotelements(els)
+    gca().set_aspect("equal")
+    gca().set_xlim([xlim[1], xlim[2]])
+    gca().set_ylim([ylim[1], ylim[2]])
+    gca().set_xticks([-20000, -10000, 0, 10000, 20000])
+    gca().set_yticks([-20000, -10000, 0])
+    xlabel(L"$x$ (m)")
+    ylabel(L"$y$ (m)")
+    xv = [els.x1[idx["T"]] ; els.x2[idx["T"]][end] ; 20000 ; -20000]
+    yv = [els.y1[idx["T"]] ; els.y2[idx["T"]][end]; 2000 ; 2000]
+    fill(xv, yv, "lightgray", zorder=30)
+    tight_layout()
     return nothing
 end
 
@@ -83,7 +155,6 @@ function faultboxgravity()
     _, H_T_BRTL = PUTC(slip2dispstress, elsbox, idxbox["T"],
                        [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                        mu, nu)
-
     bcsbox = zeros(8 * nside)
     bcsbox[1:2*nside] = -Uslip[1:2*nside] # Bottom
     bcsbox[2*nside+1:4*nside] = -Tslip[2*nside+1:4*nside] # Right
@@ -100,80 +171,7 @@ function faultboxgravity()
                              Fslip[1:2:end], Fslip[2:2:end], mu, nu)
     Ufaultonly = UTB .+ UF
     Sfaultonly = STB .+ SF
-    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-    #            Ufaultonly, Sfaultonly, "(Fault only)")
-
-    # Start of nice visualization
-    figure(figsize=(12,5))
-    subplot(1, 2, 1)
-    field = sqrt.(Ufaultonly[:, 1].^2 + Ufaultonly[:, 2].^2)
-    ncontours = 10
-    xlim = [-20000 20000]
-    ylim = [-20000 2000]
-    scale = 1.0
-    fieldmax = maximum(@.abs(field))
-    contourf(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-             reshape(field, npts, npts), ncontours,
-             vmin=-scale * fieldmax, vmax=scale * fieldmax,
-             cmap = get_cmap("magma"))
-    clim(-scale * fieldmax, scale * fieldmax)
-    colorbar(fraction=0.020, pad=0.05, extend = "both", label = L"$||u||$ (m)")
-    contour(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-            reshape(field, npts, npts), ncontours,
-            vmin=-scale * fieldmax, vmax=scale * fieldmax,
-            linewidths=0.25, colors="w")
-    plotelements(elsbox)
-    gca().set_aspect("equal")
-    gca().set_xlim([xlim[1], xlim[2]])
-    gca().set_ylim([ylim[1], ylim[2]])
-    gca().set_xticks([-20000, -10000, 0, 10000, 20000])
-    gca().set_yticks([-20000, -10000, 0])
-    xlabel(L"$x$ (m)")
-    ylabel(L"$y$ (m)")
-    xv = [elsbox.x1[idxbox["T"]] ; elsbox.x2[idxbox["T"]][end] ; 20000 ; -20000]
-    yv = [elsbox.y1[idxbox["T"]] ; elsbox.y2[idxbox["T"]][end]; 2000 ; 2000]
-    fill(xv, yv, "lightgray")
-
-    # Find principle stress orientations
-    stressangle = zeros(length(Ufaultonly[:,1]))
-    for i in 1:length(Ufaultonly[:,1])
-        mat = [Sfaultonly[i, 1] Sfaultonly[i, 3];
-               Sfaultonly[i, 3] Sfaultonly[i, 2]]
-        evs = eigvecs(mat)
-        ev = eigvals(mat)
-        stressangle[i] = log10(abs(ev[2]-ev[1]))
-    end
-    
-    subplot(1, 2, 2)
-    field = stressangle
-    xlim = [-20000 20000]
-    ylim = [-20000 2000]
-    lowfield = 5
-    highfield = 10
-    ncontours = LinRange(lowfield,highfield, 11)    
-    contourf(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-             reshape(field, npts, npts), ncontours,
-             vmin=lowfield, vmax=highfield,
-             cmap=get_cmap("viridis"))
-    clim(lowfield, highfield)
-    colorbar(fraction=0.020, pad=0.05, extend="both",
-             label=L"$\Delta \sigma$ (Pa)")
-    contour(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-            reshape(field, npts, npts), ncontours,
-            vmin=lowfield, vmax=highfield,
-            linewidths=0.25, colors="w")
-    plotelements(elsbox)
-    gca().set_aspect("equal")
-    gca().set_xlim([xlim[1], xlim[2]])
-    gca().set_ylim([ylim[1], ylim[2]])
-    gca().set_xticks([-20000, -10000, 0, 10000, 20000])
-    gca().set_yticks([-20000, -10000, 0])
-    xlabel(L"$x$ (m)")
-    ylabel(L"$y$ (m)")
-    xv = [elsbox.x1[idxbox["T"]] ; elsbox.x2[idxbox["T"]][end] ; 20000 ; -20000]
-    yv = [elsbox.y1[idxbox["T"]] ; elsbox.y2[idxbox["T"]][end]; 2000 ; 2000]
-    fill(xv, yv, "lightgray", zorder=30)
-    tight_layout()
+    twopanel(xgrid, ygrid, npts, Ufaultonly, Sfaultonly, idxbox, elsbox)
     return
         
     ###
