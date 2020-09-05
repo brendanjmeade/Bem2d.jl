@@ -11,7 +11,7 @@ using Bem2d
 
 function twopanel(xgrid, ygrid, npts, U, S, idx, els)
     # Start of nice visualization
-    figure(figsize=(12,5))
+    figure(figsize=(12,3))
     subplot(1, 2, 1)
     field = sqrt.(U[:, 1].^2 + U[:, 2].^2)
     ncontours = 10
@@ -25,13 +25,13 @@ function twopanel(xgrid, ygrid, npts, U, S, idx, els)
     fieldmax = maximum(@.abs(field))
     contourf(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
              reshape(field, npts, npts), ncontours,
-             vmin=-scale * fieldmax, vmax=scale * fieldmax,
+             vmin=lowfield, vmax=highfield,
              cmap = get_cmap("magma"))
-    clim(-scale * fieldmax, scale * fieldmax)
+    clim(lowfield, highfield)
     colorbar(fraction=0.020, pad=0.05, extend = "both", label = L"$||u||$ (m)")
     contour(reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
             reshape(field, npts, npts), ncontours,
-            vmin=-scale * fieldmax, vmax=scale * fieldmax,
+            vmin=lowfield, vmax=highfield,
             linewidths=0.25, colors="w")
     plotelements(els)
     gca().set_aspect("equal")
@@ -43,7 +43,7 @@ function twopanel(xgrid, ygrid, npts, U, S, idx, els)
     ylabel(L"$y$ (m)")
     xv = [els.x1[idx["T"]] ; els.x2[idx["T"]][end] ; 20000 ; -20000]
     yv = [els.y1[idx["T"]] ; els.y2[idx["T"]][end]; 2000 ; 2000]
-    fill(xv, yv, "lightgray")
+    fill(xv, yv, "lightgray", zorder=30)
 
     # Find principle stress orientations
     stressdiff = zeros(length(U[:, 1]))
@@ -87,7 +87,6 @@ function twopanel(xgrid, ygrid, npts, U, S, idx, els)
 end
 
 
-
 """
     faultboxgravity()
 
@@ -111,12 +110,15 @@ function faultboxgravity()
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
-    nside = 20
+    nside = 50
 
     # From thrust fault example
     x1T, y1T, x2T, y2T = discretizedline(-20e3, 0, 20e3, 0, nside)
     y1T = -1e3 * atan.(x1T / 1e3)
     y2T = -1e3 * atan.(x2T / 1e3)
+    # y1T = zeros(length(y1T))
+    # y2T = zeros(length(y2T))
+    
     xgrid, ygrid = obsgrid(L+offset, B+offset, R-offset, maximum(y1T)-offset, npts)
 
     x1, y1, x2, y2 = discretizedline(L, B, R, B, nside) # Bottom
@@ -130,11 +132,9 @@ function faultboxgravity()
     addelsez!(elsbox, x1, y1, x2, y2, "F")
     idxbox = getidxdict(elsbox)
 
-    ###
     ### Fault only
     ### R, T, L are traction free bcs
     ### B is zero slip BC
-    ### 
     T_TB_F, H_TB_F = PUTC(slip2dispstress, elsbox,
                           [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                           idxbox["F"], mu, nu)
@@ -172,11 +172,8 @@ function faultboxgravity()
     Ufaultonly = UTB .+ UF
     Sfaultonly = STB .+ SF
     twopanel(xgrid, ygrid, npts, Ufaultonly, Sfaultonly, idxbox, elsbox)
-    return
         
-    ###
     ### Box BEM problem (no dislocation, gravity only)
-    ###
     # Displacement BCs for bottom
     Ug, Sg = gravityparticularfunctions(elsbox.xcenter[idxbox["B"]],
                                         elsbox.ycenter[idxbox["B"]],
@@ -185,7 +182,7 @@ function faultboxgravity()
     bcsboxgravity[1:2:2*nside] = Ug[:, 1]
     bcsboxgravity[2:2:2*nside] = Ug[:, 2]
     
-    # Traction BCs for top
+    # Traction BCs for top and sides
     Ug, Sg = gravityparticularfunctions(elsbox.xcenter[idxbox["T"]],
                                         elsbox.ycenter[idxbox["T"]],
                                         g, rho, lambda, mu)  
@@ -199,10 +196,6 @@ function faultboxgravity()
     end
     bcsboxgravity[4*nside+1:2:6*nside] = Ttx
     bcsboxgravity[4*nside+2:2:6*nside] = Tty
-
-    ###
-    ### Solve the BEM problem
-    ###
     bcsboxgravity *= -1
     Ueffboxparticular = THbox \ bcsboxgravity  
 
@@ -212,27 +205,16 @@ function faultboxgravity()
     Uint, Sint = gravityparticularfunctions(xgrid, ygrid, g, rho, lambda, mu)
     Ugravityonly = @. Ucomp + Uint
     Sgravityonly = @. Scomp + Sint
-    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ugravityonly, Sgravityonly, "(Gravity only)")
+    twopanel(xgrid, ygrid, npts, Ugravityonly, Sgravityonly, idxbox, elsbox)
 
-
-    ###
     ### Box BEM problem (dislocation and gravity)
-    ###
     bcscombined = bcsboxgravity .+ bcsbox    
     Ueffcombined = THbox \ bcsboxgravity # FIXME: Equivalent to addind the solutions?   
     Ucomp, Scomp = constdispstress(slip2dispstress, xgrid, ygrid, elsbox,
                                    [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
                                    Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
-
-    Ugravityandfault = Ucomp .+ Uint .+ UF
-    Sgravityandfault = Scomp .+ Sint .+ SF
-    plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-               Ugravityandfault, Sgravityandfault, "(Gravity + fault)")
-    # Difference between gravity alone and gravity + fault
-    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-    #            Ugravityonly.-Ugravityandfault, Sgravityonly.-Sgravityandfault, "(Gravity only) - (Gravity + fault)")
-    # plotfields(elsbox, reshape(xgrid, npts, npts), reshape(ygrid, npts, npts),
-    #            UF, SF, "Fullspace fault")
+    Ugravityfault = Ucomp .+ Uint .+ UF
+    Sgravityfault = Scomp .+ Sint .+ SF
+    twopanel(xgrid, ygrid, npts, Ugravityfault, Sgravityfault, idxbox, elsbox)
 end
 faultboxgravity()
