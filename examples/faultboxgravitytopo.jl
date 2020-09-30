@@ -106,7 +106,7 @@ function faultboxgravity()
     R = 20e3 # Right
     T = 0e3 # Top
     L = -20e3 # Left
-
+    
     # Element geometries and data structures for the box case
     elsbox = Elements(Int(1e5))
     nfault = 1
