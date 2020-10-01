@@ -22,7 +22,7 @@ function nearsurfaceerror()
     els = Elements(Int(1e5))
     # nfreesurf = 20
     # x1, y1, x2, y2 = discretizedline(-50e3, 0, 50e3, 0, nfreesurf)
-    nfreesurf = 100
+    nfreesurf = 200
     x1, y1, x2, y2 = discretizedline(-100e3, 0, 100e3, 0, nfreesurf)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
@@ -33,9 +33,15 @@ function nearsurfaceerror()
     end
     standardize_elements!(els)
 
+    @show "element width"
+    @show x2[1] - x1[1]
+    
     # 45 degree dipping fault
     nfault = 1
     x1, y1, x2, y2 = discretizedline(-10e3, -10e3, 0, 0, nfault)
+    y1 = y1 .- 5e3
+    y2 = y2 .- 5e3
+    
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
         els.y1[els.endidx + i] = y1[i]
@@ -68,8 +74,10 @@ function nearsurfaceerror()
     
     # Okada solution
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
-    xokada = collect(LinRange(-50e3, 50e3, 1000))
+    xokada = collect(LinRange(-10e3, 10e3, 10000))
     offset = abs(els.xnodes[1, 2] - els.xnodes[1, 1])
+    offset = 100
+    @show offset
     yokada = -offset * ones(size(xokada))
     dispxokada = zeros(length(xokada))
     dispyokada = zeros(length(xokada))
@@ -82,7 +90,8 @@ function nearsurfaceerror()
         _, u, s = ow.dc3dwrapper(
             2.0 / 3.0,
             [0, xokada[i] + 5e3, yokada[i]],
-            5e3,
+            # 5e3,
+            10e3,            
             45,
             [-1e7, 1e7],
             [-10e3*sqrt(2) / 2, 10e3*sqrt(2) / 2],
@@ -119,90 +128,133 @@ function nearsurfaceerror()
     stressquad = stressfaultquadvol - stressfreesurfacequadvol # Note negative sign
 
     # Plot ux and uy profiles
+    xmin = -10e3
+    xmax = 10e3
     fontsize = 24
+    fontsizelegend = 20
     markersize = 15
     linewidth = 2.0
     close("all")
-    figure(figsize = (30, 15))
+    figure(figsize = (30, 20))
 
-    ax = subplot(2, 3, 1)
+    ax = subplot(3, 3, 1)
     plot(xokada, log10.(abs.(stressconst[:, 1])), "-c", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(stressquad[:, 1])), "-r", linewidth=linewidth, label="3QN BEM")
-    plot(xokada, log10.(abs.(stressxxokada[:, 1])), ":k", linewidth=2.0, label="Okada")
-    gca().set_xlim([-50e3, 50e3])
+    plot(xokada, log10.(abs.(stressxxokada[:, 1])), ":k", linewidth=2.0, label="analytic")
+    gca().set_xlim([xmin, xmax])
     gca().set_ylim([0, 8])
-    gca().set_xticks([])
+    gca().set_xticks([xmin, 0, xmax])
     gca().set_yticks([0, 4, 8])
-    legend(fontsize=fontsize, frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
-    # xlabel(L"$x$ (m)", fontsize=fontsize)
-    ylabel(L"$\log \, \sigma_{xx}$ (Pa)", fontsize=fontsize)
+    ylabel(L"$\log \, |\sigma_{xx}|$ (Pa)", fontsize=fontsize)
 
-    ax = subplot(2, 3, 2)
+    ax = subplot(3, 3, 2)
     plot(xokada, log10.(abs.(stressconst[:, 2])), "-c", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(stressquad[:, 2])), "-r", linewidth=linewidth, label="3QN BEM")
-    plot(xokada, log10.(abs.(stressyyokada[:, 1])), ":k", linewidth=2.0, label="Okada")
-    gca().set_xlim([-50e3, 50e3])
+    plot(xokada, log10.(abs.(stressyyokada[:, 1])), ":k", linewidth=2.0, label="analytic")
+    gca().set_xlim([xmin, xmax])
     gca().set_ylim([0, 8])
-    gca().set_xticks([])
+    gca().set_xticks([xmin, 0, xmax])
     gca().set_yticks([0, 4, 8])
-    legend(fontsize=fontsize, frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
-    ylabel(L"$\log \, \sigma_{yy}$ (Pa)", fontsize=fontsize)
+    ylabel(L"$\log \, |\sigma_{yy}|$ (Pa)", fontsize=fontsize)
 
-    ax = subplot(2, 3, 3)
+    ax = subplot(3, 3, 3)
     plot(xokada, log10.(abs.(stressconst[:, 3])), "-c", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(stressquad[:, 3])), "-r", linewidth=linewidth, label="3QN BEM")
-    plot(xokada, log10.(abs.(stressxyokada[:, 1])), ":k", linewidth=2.0, label="Okada")
-    gca().set_xlim([-50e3, 50e3])
+    plot(xokada, log10.(abs.(stressxyokada[:, 1])), ":k", linewidth=2.0, label="analytic")
+    gca().set_xlim([xmin, xmax])
     gca().set_ylim([0, 8])
-    gca().set_xticks([])
+    gca().set_xticks([xmin, 0, xmax])
     gca().set_yticks([0, 4, 8])
-    legend(fontsize=fontsize,frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    legend(fontsize=fontsizelegend,frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
-    ylabel(L"$\log \, \sigma_{xy}$ (Pa)", fontsize=fontsize)
+    ylabel(L"$\log \, |\sigma_{xy}|$ (Pa)", fontsize=fontsize)
 
-    ax = subplot(2, 3, 4)
+    # Absolute error
+    ax = subplot(3, 3, 4)
+    stressxxconsterror = stressconst[:, 1] - stressxxokada[:, 1]
+    stressxxquaderror = stressquad[:, 1] - stressxxokada[:, 1]
+    plot(xokada, abs.(stressxxconsterror), "-c", linewidth=linewidth, label=@sprintf "CS BEM mean error = %05.2f" mean(abs.(stressxxconsterror)))
+    plot(xokada, abs.(stressxxquaderror), "-r", linewidth=linewidth, label=@sprintf "3QN BEM mean error = %05.2f" mean(abs.(stressxxquaderror)))
+    gca().set_xlim([-xmin, xmax])
+    gca().set_ylim([0, 1200000])
+    gca().set_xticks([xmin, 0, xmax])
+    # gca().set_yticks([-3, 0, 3, 6])
+    legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    ax.tick_params("both", labelsize = fontsize)
+    ylabel(L"$|\sigma_{xx}$ error|", fontsize=fontsize)
+
+    ax = subplot(3, 3, 5)
+    stressyyconsterror = stressconst[:, 2] - stressyyokada[:, 1]
+    stressyyquaderror = stressquad[:, 2] - stressyyokada[:, 1]
+    plot(xokada, abs.(stressyyconsterror), "-c", linewidth=linewidth, label=@sprintf "CS BEM mean error = %05.2f" mean(abs.(stressyyconsterror)))
+    plot(xokada, abs.(stressyyquaderror), "-r", linewidth=linewidth, label=@sprintf "3QN BEM mean error = %05.2f" mean(abs.(stressyyquaderror)))
+    gca().set_xlim([xmin, xmax])
+    gca().set_ylim([0, 1200000])
+    gca().set_xticks([xmin, 0, xmax])
+    # gca().set_yticks([-3, 0, 3, 6])
+    lh = legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    ax.tick_params("both", labelsize = fontsize)
+    ylabel(L"$|\sigma_{yy}$ error|", fontsize=fontsize)
+
+    ax = subplot(3, 3, 6)
+    stressxyconsterror = stressconst[:, 3] - stressxyokada[:, 1]
+    stressxyquaderror = stressquad[:, 3] - stressxyokada[:, 1]
+    plot(xokada, abs.(stressxyconsterror), "-c", linewidth=linewidth, label=@sprintf "CS BEM mean error = %05.2f" mean(abs.(stressxyconsterror)))
+    plot(xokada, abs.(stressxyquaderror), "-r", linewidth=linewidth, label=@sprintf "3QN BEM mean error = %05.2f" mean(abs.(stressxyquaderror)))
+    gca().set_xlim([xmin, xmax])
+    gca().set_ylim([0, 1200000])
+    gca().set_xticks([xmin, 0, xmax])
+    # gca().set_yticks([-3, 0, 3, 6])
+    legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    ax.tick_params("both", labelsize = fontsize)
+    ylabel(L"$|\sigma_{xy}$ error|", fontsize=fontsize)
+
+    ax = subplot(3, 3, 7)
     stressxxconsterror = 100 * (stressconst[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
     stressxxquaderror = 100 * (stressquad[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
     plot(xokada, log10.(abs.(stressxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressxxconsterror)))
     plot(xokada, log10.(abs.(stressxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressxxquaderror)))
-    gca().set_xlim([-50e3, 50e3])
+    gca().set_xlim([-xmin, xmax])
     gca().set_ylim([-3, 6])
-    gca().set_xticks([-50e3, 0, 50e3])
+    gca().set_xticks([xmin, 0, xmax])
     gca().set_yticks([-3, 0, 3, 6])
-    legend(fontsize=fontsize, frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize)
     ylabel(L"$\log \, \sigma_{xx} \, \%$ error", fontsize=fontsize)
 
-    ax = subplot(2, 3, 5)
+    ax = subplot(3, 3, 8)
     stressyyconsterror = 100 * (stressconst[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
     stressyyquaderror = 100 * (stressquad[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
     plot(xokada, log10.(abs.(stressyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressyyconsterror)))
     plot(xokada, log10.(abs.(stressyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressyyquaderror)))
-    gca().set_xlim([-50e3, 50e3])
+    gca().set_xlim([xmin, xmax])
     gca().set_ylim([-3, 6])
-    gca().set_xticks([-50e3, 0, 50e3])
+    gca().set_xticks([xmin, 0, xmax])
     gca().set_yticks([-3, 0, 3, 6])
-    lh = legend(fontsize=fontsize, frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    lh = legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{yy} \, \%$ error", fontsize=fontsize)
 
-    ax = subplot(2, 3, 6)
+    ax = subplot(3, 3, 9)
     stressxyconsterror = 100 * (stressconst[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
     stressxyquaderror = 100 * (stressquad[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
     plot(xokada, log10.(abs.(stressxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressxyconsterror)))
     plot(xokada, log10.(abs.(stressxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressxyquaderror)))
-    gca().set_xlim([-50e3, 50e3])
+    gca().set_xlim([xmin, xmax])
     gca().set_ylim([-3, 6])
-    gca().set_xticks([-50e3, 0, 50e3])
+    gca().set_xticks([xmin, 0, xmax])
     gca().set_yticks([-3, 0, 3, 6])
-    legend(fontsize=fontsize, frameon=true, facecolor="white", framealpha=1.0, loc=1)
+    legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
     xlabel(L"$x$ (m)", fontsize=fontsize); ylabel(L"$\log \, \sigma_{xy} \, \%$ error", fontsize=fontsize)
 
-    tight_layout()
+    tight_layout(pad=5.0)
+
     show()
 end
 nearsurfaceerror()
