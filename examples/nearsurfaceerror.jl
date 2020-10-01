@@ -21,7 +21,7 @@ function nearsurfaceerror()
     els = Elements(Int(1e5))
     # nfreesurf = 20
     # x1, y1, x2, y2 = discretizedline(-50e3, 0, 50e3, 0, nfreesurf)
-    nfreesurf = 50
+    nfreesurf = 200
     x1, y1, x2, y2 = discretizedline(-100e3, 0, 100e3, 0, nfreesurf)
     for i in 1:length(x1)
         els.x1[els.endidx + i] = x1[i]
@@ -76,7 +76,6 @@ function nearsurfaceerror()
     dispfreesurfaceconst = inv(partialsconst["trac"]["freesurf"]["freesurf"]) * (partialsconst["trac"]["fault"]["freesurf"] * faultslipconst)
     xplotconst = els.xcenter[idx["freesurf"]]
 
-
     # HIGH RES: Constant slip fault
     partialsconst2["disp"]["fault"]["freesurf2"], _, partialsconst2["trac"]["fault"]["freesurf2"] = partialsconstdispstress(slip2dispstress, els, idx["fault"], idx["freesurf2"], mu, nu)
     partialsconst2["disp"]["freesurf2"]["freesurf2"], _, partialsconst2["trac"]["freesurf2"]["freesurf2"] = partialsconstdispstress(slip2dispstress, els, idx["freesurf2"], idx["freesurf2"], mu, nu)
@@ -85,7 +84,6 @@ function nearsurfaceerror()
     dispfreesurfaceconst2 = inv(partialsconst2["trac"]["freesurf2"]["freesurf2"]) * (partialsconst2["trac"]["fault"]["freesurf2"] * faultslipconst2)
     xplotconst2 = els.xcenter[idx["freesurf2"]]
 
-    
     # Quadratic slip fault
     partialsquad["disp"]["fault"]["freesurf"], _, partialsquad["trac"]["fault"]["freesurf"] = partialsquaddispstress(slip2dispstress, els, idx["fault"], idx["freesurf"], mu, nu)
     partialsquad["disp"]["freesurf"]["freesurf"], _, partialsquad["trac"]["freesurf"]["freesurf"] = partialsquaddispstress(slip2dispstress, els, idx["freesurf"], idx["freesurf"], mu, nu)
@@ -142,13 +140,11 @@ function nearsurfaceerror()
     dispconst = dispfaultconstvol - dispfreesurfaceconstvol # Note negative sign
     stressconst = stressfaultconstvol - stressfreesurfaceconstvol # Note negative sign
 
-
     # HIGH RES: Off-fault displacements and stresses
     dispfaultconstvol2, stressfaultconstvol2 = constdispstress(slip2dispstress, xokada, yokada, els, idx["fault"], faultslipconst[1:2:end], faultslipconst[2:2:end], mu, nu)
     dispfreesurfaceconstvol2, stressfreesurfaceconstvol2 = constdispstress(slip2dispstress, xokada, yokada, els, idx["freesurf2"], dispfreesurfaceconst2[1:2:end], dispfreesurfaceconst2[2:2:end], mu, nu)
     dispconst2 = dispfaultconstvol2 - dispfreesurfaceconstvol2 # Note negative sign
     stressconst2 = stressfaultconstvol2 - stressfreesurfaceconstvol2 # Note negative sign
-
 
     qux = transpose(reshape(dispfreesurfacequad[1:2:end], 3, nfreesurf))
     quy = transpose(reshape(dispfreesurfacequad[2:2:end], 3, nfreesurf))
@@ -173,9 +169,9 @@ function nearsurfaceerror()
     plot(xokada, log10.(abs.(stressquad[:, 1])), "-r", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(stressxxokada[:, 1])), "--k", linewidth=3.0, label="analytic")
     gca().set_xlim([xmin, xmax])
-    gca().set_ylim([0, 8])
+    gca().set_ylim([2, 8])
     gca().set_xticks([xmin, 0, xmax])
-    gca().set_yticks([0, 4, 8])
+    # gca().set_yticks([0, 4, 8])
     legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
     ylabel(L"$\log \, |\sigma_{xx}|$ (Pa)", fontsize=fontsize)
@@ -186,9 +182,9 @@ function nearsurfaceerror()
     plot(xokada, log10.(abs.(stressquad[:, 2])), "-r", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(stressyyokada[:, 1])), "--k", linewidth=3.0, label="analytic")
     gca().set_xlim([xmin, xmax])
-    gca().set_ylim([0, 8])
+    gca().set_ylim([2, 8])
     gca().set_xticks([xmin, 0, xmax])
-    gca().set_yticks([0, 4, 8])
+    # gca().set_yticks([0, 4, 8])
     legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
     ylabel(L"$\log \, |\sigma_{yy}|$ (Pa)", fontsize=fontsize)
@@ -199,9 +195,9 @@ function nearsurfaceerror()
     plot(xokada, log10.(abs.(stressquad[:, 3])), "-r", linewidth=linewidth, label="3QN BEM")
     plot(xokada, log10.(abs.(stressxyokada[:, 1])), "--k", linewidth=3.0, label="analytic")
     gca().set_xlim([xmin, xmax])
-    gca().set_ylim([0, 8])
+    gca().set_ylim([2, 8])
     gca().set_xticks([xmin, 0, xmax])
-    gca().set_yticks([0, 4, 8])
+    # gca().set_yticks([0, 4, 8])
     legend(fontsize=fontsizelegend,frameon=true, facecolor="white", framealpha=1.0, loc=1)
     ax.tick_params("both", labelsize = fontsize)
     ylabel(L"$\log \, |\sigma_{xy}|$ (Pa)", fontsize=fontsize)
@@ -209,11 +205,13 @@ function nearsurfaceerror()
     # Absolute error
     ax = subplot(3, 3, 4)
     stressxxconsterror = abs.(stressconst[:, 1] - stressxxokada[:, 1])
+    stressxxconsterror2 = abs.(stressconst2[:, 1] - stressxxokada[:, 1])
     stressxxquaderror = abs.(stressquad[:, 1] - stressxxokada[:, 1])
     plot(xokada, log10.(abs.(stressxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM mean error = %05.2f" mean(abs.(stressxxconsterror)))
+    plot(xokada, log10.(abs.(stressxxconsterror2)), "-m", linewidth=linewidth, label=@sprintf "3 x CS BEM mean error = %05.2f" mean(abs.(stressxxconsterror2)))
     plot(xokada, log10.(abs.(stressxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM mean error = %05.2f" mean(abs.(stressxxquaderror)))
     gca().set_xlim([xmin, xmax])
-    gca().set_ylim([0, 7])
+    gca().set_ylim([2, 8])
     gca().set_xticks([xmin, 0, xmax])
     # gca().set_yticks([-3, 0, 3, 6])
     legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
@@ -222,11 +220,13 @@ function nearsurfaceerror()
 
     ax = subplot(3, 3, 5)
     stressyyconsterror = abs.(stressconst[:, 2] - stressyyokada[:, 1])
+    stressyyconsterror2 = abs.(stressconst2[:, 2] - stressyyokada[:, 1])
     stressyyquaderror = abs.(stressquad[:, 2] - stressyyokada[:, 1])
     plot(xokada, log10.(abs.(stressyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM mean error = %05.2f" mean(abs.(stressyyconsterror)))
+    plot(xokada, log10.(abs.(stressyyconsterror2)), "-m", linewidth=linewidth, label=@sprintf "3 x CS BEM mean error = %05.2f" mean(abs.(stressyyconsterror2)))
     plot(xokada, log10.(abs.(stressyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM mean error = %05.2f" mean(abs.(stressyyquaderror)))
     gca().set_xlim([xmin, xmax])
-    gca().set_ylim([0, 7])
+    gca().set_ylim([2, 8])
     gca().set_xticks([xmin, 0, xmax])
     # gca().set_yticks([-3, 0, 3, 6])
     lh = legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
@@ -235,11 +235,13 @@ function nearsurfaceerror()
 
     ax = subplot(3, 3, 6)
     stressxyconsterror = abs.(stressconst[:, 3] - stressxyokada[:, 1])
+    stressxyconsterror2 = abs.(stressconst2[:, 3] - stressxyokada[:, 1])
     stressxyquaderror = abs.(stressquad[:, 3] - stressxyokada[:, 1])
     plot(xokada, log10.(abs.(stressxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM mean error = %05.2f" mean(abs.(stressxyconsterror)))
+    plot(xokada, log10.(abs.(stressxyconsterror2)), "-m", linewidth=linewidth, label=@sprintf "3 x CS BEM mean error = %05.2f" mean(abs.(stressxyconsterror2)))
     plot(xokada, log10.(abs.(stressxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM mean error = %05.2f" mean(abs.(stressxyquaderror)))
     gca().set_xlim([xmin, xmax])
-    gca().set_ylim([0, 7])
+    gca().set_ylim([2, 8])
     gca().set_xticks([xmin, 0, xmax])
     # gca().set_yticks([-3, 0, 3, 6])
     legend(fontsize=fontsizelegend, frameon=true, facecolor="white", framealpha=1.0, loc=1)
@@ -248,8 +250,10 @@ function nearsurfaceerror()
 
     ax = subplot(3, 3, 7)
     stressxxconsterror = 100 * (stressconst[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
+    stressxxconsterror2 = 100 * (stressconst2[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
     stressxxquaderror = 100 * (stressquad[:, 1] - stressxxokada[:, 1]) ./ stressxxokada[:, 1]
     plot(xokada, log10.(abs.(stressxxconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressxxconsterror)))
+    plot(xokada, log10.(abs.(stressxxconsterror2)), "-m", linewidth=linewidth, label=@sprintf "3 x CS BEM median %% error = %05.2f" median(abs.(stressxxconsterror2)))
     plot(xokada, log10.(abs.(stressxxquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressxxquaderror)))
     gca().set_xlim([xmin, xmax])
     gca().set_ylim([-3, 6])
@@ -262,8 +266,10 @@ function nearsurfaceerror()
 
     ax = subplot(3, 3, 8)
     stressyyconsterror = 100 * (stressconst[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
+    stressyyconsterror2 = 100 * (stressconst2[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
     stressyyquaderror = 100 * (stressquad[:, 2] - stressyyokada[:, 1]) ./ stressyyokada[:, 1]
     plot(xokada, log10.(abs.(stressyyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressyyconsterror)))
+    plot(xokada, log10.(abs.(stressyyconsterror2)), "-m", linewidth=linewidth, label=@sprintf "3 x CS BEM median %% error = %05.2f" median(abs.(stressyyconsterror2)))
     plot(xokada, log10.(abs.(stressyyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressyyquaderror)))
     gca().set_xlim([xmin, xmax])
     gca().set_ylim([-3, 6])
@@ -276,8 +282,10 @@ function nearsurfaceerror()
 
     ax = subplot(3, 3, 9)
     stressxyconsterror = 100 * (stressconst[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
+    stressxyconsterror2 = 100 * (stressconst2[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
     stressxyquaderror = 100 * (stressquad[:, 3] - stressxyokada[:, 1]) ./ stressxyokada[:, 1]
     plot(xokada, log10.(abs.(stressxyconsterror)), "-c", linewidth=linewidth, label=@sprintf "CS BEM median %% error = %05.2f" median(abs.(stressxyconsterror)))
+    plot(xokada, log10.(abs.(stressxyconsterror2)), "-m", linewidth=linewidth, label=@sprintf "3 x CS BEM median %% error = %05.2f" median(abs.(stressxyconsterror2)))
     plot(xokada, log10.(abs.(stressxyquaderror)), "-r", linewidth=linewidth, label=@sprintf "3QN BEM median %% error = %05.2f" median(abs.(stressxyquaderror)))
     gca().set_xlim([xmin, xmax])
     gca().set_ylim([-3, 6])
