@@ -94,7 +94,7 @@ function nearsurfaceerror()
     
     # Okada solution
     ow = pyimport("okada_wrapper")# from okada_wrapper import dc3dwrapper
-    xokada = collect(LinRange(-10e3, 10e3, 10000))
+    xokada = collect(LinRange(-2e3, 2e3, 10000))
     offset = abs(els.xnodes[1, 2] - els.xnodes[1, 1])
     offset = 100
     @show offset
@@ -154,8 +154,8 @@ function nearsurfaceerror()
     stressquad = stressfaultquadvol - stressfreesurfacequadvol # Note negative sign
 
     # Plot ux and uy profiles
-    xmin = -10e3
-    xmax = 10e3
+    xmin = -2e3
+    xmax = 2e3
     fontsize = 24
     fontsizelegend = 20
     markersize = 15
@@ -167,7 +167,7 @@ function nearsurfaceerror()
     plot(xokada, log10.(abs.(stressconst[:, 1])), "-c", linewidth=linewidth, label="CS BEM")
     plot(xokada, log10.(abs.(stressconst2[:, 1])), "-m", linewidth=linewidth, label="3 x CS BEM")
     plot(xokada, log10.(abs.(stressquad[:, 1])), "-r", linewidth=linewidth, label="3QN BEM")
-    plot(xokada, log10.(abs.(stressxxokada[:, 1])), "--k", linewidth=3.0, label="analytic")
+    plot(xokada, log10.(abs.(stressxxokada)), "--k", linewidth=3.0, label="analytic")
     gca().set_xlim([xmin, xmax])
     gca().set_ylim([2, 8])
     gca().set_xticks([xmin, 0, xmax])
