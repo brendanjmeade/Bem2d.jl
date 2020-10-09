@@ -7,7 +7,7 @@ lambda = 1
 g = 9.81
 
 # Create mesh and define function space
-mesh = UnitSquareMesh(20, 20)
+mesh = UnitSquareMesh(20, 20) # TODO: use RectangleMesh(0.0, 0.0, 10.0, 4.0, 10, 10)
 V = VectorFunctionSpace(mesh, "P", 1)
 c = Constant((0, 0))
 bc = DirichletBC(V, c, "on_boundary && x[1]<1E-14") # What BCs are bing set???
@@ -37,5 +37,5 @@ lvsolve(a, L, u, bc)
 V = FunctionSpace(mesh, "P", 1)
 u_magnitude = sqrt(dot(u, u))
 u_magnitude = project(u_magnitude, V)
-cmap = FEniCS.Plot(u_magnitude)
-colorbar(cmap)
+plothandle = FEniCS.Plot(u_magnitude)
+colorbar(plothandle)
