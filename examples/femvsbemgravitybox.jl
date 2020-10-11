@@ -1,27 +1,15 @@
 using FEniCS
 using PyPlot
 
-
-# Calculate strain from displacment
-function epsilon(u)
-     0.5 * (nabla_grad(u) + Transpose(nabla_grad(u)))
-end
-
-# Calculate stress from displacement
-# s = sigma(u) - (1.0/3.0) * tr(sigma(u)) * Identity(d)
-function sigma(u)
-     lambda * nabla_div(u) * Identity(d) + 2 * mu * epsilon(u)
-end
-
-
 function femvsbemgravitybox()
-    mu = 1
-    lambda = 1
-    rho = 1
+    mu = 3e10
+    lambda = mu
+    rho = 2700
     g = 9.81
+    L = 10e3
 
     # Create mesh and define function space
-    mesh = RectangleMesh(Point((0.0, 0.0)), Point((1.0, 1.0)), 10, 10)
+    mesh = RectangleMesh(Point((-L, 0)), Point((L, 2 * L)), 100, 100)
     V = VectorFunctionSpace(mesh, "P", 1)
     c = Constant((0, 0))
     bc = DirichletBC(V, c, "on_boundary && x[1]<1E-14") # What BCs are bing set???
@@ -30,7 +18,7 @@ function femvsbemgravitybox()
     u = TrialFunction(V)
     d = geometric_dimension(u) # space dimension
     v = TestFunction(V)
-    f = Constant((0, -rho*g)) # Vector of uniform body force
+    f = Constant((0, -rho * g)) # Vector of uniform body force
     T = Constant((0, 0))
     a = inner(sigma(u), epsilon(v)) * dx
     L = dot(f, v) * dx + dot(T, v) * ds
