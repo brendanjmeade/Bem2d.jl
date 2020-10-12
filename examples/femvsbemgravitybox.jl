@@ -1,6 +1,18 @@
 using FEniCS
 using PyPlot
 
+# Calculate strain
+function strain(u)
+    0.5 * (nabla_grad(u) + Transpose(nabla_grad(u)))
+end
+
+
+# Calculate
+function stress(u, lambda, mu)
+     lambda * nabla_div(u) * Identity(2) + 2 * mu * strain(u)
+end
+
+
 function femvsbemgravitybox()
     mu = 3e10
     lambda = mu
@@ -11,8 +23,7 @@ function femvsbemgravitybox()
     # Create mesh and define function space
     mesh = RectangleMesh(Point((-L, 0)), Point((L, 2 * L)), 100, 100)
     V = VectorFunctionSpace(mesh, "P", 1)
-    c = Constant((0, 0))
-    bc = DirichletBC(V, c, "on_boundary && x[1]<1E-14") # What BCs are bing set???
+    bc = DirichletBC(V, Constant((0, 0)), "on_boundary && x[1]<1E-14") # What BCs are bing set???
 
     # Solve
     u = TrialFunction(V)
@@ -20,7 +31,7 @@ function femvsbemgravitybox()
     v = TestFunction(V)
     f = Constant((0, -rho * g)) # Vector of uniform body force
     T = Constant((0, 0))
-    a = inner(sigma(u), epsilon(v)) * dx
+    a = inner(stress(u, lambda, mu), strain(v)) * dx
     L = dot(f, v) * dx + dot(T, v) * ds
     u = FeFunction(V)
     lvsolve(a, L, u, bc)
