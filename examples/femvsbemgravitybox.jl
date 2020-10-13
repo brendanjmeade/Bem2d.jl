@@ -1,6 +1,7 @@
 using Revise
 using FEniCS
 using PyPlot
+using Infiltrator
 using Bem2d
 
 # Calculate strain
@@ -52,6 +53,13 @@ function femvsbemgravitybox()
     colorbar(plothandle)
     title("FEM solution")
 
+    # Evaluating the solution at some other point
+    # I can extract array values with get_array(u)    
+    interppoint = Point((8000, 8000))
+    interpval = u(interppoint)
+
+    return
+    
 
     ###
     ### BEM solution
