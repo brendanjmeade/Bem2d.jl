@@ -27,7 +27,7 @@ function femvsbemgravitybox()
     ### FEM solution
     ###
     # Create mesh and define function space
-    mesh = RectangleMesh(Point((-width, 0)), Point((width, 2 * width)), 100, 100)
+    mesh = RectangleMesh(Point((-width, 0)), Point((width, 2 * width)), 10, 10)
     V = VectorFunctionSpace(mesh, "P", 1)
     bc = DirichletBC(V, Constant((0, 0)), "on_boundary && x[1]<1E-14") # What BCs are bing set???
     
@@ -54,9 +54,16 @@ function femvsbemgravitybox()
     title("FEM solution")
 
     # Evaluating the solution at some other point
-    # I can extract array values with get_array(u)    
-    interppoint = Point((8000, 8000))
-    interpval = u(interppoint)
+    # I can extract array values with get_array(u)
+    # I should be able to get vertex coords with: map = V.dofmap().vertex_to_dof_map(mesh)
+    # ...but that errors out.
+    # interppoint = Point((8000, 8000))
+    # interpval = u(interppoint)
+
+    figure()
+    plot(get_array(u)[2:2:end], "r.")
+
+    @infiltrate
 
     return
     
