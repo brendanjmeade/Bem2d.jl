@@ -12,7 +12,7 @@ function interior_eval(u, x, y)
     def G(u, x, y):
         return u(x, y)
     """
-    py"G"(u.pyobject, 1, 1)
+    py"G"(u.pyobject, x, y)
 end
 
 
@@ -39,7 +39,7 @@ function femvsbemgravitybox()
     ### FEM solution
     ###
     # Create mesh and define function space
-    mesh = RectangleMesh(Point((-width, 0)), Point((width, 2 * width)), 10, 10)
+    mesh = RectangleMesh(Point((-width, 0)), Point((width, 2 * width)), 100, 100)
     V = VectorFunctionSpace(mesh, "P", 1)
     bc = DirichletBC(V, Constant((0, 0)), "on_boundary && x[1]<1E-14") # What BCs are bing set???
     
@@ -59,19 +59,11 @@ function femvsbemgravitybox()
     u_magnitude = sqrt(dot(u, u))
     u_magnitude = project(u_magnitude, V)
     close("all")
-    figure(figsize=(10, 5))
-    subplot(1, 2, 1)
-    plothandle = FEniCS.Plot(u_magnitude)
-    colorbar(plothandle)
-    title("FEM solution")
-
-    # Evaluating the solution at some other point
-    # I can extract array values with get_array(u)
-    # I should be able to get vertex coords with: map = V.dofmap().vertex_to_dof_map(mesh)
-    # ...but that errors out.
-    # interppoint = Point((8000, 8000))
-    # interpval = u(interppoint)
-    @show interior_eval(u, 1, 1)
+    # figure(figsize=(10, 5))
+    # subplot(1, 3, 1)
+    # plothandle = FEniCS.Plot(u_magnitude)
+    # colorbar(plothandle)
+    # title("FEM solution")
 
     ###
     ### BEM solution
@@ -80,7 +72,7 @@ function femvsbemgravitybox()
     nu = 0.25
     nels = 20
     npts = 100
-    offset = 1
+    offset = 10
     x, y = obsgrid(-width+offset, -2*width+offset, width-offset, 0-offset, npts)
 
     # Define BEM geometry
@@ -122,13 +114,42 @@ function femvsbemgravitybox()
     U = @. Uinteriorcomplementary + Uinteriorparticular
     S = @. Sinteriorcomplementary + Sinteriorparticular
     Umag = sqrt.(U[:, 1].^2 + U[:, 2].^2)
-    
-    subplot(1, 2, 2)
+
+    figure(figsize=(16, 4))
+    subplot(1, 3, 1)
     contourf(reshape(x, npts, npts), reshape(y, npts, npts).+2*width, reshape(Umag, npts, npts), 50)
     colorbar()
     gca().set_xlim([-width, width])
     gca().set_ylim([0, 2*width])
     gca().set_aspect("equal")
-    title("BEM solution")
+    title("BEM")
+
+    # Evaluate FEM solution at BEM observation coordinates
+    fematbemux = zeros(length(x))
+    fematbemuy = zeros(length(x))
+    for i in 1:length(x)
+        fematbemux[i], fematbemuy[i] = interior_eval(u, x[i], y[i] + 2 * width)
+    end
+    fematbemumag = sqrt.(fematbemux.^2 + fematbemuy.^2)
+    fematbemumagresid = sqrt.((fematbemux.-U[:, 1]).^2 + (fematbemuy.-U[:, 2]).^2)
+
+    subplot(1, 3, 2)
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts).+2*width,
+             reshape(fematbemumag, npts, npts), 50)
+    colorbar()
+    gca().set_xlim([-width, width])
+    gca().set_ylim([0, 2*width])
+    gca().set_aspect("equal")
+    title("FEM")
+    
+    subplot(1, 3, 3)
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts).+2*width,
+             reshape(log10.(abs.(fematbemumagresid)), npts, npts), 50)
+    colorbar()
+    gca().set_xlim([-width, width])
+    gca().set_ylim([0, 2*width])
+    gca().set_aspect("equal")
+    title("log10(BEM - FEM)")
+    
 end
 femvsbemgravitybox()
