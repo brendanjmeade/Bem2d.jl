@@ -1,8 +1,20 @@
 using Revise
 using FEniCS
+using PyCall
 using PyPlot
 using Infiltrator
 using Bem2d
+
+
+# Evaluation solution at a new point.  T. Ben Thomposon wrote this!
+function interior_eval(u, x, y)
+    py"""
+    def G(u, x, y):
+        return u(x, y)
+    """
+    py"G"(u.pyobject, 1, 1)
+end
+
 
 # Calculate strain
 function strain(u)
@@ -59,14 +71,7 @@ function femvsbemgravitybox()
     # ...but that errors out.
     # interppoint = Point((8000, 8000))
     # interpval = u(interppoint)
-
-    figure()
-    plot(get_array(u)[2:2:end], "r.")
-
-    @infiltrate
-
-    return
-    
+    @show interior_eval(u, 1, 1)
 
     ###
     ### BEM solution
