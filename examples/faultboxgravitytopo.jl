@@ -189,7 +189,7 @@ function faultboxgravity()
     Ttx = zeros(nside)
     Tty = zeros(nside)
     for i in 1:length(Sg[:, 1])
-        nvec = [elsbox.xnormal[idxbox["T"][i]] ; elsbox.ynormal[idxbox["T"][1]]]
+        nvec = [elsbox.xnormal[idxbox["T"][i]] ; elsbox.ynormal[idxbox["T"][i]]]
         temp = [Sg[i, 1] Sg[i, 3] ; Sg[i, 3] Sg[i, 2]] * nvec
         Ttx[i] = temp[1]
         Tty[i] = temp[2]
