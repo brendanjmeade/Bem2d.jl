@@ -142,18 +142,22 @@ function femvsbemgravityhill()
     gca().set_aspect("equal")
     title("FEM")
     
-    subplot(1, 3, 3)
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts).+2*width,
-             reshape(log10.(abs.(fematbemumagresid)), npts, npts), 50)
-    colorbar()
-    gca().set_xlim([-width, width])
-    gca().set_ylim([0, 2*width])
-    gca().set_aspect("equal")
-    title("log10(BEM - FEM)")
+    # subplot(1, 3, 3)
+    # contourf(reshape(x, npts, npts), reshape(y, npts, npts).+2*width,
+    #          reshape(log10.(abs.(fematbemumagresid)), npts, npts), 50)
+    # colorbar()
+    # gca().set_xlim([-width, width])
+    # gca().set_ylim([0, 2*width])
+    # gca().set_aspect("equal")
+    # title("log10(BEM - FEM)")
 
     ###
     ### Box BEM problem (no dislocation, gravity only)
     ###
+
+    # New observaiton coordinates
+    x, y = obsgrid(-width+offset, 0, width-offset, 2*width-offset, npts)
+
     # Define BEM geometry
     elsbox = Elements(Int(1e5))
     x1, y1, x2, y2 = discretizedline(-width, 0, width, 0, nels) # Bottom
@@ -171,6 +175,20 @@ function femvsbemgravityhill()
     bcidxT = [idxbox["R"] ; idxbox["T"]; idxbox["L"]] # Boundaries with *traction* BCs
     bcidxall = collect(1:1:elsbox.endidx) # All boundaries
 
+    T_B_BRTL, H_B_BRTL = PUTC(slip2dispstress, elsbox, idxbox["B"],
+                              [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
+                              mu, nu)
+    T_R_BRTL, H_R_BRTL = PUTC(slip2dispstress, elsbox, idxbox["R"],
+                              [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
+                              mu, nu)
+    T_L_BRTL, H_L_BRTL = PUTC(slip2dispstress, elsbox, idxbox["L"],
+                              [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
+                              mu, nu)
+    T_T_BRTL, H_T_BRTL = PUTC(slip2dispstress, elsbox, idxbox["T"],
+                              [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
+                              mu, nu)
+    THbox = [T_B_BRTL ; H_R_BRTL; H_T_BRTL ; H_L_BRTL]
+    
     # Displacement BCs for bottom
     Ug, Sg = gravityparticularfunctions(elsbox.xcenter[idxbox["B"]],
                                         elsbox.ycenter[idxbox["B"]],
@@ -196,13 +214,28 @@ function femvsbemgravityhill()
     bcsboxgravity *= -1
     Ueffboxparticular = THbox \ bcsboxgravity  
 
-    # Ucomp, Scomp = constdispstress(slip2dispstress, xgrid, ygrid, elsbox,
-    #                                [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
-    #                                Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
-    # Uint, Sint = gravityparticularfunctions(xgrid, ygrid, g, rho, lambda, mu)
-    # Ugravityonly = @. Ucomp + Uint
-    # Sgravityonly = @. Scomp + Sint
-    # twopanel(xgrid, ygrid, npts, Ugravityonly, Sgravityonly, idxbox, elsbox)
+    figure()
+    plot(bcsboxgravity, ".r")
+    return
+    
+    # Forward solution on grid
+    Ucomp, Scomp = constdispstress(slip2dispstress, x, y, elsbox,
+                                   [idxbox["B"] ; idxbox["R"] ; idxbox["T"] ; idxbox["L"]],
+                                   Ueffboxparticular[1:2:end], Ueffboxparticular[2:2:end], mu, nu)
+    Uint, Sint = gravityparticularfunctions(x, y, g, rho, lambda, mu)
+    Ugravityonly = @. Ucomp + Uint
+    Sgravityonly = @. Scomp + Sint
+
+    # bemaboveumag = sqrt.(Ugravityonly[:, 1].^2 + Ugravityonly[:, 2].^2)
+
+    subplot(1, 3, 3)
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts),
+             reshape(bemaboveumag, npts, npts), 50)
+    colorbar()
+    gca().set_xlim([-width, width])
+    gca().set_ylim([0, 2*width])
+    gca().set_aspect("equal")
+    title("BEM - above ground")
 
     
 end
