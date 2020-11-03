@@ -50,12 +50,10 @@ Experiments with gravity body force.
 """
 function gravitysquareparticular()
     # TODO: It's strange that the top of the model has to be at zero.  Can we generalize this?
-    # TODO: Rule of thumb for choosing precondtioner value (alpha)?
     # TODO: Make a version of gravityparticularfunctions() for BC generation
 
     close("all")
 
-    alpha = 7e-8 # scalar preconditioner for traction terms
     fontsize = 20
     mu = 3e10
     lambda = 3e10
@@ -66,10 +64,9 @@ function gravitysquareparticular()
     npts = 100
     L = 1e4
     offset = 10
-    # x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts) 
+    x, y = obsgrid(-L+offset, -2*L+offset, L-offset, 0-offset, npts) 
 
     plotparticular(g, rho, lambda, mu)
-    return
 
     # Define BEM geometry
     els = Elements(Int(1e5))
@@ -91,7 +88,7 @@ function gravitysquareparticular()
     # Gravity square problem with quadratic elements
     T_pU_qall, _ = PUTQ(slip2dispstress, els, bcidxU, bcidxall, mu, nu)
     _, H_pT_qall = PUTQ(slip2dispstress, els, bcidxT, bcidxall, mu, nu)
-    TH = [T_pU_qall ; alpha .* H_pT_qall] # Assemble combined linear operator
+    TH = [T_pU_qall ; H_pT_qall] # Assemble combined linear operator
 
     # Particular solution and effective boundary conditions
     xnodes = transpose(els.xnodes[idx["B"], :])[:]
@@ -113,8 +110,7 @@ function gravitysquareparticular()
     Umag = sqrt.(U[:, 1].^2 + U[:, 2].^2)
 
     figure()
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts),
-             reshape(Umag, npts, npts), 50)
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(Umag, npts, npts), 50)
     colorbar()
     gca().set_aspect("equal")
     title("BEM - below ground")
@@ -124,19 +120,8 @@ function gravitysquareparticular()
     #####
     # New observaiton coordinates
     x, y = obsgrid(-L+offset, 0, L-offset, 2*L-offset, npts)
-
-    # Define BEM geometry
-    # elsbox = Elements(Int(1e5))
-    # x1, y1, x2, y2 = discretizedline(-L, 0, L, 0, nels) # Bottom
-    # addelsez!(elsbox, x1, y1, x2, y2, "B")
-    # x1, y1, x2, y2 = discretizedline(L, 0, L, 2*L, nels) # Right hand side
-    # addelsez!(elsbox, x1, y1, x2, y2, "R")
-    # x1, y1, x2, y2 = discretizedline(L, 2*L, -L, 2*L, nels) # Top
-    # addelsez!(elsbox, x1, y1, x2, y2, "T")
-    # x1, y1, x2, y2 = discretizedline(-L, 2*L, -L, 0, nels) # Left hand side
-    # addelsez!(elsbox, x1, y1, x2, y2, "L")
-    # Define BEM geometry
     num = -2*L
+    num = 0
     y = y .+ num
     elsbox = Elements(Int(1e5))
     x1, y1, x2, y2 = discretizedline(-L, 0+num, L, 0+num, nels) # Bottom
