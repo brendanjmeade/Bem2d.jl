@@ -68,36 +68,38 @@ function gravitysquareparticular()
     x1, y1, x2, y2 = discretizedline(-L, 0, -L, -2*L, nels) # Left hand side
     addelsez!(els, x1, y1, x2, y2, "L")
 
-    Umagbelow = bemsolve(els, nels, g, rho, lambda, mu, nu, x, y)
-    figure();
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(Umagbelow, npts, npts), 50)
+    Umag = bemsolve(els, nels, g, rho, lambda, mu, nu, x, y)
+    figure(figsize=(15, 5))
+    subplot(1, 3, 1)
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(Umag, npts, npts), 50)
     colorbar()
     gca().set_aspect("equal")
-    title("BEM - below ground")
+    title("y(top) = 0")
 
     ##### Now with top of box not at zero
-    yoffset = 0
-    # x, y = obsgrid(-L+offset, 0, L-offset, 2*L-offset, npts)
+    xoffset = 0 # Horizontal box translation...works fine
+    yoffset = 2 * L
+    x .+= xoffset
+    els.x1 .+= xoffset
+    els.x2 .+= xoffset
+    els.xcenter .+= xoffset
     y .+= yoffset
     els.y1 .+= yoffset
     els.y2 .+= yoffset
     els.ycenter .+= yoffset
 
-    # els = Elements(Int(1e5))
-    # x1, y1, x2, y2 = discretizedline(-L, 0+yoffset, L, 0+yoffset, nels) # Bottom
-    # addelsez!(els, x1, y1, x2, y2, "B")
-    # x1, y1, x2, y2 = discretizedline(L, 0+yoffset, L, 2*L+yoffset, nels) # Right hand side
-    # addelsez!(els, x1, y1, x2, y2, "R")
-    # x1, y1, x2, y2 = discretizedline(L, 2*L+yoffset, -L, 2*L+yoffset, nels) # Top
-    # addelsez!(els, x1, y1, x2, y2, "T")
-    # x1, y1, x2, y2 = discretizedline(-L, 2*L+yoffset, -L, 0+yoffset, nels) # Left hand side
-    # addelsez!(els, x1, y1, x2, y2, "L")
-
-    Umagabove = bemsolve(els, nels, g, rho, lambda, mu, nu, x, y)
-    figure();
-    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(Umagabove, npts, npts), 50)
+    Umagoffset = bemsolve(els, nels, g, rho, lambda, mu, nu, x, y)
+    subplot(1, 3, 2)
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(Umagoffset, npts, npts), 50)
     colorbar()
     gca().set_aspect("equal")
-    title("BEM - above ground")
+    title("y(top) = yoffset")
+
+    subplot(1, 3, 3)
+    contourf(reshape(x, npts, npts), reshape(y, npts, npts), reshape(abs.(Umagoffset - Umag), npts, npts), 50)
+    colorbar()
+    gca().set_aspect("equal")
+    title("residual")
+
 end
 gravitysquareparticular()
