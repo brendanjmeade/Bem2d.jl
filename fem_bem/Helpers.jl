@@ -2,6 +2,7 @@ using PyCall
 using PyPlot
 using FEniCS
 
+    
 function fenics_plot_scalar(f)
     py"""
     from fenics import *
@@ -47,17 +48,11 @@ function fenics_stress(u, lambda, mu)
 end
 
 function fenics_solve(V, f)
-    # Create mesh and define function space
- 
-    bc = DirichletBC(V, Constant((0, 0)), "on_boundary") # What BCs are bing set???
-
-    # Solve
+    bc = DirichletBC(V, Constant((0, 0)), "on_boundary")
     u = TrialFunction(V)
-    d = geometric_dimension(u) # space dimension
     v = TestFunction(V)
-    T = Constant((0, 0))
     a = inner(fenics_stress(u, lambda, mu), fenics_strain(v)) * dx
-    L = FEniCS.dot(f, v) * dx + FEniCS.dot(T, v) * ds
+    L = FEniCS.dot(f, v) * dx
     u = FeFunction(V)
     lvsolve(a, L, u, bc)
     u
