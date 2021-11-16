@@ -1,6 +1,9 @@
 # Bem2d.jl
 Bem2d.jl is a Julia library for two-dimensional plane strain linear elastic boundary element (BEM) calculations related to earthquakes and tectonics.
 
+The ideas behind Bem2d.jl are described in detail in the paper:
+["Bem2d.jl: A quadratic co-location two-dimensional boundary element approach to quasi-static faulting problems with gravity and non-planar topography", Meade, Thompson 2021, Computers & Geoscience](https://www.sciencedirect.com/science/article/pii/S0098300421002363#b23)
+
 ## Package Features
   - Analytic quadratic slip and traction elements (Portella et al., 1992)
   - Surface topography & non-planar fault surfaces
